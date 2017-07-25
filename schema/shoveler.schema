@@ -1,0 +1,7 @@
+package shoveler;
+
+component Foo {
+  id = 1337;
+  int32 value = 1;
+}
+
