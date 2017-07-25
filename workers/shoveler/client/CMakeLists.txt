@@ -5,4 +5,4 @@ set(SHOVELER_CLIENT_SRC
 )
 
 add_executable(ShovelerClient ${SHOVELER_CLIENT_SRC})
-target_link_libraries(ShovelerClient worker_sdk)
+target_link_libraries(ShovelerClient worker_sdk shoveler)
