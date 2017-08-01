@@ -43,20 +43,16 @@
           },
           {
             "name": "Run CMake",
-            "command": "cmake",
-            "working_path": "build",
+            "command": "bash",
             "arguments": [
-              ".."
+              "cmake.sh"
             ]
           },
           {
             "name": "Build",
-            "command": "cmake",
-            "working_path": "build",
+            "command": "bash",
             "arguments": [
-              "--build",
-              ".",
-              "--target",
+              "cmake-build.sh",
               "seeder"
             ]
           },
@@ -70,10 +66,9 @@
           },
           {
             "name": "Generate seed snapshot",
-            "working_path": "build/seeder",
-            "command": "./seeder",
+            "command": "bash",
             "arguments": [
-              "../../../../snapshots/default.snapshot"
+              "generate-seed-snapshot.sh"
             ]
           }
         ]

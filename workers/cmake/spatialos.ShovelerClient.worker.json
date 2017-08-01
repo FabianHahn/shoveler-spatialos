@@ -43,20 +43,16 @@
           },
           {
             "name": "Run CMake",
-            "command": "cmake",
-            "working_path": "build",
+            "command": "bash",
             "arguments": [
-              ".."
+              "cmake.sh"
             ]
           },
           {
             "name": "Build",
-            "command": "cmake",
-            "working_path": "build",
+            "command": "bash",
             "arguments": [
-              "--build",
-              ".",
-              "--target",
+              "cmake-build.sh",
               "ShovelerClient"
             ]
           }
