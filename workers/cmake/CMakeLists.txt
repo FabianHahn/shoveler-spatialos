@@ -15,6 +15,6 @@ target_include_directories(schema SYSTEM PUBLIC ${GENERATED_CODE_DIR})
 target_link_libraries(schema PRIVATE worker_sdk)
 
 add_subdirectory(client)
-add_subdirectory(shoveler_lib)
+add_subdirectory(shoveler)
 add_subdirectory(worker_sdk)
 
