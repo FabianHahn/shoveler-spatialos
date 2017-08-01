@@ -1,7 +1,18 @@
 package shoveler;
 
-component Foo {
-  id = 1337;
-  int32 value = 1;
+type Color {
+	float r = 1;
+	float g = 2;
+	float b = 3;
+}
+
+component Client {
+	id = 1337;
+}
+
+component Plane {
+	id = 1338;
+	Color color = 1;
+	float size = 2;
 }
 

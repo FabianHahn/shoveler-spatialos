@@ -57,7 +57,23 @@
               "--build",
               ".",
               "--target",
-              "ShovelerClient"
+              "seeder"
+            ]
+          },
+          {
+            "name": "Create snapshot directory",
+            "command": "mkdir",
+            "arguments": [
+              "-p",
+              "../../snapshots"
+            ]
+          },
+          {
+            "name": "Generate seed snapshot",
+            "working_path": "build/seeder",
+            "command": "./seeder",
+            "arguments": [
+              "../../../../snapshots/default.snapshot"
             ]
           }
         ]
@@ -95,19 +111,16 @@
     ]
   },
   "bridge": {
-    "worker_attribute_set": {
-      "attributes": [
-        "client"
-      ]
+    "componentDelivery": {
+      "default": "RELIABLE_ORDERED",
+      "checkoutAllInitially": false,
+      "override": {}
     },
     "entity_interest": {
-      "range_entity_interest": {
-        "radius": 400
-      }
+      "range_entity_interest": {}
     },
-    "component_delivery": {
-      "default": "RELIABLE_ORDERED",
-      "checkout_all_initially": true
+    "worker_attribute_set": {
+      "attributes": []
     }
   }
 }
