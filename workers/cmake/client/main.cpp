@@ -4,6 +4,8 @@ extern "C" {
 #include <camera/identity.h>
 #include <game.h>
 #include <log.h>
+
+#include "worker_view.h"
 }
 
 static void updateGame(ShovelerGame *game, double dt);
@@ -39,11 +41,22 @@ int main(int argc, char **argv) {
 	bool disconnected = false;
 	worker::Dispatcher dispatcher;
 
+	ShovelerSpatialOsWorkerView *view = shovelerSpatialOsWorkerViewCreate();
+
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
 	});
 
+	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
+		shovelerLogInfo("Adding entity %lld.", op.EntityId);
+		shovelerSpatialOsWorkerViewAddEntity(view, op.EntityId);
+	});
+
+	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
+		shovelerLogInfo("Removing entity %lld.", op.EntityId);
+		shovelerSpatialOsWorkerViewRemoveEntity(view, op.EntityId);
+	});
 
 	game->camera = shovelerCameraIdentityCreate();
 	game->scene = shovelerSceneCreate();
@@ -57,6 +70,8 @@ int main(int argc, char **argv) {
 
 	shovelerCameraFree(game->camera);
 	shovelerSceneFree(game->scene);
+
+	shovelerSpatialOsWorkerViewFree(view);
 
 	shovelerGameFree(game);
 }
