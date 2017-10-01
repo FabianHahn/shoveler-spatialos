@@ -11,10 +11,17 @@ extern "C" {
 #include "worker_view.h"
 }
 
+using shoveler::Drawable;
+using shoveler::DrawableType;
+using shoveler::Material;
+using shoveler::MaterialType;
+using shoveler::Model;
 using improbable::Coordinates;
 using improbable::Position;
 
 static void updateGame(ShovelerGame *game, double dt);
+static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
+static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
 
 int main(int argc, char **argv) {
 	if (argc != 4) {
@@ -84,6 +91,38 @@ int main(int argc, char **argv) {
 		shovelerSpatialOsWorkerViewRemoveEntityPosition(view, op.EntityId);
 	});
 
+	dispatcher.OnAddComponent<Model>([&](const worker::AddComponentOp<Model>& op) {
+		shovelerLogInfo("Adding model to entity %lld.", op.EntityId);
+		ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(op.Data.drawable());
+		ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration = createMaterialConfiguration(op.Data.material());
+		shovelerSpatialOsWorkerViewAddEntityModel(view, op.EntityId, drawableConfiguration, materialConfiguration);
+	});
+
+	dispatcher.OnComponentUpdate<Model>([&](const worker::ComponentUpdateOp<Model>& op) {
+		shovelerLogInfo("Updating model for entity %lld.", op.EntityId);
+
+		ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration;
+		ShovelerSpatialOsWorkerViewDrawableConfiguration *optionalDrawableConfiguration = NULL;
+		if(op.Update.drawable()) {
+			drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
+			optionalDrawableConfiguration = &drawableConfiguration;
+		}
+
+		ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration;
+		ShovelerSpatialOsWorkerViewMaterialConfiguration *optionalMaterialConfiguration = NULL;
+		if(op.Update.material()) {
+			materialConfiguration = createMaterialConfiguration(*op.Update.material());
+			optionalMaterialConfiguration = &materialConfiguration;
+		}
+
+		shovelerSpatialOsWorkerViewUpdateEntityModel(view, op.EntityId, optionalDrawableConfiguration, optionalMaterialConfiguration);
+	});
+
+	dispatcher.OnRemoveComponent<Model>([&](const worker::RemoveComponentOp& op) {
+		shovelerLogInfo("Removing model from entity %lld.", op.EntityId);
+		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
+	});
+
 	game->camera = shovelerCameraIdentityCreate();
 	game->scene = shovelerSceneCreate();
 	game->update = updateGame;
@@ -105,4 +144,43 @@ int main(int argc, char **argv) {
 static void updateGame(ShovelerGame *game, double dt)
 {
 
+}
+
+static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
+{
+	ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration;
+	switch(drawable.type()) {
+		case DrawableType::CUBE:
+			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE;
+			break;
+		case DrawableType::QUAD:
+			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_QUAD;
+			break;
+		default:
+			shovelerLogWarning("Tried to create drawable configuration with invalid drawable type %d, defaulting to cube.", drawable.type());
+			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE;
+			break;
+	}
+	return drawableConfiguration;
+}
+
+static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material)
+{
+	ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration;
+	switch(material.type()) {
+		case MaterialType::COLOR:
+			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
+			materialConfiguration.color = ShovelerVector3{material.color().r(), material.color().g(), material.color().b()};
+			break;
+		case MaterialType::TEXTURE:
+			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_TEXTURE;
+			materialConfiguration.texture = material.texture().c_str();
+			break;
+		default:
+			shovelerLogWarning("Tried to create material configuration with invalid material type %d, defaulting to color.", material.type());
+			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
+			materialConfiguration.color = ShovelerVector3{material.color().r(), material.color().g(), material.color().b()};
+			break;
+	}
+	return materialConfiguration;
 }
