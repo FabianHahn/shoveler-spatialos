@@ -1,12 +1,18 @@
+#include <improbable/standard_library.h>
 #include <improbable/worker.h>
+#include <shoveler.h>
 
 extern "C" {
 #include <camera/identity.h>
 #include <game.h>
 #include <log.h>
+#include <types.h>
 
 #include "worker_view.h"
 }
+
+using improbable::Coordinates;
+using improbable::Position;
 
 static void updateGame(ShovelerGame *game, double dt);
 
@@ -56,6 +62,26 @@ int main(int argc, char **argv) {
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
 		shovelerLogInfo("Removing entity %lld.", op.EntityId);
 		shovelerSpatialOsWorkerViewRemoveEntity(view, op.EntityId);
+	});
+
+	dispatcher.OnAddComponent<Position>([&](const worker::AddComponentOp<Position>& op) {
+		shovelerLogInfo("Adding position to entity %lld.", op.EntityId);
+		ShovelerVector3 position{(float) op.Data.coords().x(), (float) op.Data.coords().y(), (float) op.Data.coords().z()};
+		shovelerSpatialOsWorkerViewAddEntityPosition(view, op.EntityId, position);
+	});
+
+	dispatcher.OnComponentUpdate<Position>([&](const worker::ComponentUpdateOp<Position>& op) {
+		shovelerLogInfo("Updating position for entity %lld.", op.EntityId);
+		if(op.Update.coords()) {
+			const Coordinates& coordinates = *op.Update.coords();
+			ShovelerVector3 position{(float) coordinates.x(), (float) coordinates.y(), (float) coordinates.z()};
+			shovelerSpatialOsWorkerViewUpdateEntityPosition(view, op.EntityId, position);
+		}
+	});
+
+	dispatcher.OnRemoveComponent<Position>([&](const worker::RemoveComponentOp& op) {
+		shovelerLogInfo("Removing position from entity %lld.", op.EntityId);
+		shovelerSpatialOsWorkerViewRemoveEntityPosition(view, op.EntityId);
 	});
 
 	game->camera = shovelerCameraIdentityCreate();
