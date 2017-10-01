@@ -4,6 +4,7 @@
 
 extern "C" {
 #include <camera/identity.h>
+#include <light/point.h>
 #include <game.h>
 #include <log.h>
 #include <types.h>
@@ -126,6 +127,9 @@ int main(int argc, char **argv) {
 	game->camera = shovelerCameraIdentityCreate();
 	game->scene = shovelerSceneCreate();
 	game->update = updateGame;
+
+	ShovelerLightPoint *pointlight = shovelerLightPointCreate((ShovelerVector3){0, 5, 0}, 1024, 1024, 1, 0.0f, 80.0f, (ShovelerVector3){1.0f, 1.0f, 1.0f});
+	shovelerSceneAddLight(game->scene, &pointlight->light);
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
 		dispatcher.Process(connection.GetOpList(0));
