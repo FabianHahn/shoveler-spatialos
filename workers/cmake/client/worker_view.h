@@ -8,6 +8,7 @@
 #include <drawable.h>
 #include <material.h>
 #include <model.h>
+#include <scene.h>
 #include <types.h>
 
 typedef enum {
@@ -31,6 +32,7 @@ typedef struct {
 } ShovelerSpatialOsWorkerViewMaterialConfiguration;
 
 typedef struct {
+	ShovelerScene *scene;
 	/** map from entity id (long long int) to entities (ShovelerSpatialOsWorkerViewEntity *) */
 	GHashTable *entities;
 	ShovelerDrawable *cube;
@@ -44,7 +46,7 @@ typedef struct {
 	ShovelerModel *model;
 } ShovelerSpatialOsWorkerViewEntity;
 
-ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate();
+ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate(ShovelerScene *scene);
 bool shovelerSpatialOsWorkerViewAddEntity(ShovelerSpatialOsWorkerView *view, long long int entityId);
 bool shovelerSpatialOsWorkerViewRemoveEntity(ShovelerSpatialOsWorkerView *view, long long int entityId);
 bool shovelerSpatialOsWorkerViewAddEntityPosition(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 position);

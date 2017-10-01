@@ -3,8 +3,9 @@
 #include <shoveler.h>
 
 extern "C" {
-#include <camera/identity.h>
+#include <camera/perspective.h>
 #include <light/point.h>
+#include <constants.h>
 #include <game.h>
 #include <log.h>
 #include <types.h>
@@ -55,7 +56,10 @@ int main(int argc, char **argv) {
 	bool disconnected = false;
 	worker::Dispatcher dispatcher;
 
-	ShovelerSpatialOsWorkerView *view = shovelerSpatialOsWorkerViewCreate();
+	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
+	game->scene = shovelerSceneCreate();
+	game->update = updateGame;
+	ShovelerSpatialOsWorkerView *view = shovelerSpatialOsWorkerViewCreate(game->scene);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
@@ -123,10 +127,6 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Removing model from entity %lld.", op.EntityId);
 		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
-
-	game->camera = shovelerCameraIdentityCreate();
-	game->scene = shovelerSceneCreate();
-	game->update = updateGame;
 
 	ShovelerLightPoint *pointlight = shovelerLightPointCreate((ShovelerVector3){0, 5, 0}, 1024, 1024, 1, 0.0f, 80.0f, (ShovelerVector3){1.0f, 1.0f, 1.0f});
 	shovelerSceneAddLight(game->scene, &pointlight->light);

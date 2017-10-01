@@ -10,12 +10,14 @@
 
 static ShovelerDrawable *createDrawable(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewDrawableConfiguration configuration);
 static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewMaterialConfiguration configuration);
+static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity);
 static void freeEntity(void *entityPointer);
 static void freeComponent(void *componentPointer);
 
-ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate()
+ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate(ShovelerScene *scene)
 {
 	ShovelerSpatialOsWorkerView *view = malloc(sizeof(ShovelerSpatialOsWorkerView));
+	view->scene = scene;
 	view->entities = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, freeEntity);
 	view->cube = shovelerDrawableCubeCreate();
 	view->quad = shovelerDrawableQuadCreate();
@@ -60,6 +62,7 @@ bool shovelerSpatialOsWorkerViewAddEntityPosition(ShovelerSpatialOsWorkerView *v
 
 	entity->position = malloc(sizeof(ShovelerVector3));
 	*entity->position = position;
+	updateEntityPosition(entity);
 	return true;
 }
 
@@ -77,6 +80,7 @@ bool shovelerSpatialOsWorkerViewUpdateEntityPosition(ShovelerSpatialOsWorkerView
 	}
 
 	*entity->position = position;
+	updateEntityPosition(entity);
 	return true;
 }
 
@@ -124,6 +128,8 @@ bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view
 	}
 
 	entity->model = shovelerModelCreate(drawable, material);
+	shovelerSceneAddModel(view->scene, entity->model);
+	updateEntityPosition(entity);
 	return true;
 }
 
@@ -143,7 +149,10 @@ bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *v
 	ShovelerDrawable *drawable = entity->model->drawable;
 	ShovelerMaterial *material = entity->model->material;
 
-	shovelerModelFree(entity->model);
+	// TODO: remove model from scene
+	// shovelerModelFree(entity->model);
+	entity->model->visible = false;
+	entity->model = NULL;
 
 	if (optionalDrawableConfiguration != NULL) {
 		drawable = createDrawable(view, *optionalDrawableConfiguration);
@@ -155,6 +164,8 @@ bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *v
 	}
 
 	entity->model = shovelerModelCreate(drawable, material);
+	shovelerSceneAddModel(view->scene, entity->model);
+	updateEntityPosition(entity);
 	return true;
 }
 
@@ -171,7 +182,9 @@ bool shovelerSpatialOsWorkerViewRemoveEntityModel(ShovelerSpatialOsWorkerView *v
 		return false;
 	}
 
-	shovelerModelFree(entity->model);
+	// TODO: remove model from scene
+	// shovelerModelFree(entity->model);
+	entity->model->visible = false;
 	entity->model = NULL;
 	return true;
 }
@@ -211,6 +224,16 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, Shove
 			shovelerLogWarning("Trying to create model with unknown material type %d, ignoring.", configuration.type);
 			return NULL;
 	}
+}
+
+static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity)
+{
+	if(entity->position == NULL || entity->model == NULL) {
+		return;
+	}
+
+	entity->model->translation = *entity->position;
+	shovelerModelUpdateTransformation(entity->model);
 }
 
 static void freeEntity(void *entityPointer)
