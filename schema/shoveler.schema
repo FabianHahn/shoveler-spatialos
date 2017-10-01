@@ -6,6 +6,26 @@ type Color {
 	float b = 3;
 }
 
+enum DrawableType {
+	CUBE = 0;
+	QUAD = 1;
+}
+
+type Drawable {
+	DrawableType type = 1;
+}
+
+enum MaterialType {
+	COLOR = 0;
+	TEXTURE = 1;
+}
+
+type Material {
+	MaterialType type = 1;
+	Color color = 2;
+	string texture = 3;
+}
+
 component Client {
 	id = 1337;
 }
@@ -16,3 +36,8 @@ component Plane {
 	float size = 2;
 }
 
+component Model {
+	id = 1339;
+	Drawable drawable = 1;
+	Material material = 2;
+}
