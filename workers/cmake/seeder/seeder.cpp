@@ -4,6 +4,12 @@
 #include <unordered_map>
 
 using shoveler::Client;
+using shoveler::Color;
+using shoveler::Drawable;
+using shoveler::DrawableType;
+using shoveler::Material;
+using shoveler::MaterialType;
+using shoveler::Model;
 using shoveler::Plane;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
@@ -20,6 +26,10 @@ int main(int argc, char **argv) {
 	}
 
 	std::string path(argv[1]);
+
+	Color grayColor{0.7f, 0.7f, 0.7f};
+	Drawable quadDrawable{DrawableType::QUAD};
+	Material grayColorMaterial{MaterialType::COLOR, grayColor, ""};
 
 	WorkerAttributeSet clientAttributeSet({"client"});
 	WorkerRequirementSet clientRequirementSet({clientAttributeSet});
@@ -42,6 +52,7 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<Position>({{0, 0, 0}});
 	planeEntity.Add<Plane>({{0.5, 0.5, 0.5}, 10.0});
+	planeEntity.Add<Model>({quadDrawable, grayColorMaterial});
 	worker::Map<std::uint32_t, WorkerRequirementSet> planeComponentAclMap;
 	EntityAclData planeEntityAclData(clientRequirementSet, planeComponentAclMap);
 	planeEntity.Add<EntityAcl>(planeEntityAclData);
