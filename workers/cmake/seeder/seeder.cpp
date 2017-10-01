@@ -28,8 +28,10 @@ int main(int argc, char **argv) {
 	std::string path(argv[1]);
 
 	Color grayColor{0.7f, 0.7f, 0.7f};
+	Drawable cubeDrawable{DrawableType::CUBE};
 	Drawable quadDrawable{DrawableType::QUAD};
 	Material grayColorMaterial{MaterialType::COLOR, grayColor, ""};
+	worker::Map<std::uint32_t, WorkerRequirementSet> emptyComponentAclMap;
 
 	WorkerAttributeSet clientAttributeSet({"client"});
 	WorkerRequirementSet clientRequirementSet({clientAttributeSet});
@@ -53,10 +55,17 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Position>({{0, 0, 0}});
 	planeEntity.Add<Plane>({{0.5, 0.5, 0.5}, 10.0});
 	planeEntity.Add<Model>({quadDrawable, grayColorMaterial});
-	worker::Map<std::uint32_t, WorkerRequirementSet> planeComponentAclMap;
-	EntityAclData planeEntityAclData(clientRequirementSet, planeComponentAclMap);
-	planeEntity.Add<EntityAcl>(planeEntityAclData);
+	EntityAclData planeEntityAclData(clientRequirementSet, emptyComponentAclMap);
+	planeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[2] = planeEntity;
+
+	worker::Entity cubeEntity;
+	cubeEntity.Add<Metadata>({"cube"});
+	cubeEntity.Add<Persistence>({});
+	cubeEntity.Add<Position>({{0, 0, 5}});
+	cubeEntity.Add<Model>({cubeDrawable, grayColorMaterial});
+	cubeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
+	entities[3] = cubeEntity;
 
 	worker::SaveSnapshot(path, entities);
 	return 0;
