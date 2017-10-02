@@ -149,9 +149,7 @@ bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *v
 	ShovelerDrawable *drawable = entity->model->drawable;
 	ShovelerMaterial *material = entity->model->material;
 
-	// TODO: remove model from scene
-	// shovelerModelFree(entity->model);
-	entity->model->visible = false;
+	shovelerSceneRemoveModel(view->scene, entity->model);
 	entity->model = NULL;
 
 	if (optionalDrawableConfiguration != NULL) {
@@ -182,9 +180,7 @@ bool shovelerSpatialOsWorkerViewRemoveEntityModel(ShovelerSpatialOsWorkerView *v
 		return false;
 	}
 
-	// TODO: remove model from scene
-	// shovelerModelFree(entity->model);
-	entity->model->visible = false;
+	shovelerSceneRemoveModel(view->scene, entity->model);
 	entity->model = NULL;
 	return true;
 }
@@ -240,6 +236,10 @@ static void freeEntity(void *entityPointer)
 {
 	ShovelerSpatialOsWorkerViewEntity *entity = entityPointer;
 	free(entity->position);
-	free(entity->model);
+
+	if(entity->model != NULL) {
+		shovelerSceneRemoveModel(entity->view->scene, entity->model);
+	}
+
 	free(entity);
 }
