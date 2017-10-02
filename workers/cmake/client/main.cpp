@@ -137,10 +137,10 @@ int main(int argc, char **argv) {
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
+	shovelerSpatialOsWorkerViewFree(view);
+
 	shovelerCameraFree(game->camera);
 	shovelerSceneFree(game->scene);
-
-	shovelerSpatialOsWorkerViewFree(view);
 
 	shovelerGameFree(game);
 }
