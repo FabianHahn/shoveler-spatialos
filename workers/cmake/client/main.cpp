@@ -3,12 +3,12 @@
 #include <shoveler.h>
 
 extern "C" {
-#include <camera/perspective.h>
-#include <light/point.h>
-#include <constants.h>
-#include <game.h>
-#include <log.h>
-#include <types.h>
+#include <shoveler/camera/perspective.h>
+#include <shoveler/light/point.h>
+#include <shoveler/constants.h>
+#include <shoveler/game.h>
+#include <shoveler/log.h>
+#include <shoveler/types.h>
 
 #include "worker_view.h"
 }

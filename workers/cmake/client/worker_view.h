@@ -5,11 +5,11 @@
 
 #include <glib.h>
 
-#include <drawable.h>
-#include <material.h>
-#include <model.h>
-#include <scene.h>
-#include <types.h>
+#include <shoveler/drawable.h>
+#include <shoveler/material.h>
+#include <shoveler/model.h>
+#include <shoveler/scene.h>
+#include <shoveler/types.h>
 
 typedef enum {
 	SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE,

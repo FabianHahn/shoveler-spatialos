@@ -1,10 +1,10 @@
 #include <stdlib.h> // malloc free
 
-#include <drawable/cube.h>
-#include <drawable/quad.h>
-#include <material/color.h>
-#include <material/texture.h>
-#include <log.h>
+#include <shoveler/drawable/cube.h>
+#include <shoveler/drawable/quad.h>
+#include <shoveler/material/color.h>
+#include <shoveler/material/texture.h>
+#include <shoveler/log.h>
 
 #include "worker_view.h"
 
