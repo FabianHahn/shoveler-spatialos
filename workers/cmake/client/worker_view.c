@@ -12,7 +12,6 @@ static ShovelerDrawable *createDrawable(ShovelerSpatialOsWorkerView *view, Shove
 static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewMaterialConfiguration configuration);
 static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity);
 static void freeEntity(void *entityPointer);
-static void freeComponent(void *componentPointer);
 
 ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate(ShovelerScene *scene)
 {
