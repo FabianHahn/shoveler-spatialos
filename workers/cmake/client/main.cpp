@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
 
-	ShovelerLightPoint *pointlight = shovelerLightPointCreate((ShovelerVector3){0, 5, 0}, 1024, 1024, 1, 0.0f, 80.0f, (ShovelerVector3){1.0f, 1.0f, 1.0f});
+	ShovelerLightPoint *pointlight = shovelerLightPointCreate(ShovelerVector3{0, 5, 0}, 1024, 1024, 1, 0.0f, 80.0f, ShovelerVector3{1.0f, 1.0f, 1.0f});
 	shovelerSceneAddLight(game->scene, &pointlight->light);
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
