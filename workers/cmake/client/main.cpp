@@ -6,6 +6,7 @@ extern "C" {
 #include <shoveler/camera/perspective.h>
 #include <shoveler/light/point.h>
 #include <shoveler/constants.h>
+#include <shoveler/controller.h>
 #include <shoveler/game.h>
 #include <shoveler/log.h>
 #include <shoveler/types.h>
@@ -24,6 +25,8 @@ using improbable::Position;
 static void updateGame(ShovelerGame *game, double dt);
 static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
+
+static ShovelerController *controller;
 
 int main(int argc, char **argv) {
 	if (argc != 4) {
@@ -59,6 +62,10 @@ int main(int argc, char **argv) {
 	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
 	game->scene = shovelerSceneCreate();
 	game->update = updateGame;
+
+	controller = shovelerControllerCreate(game, 2.0f, 0.0005f);
+	shovelerCameraPerspectiveAttachController(game->camera, controller);
+
 	ShovelerSpatialOsWorkerView *view = shovelerSpatialOsWorkerViewCreate(game->scene);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
@@ -128,7 +135,7 @@ int main(int argc, char **argv) {
 		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
 
-	ShovelerLightPoint *pointlight = shovelerLightPointCreate(ShovelerVector3{0, 5, 0}, 1024, 1024, 1, 0.0f, 80.0f, ShovelerVector3{1.0f, 1.0f, 1.0f});
+	ShovelerLightPoint *pointlight = shovelerLightPointCreate(ShovelerVector3{0, 5, 0}, 1024, 1024, 1, 0.01f, 80.0f, ShovelerVector3{1.0f, 1.0f, 1.0f});
 	shovelerSceneAddLight(game->scene, &pointlight->light);
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
@@ -139,6 +146,8 @@ int main(int argc, char **argv) {
 
 	shovelerSpatialOsWorkerViewFree(view);
 
+	shovelerControllerFree(controller);
+
 	shovelerCameraFree(game->camera);
 	shovelerSceneFree(game->scene);
 
@@ -147,7 +156,8 @@ int main(int argc, char **argv) {
 
 static void updateGame(ShovelerGame *game, double dt)
 {
-
+	shovelerControllerUpdate(controller, dt);
+	shovelerCameraPerspectiveUpdateView(game->camera);
 }
 
 static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
