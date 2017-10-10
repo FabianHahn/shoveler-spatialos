@@ -4,7 +4,6 @@
 
 extern "C" {
 #include <shoveler/camera/perspective.h>
-#include <shoveler/light/point.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
 #include <shoveler/game.h>
@@ -19,6 +18,8 @@ using shoveler::DrawableType;
 using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
+using shoveler::Light;
+using shoveler::LightType;
 using improbable::Coordinates;
 using improbable::Position;
 
@@ -55,6 +56,7 @@ int main(int argc, char **argv) {
 	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
 
 	const worker::ComponentRegistry& components = worker::Components<
+		shoveler::Light,
 		shoveler::Model,
 		improbable::Position>{};
 
@@ -139,8 +141,36 @@ int main(int argc, char **argv) {
 		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
 
-	ShovelerLightPoint *pointlight = shovelerLightPointCreate(ShovelerVector3{0, 5, 0}, 1024, 1024, 1, 0.01f, 80.0f, ShovelerVector3{1.0f, 1.0f, 1.0f});
-	shovelerSceneAddLight(game->scene, &pointlight->light);
+	dispatcher.OnAddComponent<Light>([&](const worker::AddComponentOp<Light>& op) {
+		shovelerLogInfo("Adding light to entity %lld.", op.EntityId);
+
+		ShovelerSpatialOsWorkerViewLightConfiguration lightConfiguration;
+		switch(op.Data.type()) {
+			case LightType::SPOT:
+				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT;
+				break;
+			case LightType::POINT:
+				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT;
+				break;
+			default:
+				shovelerLogWarning("Tried to create light configuration with invalid light type %d, defaulting to point.", op.Data.type());
+				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT;
+				break;
+		}
+
+		lightConfiguration.width = (int) op.Data.width();
+		lightConfiguration.height = (int) op.Data.height();
+		lightConfiguration.samples = (GLsizei) op.Data.samples();
+		lightConfiguration.ambientFactor = op.Data.ambient_factor();
+		lightConfiguration.exponentialFactor = op.Data.exponential_factor();
+		lightConfiguration.color = ShovelerVector3{op.Data.color().r(), op.Data.color().g(), op.Data.color().b()};
+		shovelerSpatialOsWorkerViewAddEntityLight(view, op.EntityId, lightConfiguration);
+	});
+
+	dispatcher.OnRemoveComponent<Light>([&](const worker::RemoveComponentOp& op) {
+		shovelerLogInfo("Removing light from entity %lld.", op.EntityId);
+		shovelerSpatialOsWorkerViewRemoveEntityLight(view, op.EntityId);
+	});
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
 		dispatcher.Process(connection.GetOpList(0));

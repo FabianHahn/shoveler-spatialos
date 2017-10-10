@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include <shoveler/drawable.h>
+#include <shoveler/light.h>
 #include <shoveler/material.h>
 #include <shoveler/model.h>
 #include <shoveler/scene.h>
@@ -31,6 +32,21 @@ typedef struct {
 	const char *texture;
 } ShovelerSpatialOsWorkerViewMaterialConfiguration;
 
+typedef enum {
+	SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT,
+	SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT
+} ShovelerSpatialOsWorkerViewLightType;
+
+typedef struct {
+	ShovelerSpatialOsWorkerViewLightType type;
+	int width;
+	int height;
+	GLsizei samples;
+	float ambientFactor;
+	float exponentialFactor;
+	ShovelerVector3 color;
+} ShovelerSpatialOsWorkerViewLightConfiguration;
+
 typedef struct {
 	ShovelerScene *scene;
 	/** map from entity id (long long int) to entities (ShovelerSpatialOsWorkerViewEntity *) */
@@ -44,6 +60,7 @@ typedef struct {
 	long long int entityId;
 	ShovelerVector3 *position;
 	ShovelerModel *model;
+	ShovelerLight *light;
 } ShovelerSpatialOsWorkerViewEntity;
 
 ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate(ShovelerScene *scene);
@@ -55,6 +72,8 @@ bool shovelerSpatialOsWorkerViewRemoveEntityPosition(ShovelerSpatialOsWorkerView
 bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration);
 bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration *optionalDrawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration *optionalMaterialConfiguration);
 bool shovelerSpatialOsWorkerViewRemoveEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId);
+bool shovelerSpatialOsWorkerViewAddEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewLightConfiguration lightConfiguration);
+bool shovelerSpatialOsWorkerViewRemoveEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId);
 void shovelerSpatialOsWorkerViewFree(ShovelerSpatialOsWorkerView *view);
 
 static inline ShovelerSpatialOsWorkerViewEntity *shovelerSpatialOsWorkerViewGetEntity(ShovelerSpatialOsWorkerView *view, long long int entityId)

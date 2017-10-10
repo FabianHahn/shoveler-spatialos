@@ -2,6 +2,7 @@
 
 #include <shoveler/drawable/cube.h>
 #include <shoveler/drawable/quad.h>
+#include <shoveler/light/point.h>
 #include <shoveler/material/color.h>
 #include <shoveler/material/texture.h>
 #include <shoveler/log.h>
@@ -31,6 +32,7 @@ bool shovelerSpatialOsWorkerViewAddEntity(ShovelerSpatialOsWorkerView *view, lon
 	entity->entityId = entityId;
 	entity->position = NULL;
 	entity->model = NULL;
+	entity->light = NULL;
 
 	if(!g_hash_table_insert(view->entities, &entity->entityId, entity)) {
 		shovelerLogWarning("Trying to add already existing entity %lld to world view, ignoring.", entityId);
@@ -184,6 +186,57 @@ bool shovelerSpatialOsWorkerViewRemoveEntityModel(ShovelerSpatialOsWorkerView *v
 	return true;
 }
 
+bool shovelerSpatialOsWorkerViewAddEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewLightConfiguration lightConfiguration)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to add light to non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->light != NULL) {
+		shovelerLogWarning("Trying to add light to entity %lld which already has a light, ignoring.", entityId);
+		return false;
+	}
+
+	switch(lightConfiguration.type) {
+		case SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT:
+			shovelerLogWarning("Trying to create light with unsupported spot type, ignoring.");
+			return false;
+		break;
+		case SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT: {
+			ShovelerLightPoint *pointLight = shovelerLightPointCreate((ShovelerVector3) {0.0f, 0.0f, 0.0f}, lightConfiguration.width, lightConfiguration.height, lightConfiguration.samples, lightConfiguration.ambientFactor, lightConfiguration.exponentialFactor, lightConfiguration.color);
+			entity->light = &pointLight->light;
+		}
+		break;
+		default:
+			shovelerLogWarning("Trying to create light with unknown light type %d, ignoring.", lightConfiguration.type);
+			return false;
+	}
+
+	shovelerSceneAddLight(view->scene, entity->light);
+	updateEntityPosition(entity);
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewRemoveEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to remove light from non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->light == NULL) {
+		shovelerLogWarning("Trying to remove light from entity %lld which does not have a light, ignoring.", entityId);
+		return false;
+	}
+
+	shovelerSceneRemoveLight(view->scene, entity->light);
+	entity->light = NULL;
+	return true;
+}
+
 void shovelerSpatialOsWorkerViewFree(ShovelerSpatialOsWorkerView *view)
 {
 	g_hash_table_destroy(view->entities);
@@ -223,12 +276,18 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, Shove
 
 static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity)
 {
-	if(entity->position == NULL || entity->model == NULL) {
+	if(entity->position == NULL) {
 		return;
 	}
 
-	entity->model->translation = *entity->position;
-	shovelerModelUpdateTransformation(entity->model);
+	if(entity->model != NULL) {
+		entity->model->translation = *entity->position;
+		shovelerModelUpdateTransformation(entity->model);
+	}
+
+	if(entity->light != NULL) {
+		// TODO update position
+	}
 }
 
 static void freeEntity(void *entityPointer)
@@ -238,6 +297,10 @@ static void freeEntity(void *entityPointer)
 
 	if(entity->model != NULL) {
 		shovelerSceneRemoveModel(entity->view->scene, entity->model);
+	}
+
+	if(entity->light != NULL) {
+		shovelerSceneRemoveLight(entity->view->scene, entity->light);
 	}
 
 	free(entity);
