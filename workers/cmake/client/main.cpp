@@ -54,10 +54,14 @@ int main(int argc, char **argv) {
 	const std::string hostname = argv[2];
 	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
 
+	const worker::ComponentRegistry& components = worker::Components<
+		shoveler::Model,
+		improbable::Position>{};
+
 	shovelerLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
-	worker::Connection connection = worker::Connection::ConnectAsync(hostname, port, workerId, parameters).Get();
+	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
 	bool disconnected = false;
-	worker::Dispatcher dispatcher;
+	worker::Dispatcher dispatcher{components};
 
 	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
 	game->scene = shovelerSceneCreate();

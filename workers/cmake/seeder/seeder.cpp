@@ -10,7 +10,6 @@ using shoveler::DrawableType;
 using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
-using shoveler::Plane;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
 using improbable::Metadata;
@@ -26,6 +25,14 @@ int main(int argc, char **argv) {
 	}
 
 	std::string path(argv[1]);
+
+	const worker::ComponentRegistry& components = worker::Components<
+		shoveler::Client,
+		shoveler::Model,
+		improbable::EntityAcl,
+		improbable::Metadata,
+		improbable::Persistence,
+		improbable::Position>{};
 
 	Color grayColor{0.7f, 0.7f, 0.7f};
 	Drawable cubeDrawable{DrawableType::CUBE};
@@ -53,7 +60,6 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<Position>({{0, 0, 0}});
-	planeEntity.Add<Plane>({{0.5, 0.5, 0.5}, 10.0});
 	planeEntity.Add<Model>({quadDrawable, grayColorMaterial});
 	EntityAclData planeEntityAclData(clientRequirementSet, emptyComponentAclMap);
 	planeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
@@ -67,6 +73,6 @@ int main(int argc, char **argv) {
 	cubeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[3] = cubeEntity;
 
-	worker::SaveSnapshot(path, entities);
+	worker::SaveSnapshot(components, path, entities);
 	return 0;
 }

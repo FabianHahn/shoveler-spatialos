@@ -30,14 +30,8 @@ component Client {
 	id = 1337;
 }
 
-component Plane {
-	id = 1338;
-	Color color = 1;
-	float size = 2;
-}
-
 component Model {
-	id = 1339;
+	id = 1338;
 	Drawable drawable = 1;
 	Material material = 2;
 }
