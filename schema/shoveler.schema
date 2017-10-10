@@ -1,5 +1,11 @@
 package shoveler;
 
+type Vector3 {
+	float x = 1;
+	float y = 2;
+	float z = 3;
+}
+
 type Color {
 	float r = 1;
 	float g = 2;
@@ -26,6 +32,20 @@ type Material {
 	string texture = 3;
 }
 
+enum LightType {
+	SPOT = 0;
+	POINT = 1;
+}
+
+type PerspectiveCamera {
+	Vector3 direction = 1;
+	Vector3 up = 2;
+	float field_of_view_y = 3;
+	float aspect_ratio = 4;
+	float near_clipping_plane = 5;
+	float far_clipping_plane = 6;
+}
+
 component Client {
 	id = 1337;
 }
@@ -34,4 +54,16 @@ component Model {
 	id = 1338;
 	Drawable drawable = 1;
 	Material material = 2;
+}
+
+component Light {
+	id = 1339;
+	LightType type = 1;
+	uint32 width = 2;
+	uint32 height = 3;
+	uint32 samples = 4;
+	float ambient_factor = 5;
+	float exponential_factor = 6;
+	Color color = 7;
+	option<PerspectiveCamera> spot_light_camera = 8;	
 }

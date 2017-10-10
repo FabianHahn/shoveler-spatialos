@@ -7,6 +7,8 @@ using shoveler::Client;
 using shoveler::Color;
 using shoveler::Drawable;
 using shoveler::DrawableType;
+using shoveler::Light;
+using shoveler::LightType;
 using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
@@ -28,6 +30,7 @@ int main(int argc, char **argv) {
 
 	const worker::ComponentRegistry& components = worker::Components<
 		shoveler::Client,
+		shoveler::Light,
 		shoveler::Model,
 		improbable::EntityAcl,
 		improbable::Metadata,
@@ -72,6 +75,14 @@ int main(int argc, char **argv) {
 	cubeEntity.Add<Model>({cubeDrawable, grayColorMaterial});
 	cubeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[3] = cubeEntity;
+
+	worker::Entity lightEntity;
+	lightEntity.Add<Metadata>({"light"});
+	lightEntity.Add<Persistence>({});
+	lightEntity.Add<Position>({{-1, 5, -1}});
+	lightEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}, {}});
+	lightEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
+	entities[4] = lightEntity;
 
 	worker::SaveSnapshot(components, path, entities);
 	return 0;
