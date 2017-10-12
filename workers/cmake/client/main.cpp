@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
 static void updateGame(ShovelerGame *game, double dt)
 {
 	shovelerControllerUpdate(controller, dt);
-	shovelerCameraPerspectiveUpdateView(game->camera);
+	shovelerCameraUpdateView(game->camera);
 }
 
 static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)

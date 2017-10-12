@@ -205,8 +205,7 @@ bool shovelerSpatialOsWorkerViewAddEntityLight(ShovelerSpatialOsWorkerView *view
 			return false;
 		break;
 		case SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT: {
-			ShovelerLightPoint *pointLight = shovelerLightPointCreate((ShovelerVector3) {0.0f, 0.0f, 0.0f}, lightConfiguration.width, lightConfiguration.height, lightConfiguration.samples, lightConfiguration.ambientFactor, lightConfiguration.exponentialFactor, lightConfiguration.color);
-			entity->light = &pointLight->light;
+			entity->light = shovelerLightPointCreate((ShovelerVector3) {0.0f, 0.0f, 0.0f}, lightConfiguration.width, lightConfiguration.height, lightConfiguration.samples, lightConfiguration.ambientFactor, lightConfiguration.exponentialFactor, lightConfiguration.color);
 		}
 		break;
 		default:
