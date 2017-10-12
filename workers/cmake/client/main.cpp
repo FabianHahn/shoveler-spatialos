@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAddComponent<Position>([&](const worker::AddComponentOp<Position>& op) {
 		shovelerLogInfo("Adding position to entity %lld.", op.EntityId);
-		ShovelerVector3 position{(float) op.Data.coords().x(), (float) op.Data.coords().y(), (float) op.Data.coords().z()};
+		ShovelerVector3 position{(float) -op.Data.coords().x(), (float) op.Data.coords().y(), (float) op.Data.coords().z()};
 		shovelerSpatialOsWorkerViewAddEntityPosition(view, op.EntityId, position);
 	});
 
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Updating position for entity %lld.", op.EntityId);
 		if(op.Update.coords()) {
 			const Coordinates& coordinates = *op.Update.coords();
-			ShovelerVector3 position{(float) coordinates.x(), (float) coordinates.y(), (float) coordinates.z()};
+			ShovelerVector3 position{(float) -coordinates.x(), (float) coordinates.y(), (float) coordinates.z()};
 			shovelerSpatialOsWorkerViewUpdateEntityPosition(view, op.EntityId, position);
 		}
 	});
