@@ -285,7 +285,7 @@ static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity)
 	}
 
 	if(entity->light != NULL) {
-		// TODO update position
+		shovelerLightUpdatePosition(entity->light, *entity->position);
 	}
 }
 
