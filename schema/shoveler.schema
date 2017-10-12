@@ -34,6 +34,12 @@ type Material {
 	option<string> texture = 3;
 }
 
+enum PolygonMode {
+	FILL = 0;
+	LINE = 1;
+	POINT = 2;
+}
+
 enum LightType {
 	SPOT = 0;
 	POINT = 1;
@@ -56,6 +62,13 @@ component Model {
 	id = 1338;
 	Drawable drawable = 1;
 	Material material = 2;
+	Vector3 rotation = 3;
+	Vector3 scale = 4;
+	bool visible = 5;
+	bool emitter = 6;
+	bool screenspace = 7;
+	bool casts_shadow = 8;
+	PolygonMode polygon_mode = 9;
 }
 
 component Light {

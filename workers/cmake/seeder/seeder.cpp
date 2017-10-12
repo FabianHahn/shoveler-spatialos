@@ -12,6 +12,7 @@ using shoveler::LightType;
 using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
+using shoveler::PolygonMode;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
 using improbable::Metadata;
@@ -19,6 +20,8 @@ using improbable::Persistence;
 using improbable::Position;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
+
+static const float PI = 3.14159265358979323846f;
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
@@ -66,7 +69,7 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<Position>({{0, 0, 0}});
-	planeEntity.Add<Model>({quadDrawable, grayColorMaterial});
+	planeEntity.Add<Model>({quadDrawable, grayColorMaterial, {PI / 2.0f, 0.0f, 0.0f}, {10.0f, 10.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
 	EntityAclData planeEntityAclData(clientRequirementSet, emptyComponentAclMap);
 	planeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[2] = planeEntity;
@@ -75,7 +78,7 @@ int main(int argc, char **argv) {
 	cubeEntity.Add<Metadata>({"cube"});
 	cubeEntity.Add<Persistence>({});
 	cubeEntity.Add<Position>({{0, 0, 5}});
-	cubeEntity.Add<Model>({cubeDrawable, grayColorMaterial});
+	cubeEntity.Add<Model>({cubeDrawable, grayColorMaterial, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
 	cubeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[3] = cubeEntity;
 
@@ -83,7 +86,7 @@ int main(int argc, char **argv) {
 	lightEntity.Add<Metadata>({"light"});
 	lightEntity.Add<Persistence>({});
 	lightEntity.Add<Position>({{-1, 5, -1}});
-	lightEntity.Add<Model>({pointDrawable, whiteParticleMaterial});
+	lightEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, false, PolygonMode::FILL});
 	lightEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}, {}});
 	lightEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[4] = lightEntity;
