@@ -1,9 +1,11 @@
 #include <stdlib.h> // malloc free
 
 #include <shoveler/drawable/cube.h>
+#include <shoveler/drawable/point.h>
 #include <shoveler/drawable/quad.h>
 #include <shoveler/light/point.h>
 #include <shoveler/material/color.h>
+#include <shoveler/material/particle.h>
 #include <shoveler/material/texture.h>
 #include <shoveler/log.h>
 
@@ -21,6 +23,7 @@ ShovelerSpatialOsWorkerView *shovelerSpatialOsWorkerViewCreate(ShovelerScene *sc
 	view->entities = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, freeEntity);
 	view->cube = shovelerDrawableCubeCreate();
 	view->quad = shovelerDrawableQuadCreate();
+	view->point = shovelerDrawablePointCreate();
 
 	return view;
 }
@@ -251,6 +254,9 @@ static ShovelerDrawable *createDrawable(ShovelerSpatialOsWorkerView *view, Shove
 		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_QUAD:
 			return view->quad;
 		break;
+		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_POINT:
+			return view->point;
+		break;
 		default:
 			shovelerLogWarning("Trying to create drawable with unknown type %d, ignoring.", configuration.type);
 			return NULL;
@@ -266,6 +272,9 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, Shove
 		case SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_TEXTURE:
 			shovelerLogWarning("Trying to create model with unsupported texture type, ignoring.", configuration.type);
 			return NULL;
+		break;
+		case SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_PARTICLE:
+			return shovelerMaterialParticleCreate(configuration.color);
 		break;
 		default:
 			shovelerLogWarning("Trying to create model with unknown material type %d, ignoring.", configuration.type);

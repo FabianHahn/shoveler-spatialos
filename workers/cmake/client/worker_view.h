@@ -15,6 +15,7 @@
 typedef enum {
 	SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE,
 	SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_QUAD,
+	SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_POINT,
 } ShovelerSpatialOsWorkerViewDrawableType;
 
 typedef struct {
@@ -23,7 +24,8 @@ typedef struct {
 
 typedef enum {
 	SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR,
-	SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_TEXTURE
+	SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_TEXTURE,
+	SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_PARTICLE,
 } ShovelerSpatialOsWorkerViewMaterialType;
 
 typedef struct {
@@ -53,6 +55,7 @@ typedef struct {
 	GHashTable *entities;
 	ShovelerDrawable *cube;
 	ShovelerDrawable *quad;
+	ShovelerDrawable *point;
 } ShovelerSpatialOsWorkerView;
 
 typedef struct {

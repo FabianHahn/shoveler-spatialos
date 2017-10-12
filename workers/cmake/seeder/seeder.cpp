@@ -38,9 +38,12 @@ int main(int argc, char **argv) {
 		improbable::Position>{};
 
 	Color grayColor{0.7f, 0.7f, 0.7f};
+	Color whiteColor{1.0f, 1.0f, 1.0f};
 	Drawable cubeDrawable{DrawableType::CUBE};
 	Drawable quadDrawable{DrawableType::QUAD};
-	Material grayColorMaterial{MaterialType::COLOR, grayColor, ""};
+	Drawable pointDrawable{DrawableType::POINT};
+	Material grayColorMaterial{MaterialType::COLOR, grayColor, {}};
+	Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
 	worker::Map<std::uint32_t, WorkerRequirementSet> emptyComponentAclMap;
 
 	WorkerAttributeSet clientAttributeSet({"client"});
@@ -80,6 +83,7 @@ int main(int argc, char **argv) {
 	lightEntity.Add<Metadata>({"light"});
 	lightEntity.Add<Persistence>({});
 	lightEntity.Add<Position>({{-1, 5, -1}});
+	lightEntity.Add<Model>({pointDrawable, whiteParticleMaterial});
 	lightEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}, {}});
 	lightEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[4] = lightEntity;

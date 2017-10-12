@@ -204,6 +204,9 @@ static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfigurat
 		case DrawableType::QUAD:
 			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_QUAD;
 			break;
+		case DrawableType::POINT:
+			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_POINT;
+			break;
 		default:
 			shovelerLogWarning("Tried to create drawable configuration with invalid drawable type %d, defaulting to cube.", drawable.type());
 			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE;
@@ -218,16 +221,35 @@ static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfigurat
 	switch(material.type()) {
 		case MaterialType::COLOR:
 			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
-			materialConfiguration.color = ShovelerVector3{material.color().r(), material.color().g(), material.color().b()};
+			if(material.color()) {
+				materialConfiguration.color = ShovelerVector3{material.color()->r(), material.color()->g(), material.color()->b()};
+			} else {
+				shovelerLogWarning("Tried to create color material configuration without color, defaulting to white.");
+				materialConfiguration.color = ShovelerVector3{1.0f, 1.0f, 1.0f};
+			}
 			break;
 		case MaterialType::TEXTURE:
 			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_TEXTURE;
-			materialConfiguration.texture = material.texture().c_str();
+			if(material.texture()) {
+				materialConfiguration.texture = material.texture()->c_str();
+			} else {
+				shovelerLogWarning("Tried to create texture material configuration without texture, defaulting to null.");
+				materialConfiguration.texture = NULL;
+			}
+			break;
+		case MaterialType::PARTICLE:
+			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_PARTICLE;
+			if(material.color()) {
+				materialConfiguration.color = ShovelerVector3{material.color()->r(), material.color()->g(), material.color()->b()};
+			} else {
+				shovelerLogWarning("Tried to create particle material configuration without color, defaulting to white.");
+				materialConfiguration.color = ShovelerVector3{1.0f, 1.0f, 1.0f};
+			}
 			break;
 		default:
-			shovelerLogWarning("Tried to create material configuration with invalid material type %d, defaulting to color.", material.type());
+			shovelerLogWarning("Tried to create material configuration with invalid material type %d, defaulting to pink color.", material.type());
 			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
-			materialConfiguration.color = ShovelerVector3{material.color().r(), material.color().g(), material.color().b()};
+			materialConfiguration.color = ShovelerVector3{1.0f, 0.41f, 0.71f};
 			break;
 	}
 	return materialConfiguration;

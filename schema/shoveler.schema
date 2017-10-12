@@ -15,6 +15,7 @@ type Color {
 enum DrawableType {
 	CUBE = 0;
 	QUAD = 1;
+	POINT = 2;
 }
 
 type Drawable {
@@ -24,12 +25,13 @@ type Drawable {
 enum MaterialType {
 	COLOR = 0;
 	TEXTURE = 1;
+	PARTICLE = 2;
 }
 
 type Material {
 	MaterialType type = 1;
-	Color color = 2;
-	string texture = 3;
+	option<Color> color = 2;
+	option<string> texture = 3;
 }
 
 enum LightType {
