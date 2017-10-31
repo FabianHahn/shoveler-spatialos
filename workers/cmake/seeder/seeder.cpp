@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
 	worker::Entity planeEntity;
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
-	planeEntity.Add<Position>({{0, 0, 0}});
-	planeEntity.Add<Model>({quadDrawable, grayColorMaterial, {PI / 2.0f, 0.0f, 0.0f}, {10.0f, 10.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
+	planeEntity.Add<Position>({{0, -2, 0}});
+	planeEntity.Add<Model>({quadDrawable, grayColorMaterial, {PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
 	EntityAclData planeEntityAclData(clientRequirementSet, emptyComponentAclMap);
 	planeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[2] = planeEntity;
