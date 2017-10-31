@@ -8,10 +8,11 @@
 #include <shoveler/material/particle.h>
 #include <shoveler/material/texture.h>
 #include <shoveler/log.h>
+#include <shoveler/model.h>
 
 #include "worker_view.h"
 
-static ShovelerDrawable *createDrawable(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewDrawableConfiguration configuration);
+static ShovelerDrawable *getDrawable(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewDrawableConfiguration configuration);
 static ShovelerMaterial *createMaterial(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewMaterialConfiguration configuration);
 static void updateEntityPosition(ShovelerSpatialOsWorkerViewEntity *entity);
 static void freeEntity(void *entityPointer);
@@ -106,7 +107,7 @@ bool shovelerSpatialOsWorkerViewRemoveEntityPosition(ShovelerSpatialOsWorkerView
 	return true;
 }
 
-bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration)
+bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewModelConfiguration modelConfiguration)
 {
 	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
@@ -119,55 +120,195 @@ bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view
 		return false;
 	}
 
-	ShovelerDrawable *drawable = createDrawable(view, drawableConfiguration);
+	ShovelerDrawable *drawable = getDrawable(view, modelConfiguration.drawable);
 	if(drawable == NULL) {
 		shovelerLogWarning("Trying to add model to entity %lld but failed to create drawable, ignoring.", entityId);
 		return false;
 	}
 
-	ShovelerMaterial *material = createMaterial(view, materialConfiguration);
+	ShovelerMaterial *material = createMaterial(view, modelConfiguration.material);
 	if(material == NULL) {
 		shovelerLogWarning("Trying to add model to entity %lld but failed to create material, ignoring.", entityId);
 		return false;
 	}
 
 	entity->model = shovelerModelCreate(drawable, material);
+	entity->model->rotation = modelConfiguration.rotation;
+	entity->model->scale = modelConfiguration.scale;
+	entity->model->visible = modelConfiguration.visible;
+	entity->model->emitter = modelConfiguration.emitter;
+	entity->model->screenspace = modelConfiguration.screenspace;
+	entity->model->castsShadow = modelConfiguration.castsShadow;
+	entity->model->polygonMode = modelConfiguration.polygonMode;
+
 	shovelerSceneAddModel(view->scene, entity->model);
 	updateEntityPosition(entity);
 	return true;
 }
 
-bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration *optionalDrawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration *optionalMaterialConfiguration)
+bool shovelerSpatialOsWorkerViewUpdateEntityModelDrawable(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration)
 {
 	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
-		shovelerLogWarning("Trying to update model for non existing entity %lld, ignoring.", entityId);
+		shovelerLogWarning("Trying to update model drawable of non existing entity %lld, ignoring.", entityId);
 		return false;
 	}
 
 	if(entity->model == NULL) {
-		shovelerLogWarning("Trying to update model to entity %lld which does not have a model, ignoring.", entityId);
+		shovelerLogWarning("Trying to update model drawable of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
 
-	ShovelerDrawable *drawable = entity->model->drawable;
-	ShovelerMaterial *material = entity->model->material;
+	ShovelerModel *oldModel = entity->model;
+	ShovelerDrawable *drawable = getDrawable(view, drawableConfiguration);
+	entity->model = shovelerModelCreate(drawable, oldModel->material);
+	entity->model->rotation = oldModel->rotation;
+	entity->model->scale = oldModel->scale;
+	entity->model->visible = oldModel->visible;
+	entity->model->emitter = oldModel->emitter;
+	entity->model->screenspace = oldModel->screenspace;
+	entity->model->castsShadow = oldModel->castsShadow;
+	entity->model->polygonMode = oldModel->polygonMode;
 
-	shovelerSceneRemoveModel(view->scene, entity->model);
-	entity->model = NULL;
-
-	if (optionalDrawableConfiguration != NULL) {
-		drawable = createDrawable(view, *optionalDrawableConfiguration);
-	}
-
-	if (optionalMaterialConfiguration != NULL) {
-		shovelerMaterialFree(material);
-		material = createMaterial(view, *optionalMaterialConfiguration);
-	}
-
-	entity->model = shovelerModelCreate(drawable, material);
+	shovelerSceneRemoveModel(view->scene, oldModel);
 	shovelerSceneAddModel(view->scene, entity->model);
 	updateEntityPosition(entity);
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelMaterial(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model material of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model material of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerModel *oldModel = entity->model;
+	ShovelerMaterial *oldMaterial = oldModel->material;
+	ShovelerMaterial *material = createMaterial(view, materialConfiguration);
+	entity->model = shovelerModelCreate(oldModel->drawable, material);
+	entity->model->rotation = oldModel->rotation;
+	entity->model->scale = oldModel->scale;
+	entity->model->visible = oldModel->visible;
+	entity->model->emitter = oldModel->emitter;
+	entity->model->screenspace = oldModel->screenspace;
+	entity->model->castsShadow = oldModel->castsShadow;
+	entity->model->polygonMode = oldModel->polygonMode;
+
+	shovelerSceneRemoveModel(view->scene, oldModel);
+	shovelerMaterialFree(oldMaterial);
+	shovelerSceneAddModel(view->scene, entity->model);
+	updateEntityPosition(entity);
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelRotation(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 rotation)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model rotation of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model rotation of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->rotation = rotation;
+	shovelerModelUpdateTransformation(entity->model);
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelScale(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 scale)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model scale of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model scale of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->scale = scale;
+	shovelerModelUpdateTransformation(entity->model);
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelVisible(ShovelerSpatialOsWorkerView *view, long long int entityId, bool visible)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model visibility of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model visibility of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->visible = visible;
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelEmitter(ShovelerSpatialOsWorkerView *view, long long int entityId, bool emitter)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model emitter of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model emitter of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->emitter = emitter;
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelScreenspace(ShovelerSpatialOsWorkerView *view, long long int entityId, bool screenspace)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model screenspace of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model screenspace of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->screenspace = screenspace;
+	return true;
+}
+
+bool shovelerSpatialOsWorkerViewUpdateEntityModelPolygonMode(ShovelerSpatialOsWorkerView *view, long long int entityId, GLuint polygonMode)
+{
+	ShovelerSpatialOsWorkerViewEntity *entity = shovelerSpatialOsWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to update model polygon mode of non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	if(entity->model == NULL) {
+		shovelerLogWarning("Trying to update model polygon mode of entity %lld which does not have a model, ignoring.", entityId);
+		return false;
+	}
+
+	entity->model->polygonMode = polygonMode;
 	return true;
 }
 
@@ -245,7 +386,7 @@ void shovelerSpatialOsWorkerViewFree(ShovelerSpatialOsWorkerView *view)
 	free(view);
 }
 
-static ShovelerDrawable *createDrawable(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewDrawableConfiguration configuration)
+static ShovelerDrawable *getDrawable(ShovelerSpatialOsWorkerView *view, ShovelerSpatialOsWorkerViewDrawableConfiguration configuration)
 {
 	switch (configuration.type) {
 		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE:

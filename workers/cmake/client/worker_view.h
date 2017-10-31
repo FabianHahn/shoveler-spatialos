@@ -34,6 +34,18 @@ typedef struct {
 	const char *texture;
 } ShovelerSpatialOsWorkerViewMaterialConfiguration;
 
+typedef struct {
+	ShovelerSpatialOsWorkerViewDrawableConfiguration drawable;
+	ShovelerSpatialOsWorkerViewMaterialConfiguration material;
+	ShovelerVector3 rotation;
+	ShovelerVector3 scale;
+	bool visible;
+	bool emitter;
+	bool screenspace;
+	bool castsShadow;
+	GLuint polygonMode;
+} ShovelerSpatialOsWorkerViewModelConfiguration;
+
 typedef enum {
 	SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT,
 	SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT
@@ -72,8 +84,15 @@ bool shovelerSpatialOsWorkerViewRemoveEntity(ShovelerSpatialOsWorkerView *view, 
 bool shovelerSpatialOsWorkerViewAddEntityPosition(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 position);
 bool shovelerSpatialOsWorkerViewUpdateEntityPosition(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 position);
 bool shovelerSpatialOsWorkerViewRemoveEntityPosition(ShovelerSpatialOsWorkerView *view, long long int entityId);
-bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration);
-bool shovelerSpatialOsWorkerViewUpdateEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration *optionalDrawableConfiguration, ShovelerSpatialOsWorkerViewMaterialConfiguration *optionalMaterialConfiguration);
+bool shovelerSpatialOsWorkerViewAddEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewModelConfiguration modelConfiguration);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelDrawable(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelMaterial(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelRotation(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 rotation);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelScale(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerVector3 scale);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelVisible(ShovelerSpatialOsWorkerView *view, long long int entityId, bool visible);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelEmitter(ShovelerSpatialOsWorkerView *view, long long int entityId, bool emitter);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelScreenspace(ShovelerSpatialOsWorkerView *view, long long int entityId, bool screenspace);
+bool shovelerSpatialOsWorkerViewUpdateEntityModelPolygonMode(ShovelerSpatialOsWorkerView *view, long long int entityId, GLuint polygonMode);
 bool shovelerSpatialOsWorkerViewRemoveEntityModel(ShovelerSpatialOsWorkerView *view, long long int entityId);
 bool shovelerSpatialOsWorkerViewAddEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId, ShovelerSpatialOsWorkerViewLightConfiguration lightConfiguration);
 bool shovelerSpatialOsWorkerViewRemoveEntityLight(ShovelerSpatialOsWorkerView *view, long long int entityId);

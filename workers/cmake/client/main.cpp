@@ -20,12 +20,14 @@ using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::Light;
 using shoveler::LightType;
+using shoveler::PolygonMode;
 using improbable::Coordinates;
 using improbable::Position;
 
 static void updateGame(ShovelerGame *game, double dt);
 static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
+static GLuint getPolygonMode(PolygonMode polygonMode);
 
 static ShovelerController *controller;
 
@@ -111,29 +113,58 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAddComponent<Model>([&](const worker::AddComponentOp<Model>& op) {
 		shovelerLogInfo("Adding model to entity %lld.", op.EntityId);
-		ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(op.Data.drawable());
-		ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration = createMaterialConfiguration(op.Data.material());
-		shovelerSpatialOsWorkerViewAddEntityModel(view, op.EntityId, drawableConfiguration, materialConfiguration);
+		ShovelerSpatialOsWorkerViewModelConfiguration modelConfiguration;
+		modelConfiguration.drawable = createDrawableConfiguration(op.Data.drawable());
+		modelConfiguration.material = createMaterialConfiguration(op.Data.material());
+		modelConfiguration.rotation = ShovelerVector3{op.Data.rotation().x(), op.Data.rotation().y(), op.Data.rotation().z()};
+		modelConfiguration.scale = ShovelerVector3{op.Data.scale().x(), op.Data.scale().y(), op.Data.scale().z()};
+		modelConfiguration.visible = op.Data.visible();
+		modelConfiguration.emitter = op.Data.emitter();
+		modelConfiguration.screenspace = op.Data.screenspace();
+		modelConfiguration.castsShadow = op.Data.casts_shadow();
+		modelConfiguration.polygonMode = getPolygonMode(op.Data.polygon_mode());
+		shovelerSpatialOsWorkerViewAddEntityModel(view, op.EntityId, modelConfiguration);
 	});
 
 	dispatcher.OnComponentUpdate<Model>([&](const worker::ComponentUpdateOp<Model>& op) {
 		shovelerLogInfo("Updating model for entity %lld.", op.EntityId);
 
-		ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration;
-		ShovelerSpatialOsWorkerViewDrawableConfiguration *optionalDrawableConfiguration = NULL;
 		if(op.Update.drawable()) {
-			drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
-			optionalDrawableConfiguration = &drawableConfiguration;
+			ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
+			shovelerSpatialOsWorkerViewUpdateEntityModelDrawable(view, op.EntityId, drawableConfiguration);
 		}
 
-		ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration;
-		ShovelerSpatialOsWorkerViewMaterialConfiguration *optionalMaterialConfiguration = NULL;
 		if(op.Update.material()) {
-			materialConfiguration = createMaterialConfiguration(*op.Update.material());
-			optionalMaterialConfiguration = &materialConfiguration;
+			ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration = createMaterialConfiguration(*op.Update.material());
+			shovelerSpatialOsWorkerViewUpdateEntityModelMaterial(view, op.EntityId, materialConfiguration);
 		}
 
-		shovelerSpatialOsWorkerViewUpdateEntityModel(view, op.EntityId, optionalDrawableConfiguration, optionalMaterialConfiguration);
+		if(op.Update.rotation()) {
+			ShovelerVector3 rotation{op.Update.rotation()->x(), op.Update.rotation()->y(), op.Update.rotation()->z()};
+			shovelerSpatialOsWorkerViewUpdateEntityModelRotation(view, op.EntityId, rotation);
+		}
+
+		if(op.Update.scale()) {
+			ShovelerVector3 scale{-op.Update.scale()->x(), op.Update.scale()->y(), op.Update.scale()->z()};
+			shovelerSpatialOsWorkerViewUpdateEntityModelScale(view, op.EntityId, scale);
+		}
+
+		if(op.Update.visible()) {
+			shovelerSpatialOsWorkerViewUpdateEntityModelVisible(view, op.EntityId, *op.Update.visible());
+		}
+
+		if(op.Update.emitter()) {
+			shovelerSpatialOsWorkerViewUpdateEntityModelEmitter(view, op.EntityId, *op.Update.emitter());
+		}
+
+		if(op.Update.screenspace()) {
+			shovelerSpatialOsWorkerViewUpdateEntityModelScreenspace(view, op.EntityId, *op.Update.screenspace());
+		}
+
+		if(op.Update.polygon_mode()) {
+			GLuint polygonMode = getPolygonMode(*op.Update.polygon_mode());
+			shovelerSpatialOsWorkerViewUpdateEntityModelPolygonMode(view, op.EntityId, polygonMode);
+		}
 	});
 
 	dispatcher.OnRemoveComponent<Model>([&](const worker::RemoveComponentOp& op) {
@@ -253,4 +284,19 @@ static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfigurat
 			break;
 	}
 	return materialConfiguration;
+}
+
+static GLuint getPolygonMode(PolygonMode polygonMode)
+{
+	switch(polygonMode) {
+		case PolygonMode::FILL:
+			return GL_FILL;
+		case PolygonMode::LINE:
+			return GL_LINE;
+		case PolygonMode::POINT:
+			return GL_POINT;
+		default:
+			shovelerLogWarning("Tried to retrieve invalid polygon mode %d, defaulting to FILL.", polygonMode);
+			return GL_FILL;
+	}
 }
