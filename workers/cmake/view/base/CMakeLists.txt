@@ -1,6 +1,7 @@
 include_directories(..)
 
 set(SHOVELER_SPATIALOS_WORKER_VIEW_BASE_SRC
+	src/position.c
 	src/view.c
 )
 
