@@ -55,10 +55,7 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	// shovelerSceneAddModel(view->scene, entity->model);
 	updateEntityPosition(entity);
 
-	component = malloc(sizeof(ShovelerSpatialosWorkerViewComponent));
-	component->data = model;
-	component->free = &freeComponent;
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", component)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", model, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -146,7 +143,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelRotation(ShovelerSpatialosWorke
 
 	model->rotation = rotation;
 	shovelerModelUpdateTransformation(model);
-	return true;
+	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, "model");
 }
 
 bool shovelerSpatialosWorkerViewUpdateEntityModelScale(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerVector3 scale)

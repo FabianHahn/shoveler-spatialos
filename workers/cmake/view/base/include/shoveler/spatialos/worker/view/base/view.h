@@ -5,23 +5,40 @@
 
 #include <glib.h>
 
+struct ShovelerSpatialosWorkerViewComponentStruct; // forward declaration
+
 typedef struct {
 	/** map from entity id (long long int) to entities (ShovelerSpatialosWorkerViewEntity *) */
 	GHashTable *entities;
 } ShovelerSpatialosWorkerView;
+
+typedef enum {
+	VIEW_COMPONENT_CALLBACK_ADD,
+	VIEW_COMPONENT_CALLBACK_REMOVE,
+	VIEW_COMPONENT_CALLBACK_UPDATE,
+} ShovelerSpatialosWorkerViewComponentCallbackType;
+
+typedef void (ShovelerSpatialosWorkerViewComponentCallbackFunction)(struct ShovelerSpatialosWorkerViewComponentStruct *component, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *userData);
+
+typedef struct {
+	ShovelerSpatialosWorkerViewComponentCallbackFunction *function;
+	void *userData;
+} ShovelerSpatialosWorkerViewComponentCallback;
 
 typedef struct {
 	ShovelerSpatialosWorkerView *view;
 	long long int entityId;
 	/** map from string component name to (ShovelerSpatialosWorkerViewComponent *) */
 	GHashTable *components;
+	/** map from string component name to (GQueue *) of (ShovelerSpatialosWorkerViewComponentCallback *) */
+	GHashTable *callbacks;
 } ShovelerSpatialosWorkerViewEntity;
-
-struct ShovelerSpatialosWorkerViewComponentStruct; // forward declaration
 
 typedef void (ShovelerSpatialosWorkerViewComponentFreeFunction)(struct ShovelerSpatialosWorkerViewComponentStruct *);
 
 typedef struct ShovelerSpatialosWorkerViewComponentStruct {
+	ShovelerSpatialosWorkerViewEntity *entity;
+	char *name;
 	void *data;
 	ShovelerSpatialosWorkerViewComponentFreeFunction *free;
 } ShovelerSpatialosWorkerViewComponent;
@@ -29,8 +46,11 @@ typedef struct ShovelerSpatialosWorkerViewComponentStruct {
 ShovelerSpatialosWorkerView *shovelerSpatialosWorkerViewCreate();
 bool shovelerSpatialosWorkerViewAddEntity(ShovelerSpatialosWorkerView *view, long long int entityId);
 bool shovelerSpatialosWorkerViewRemoveEntity(ShovelerSpatialosWorkerView *view, long long int entityId);
-bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponent *component);
+bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, void *data, ShovelerSpatialosWorkerViewComponentFreeFunction *freeFunction);
+bool shovelerSpatialosWorkerViewEntityUpdateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
 bool shovelerSpatialosWorkerViewEntityRemoveComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
+ShovelerSpatialosWorkerViewComponentCallback *shovelerSpatialosWorkerViewEntityAddCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallbackFunction *function, void *userData);
+bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallback *callback);
 void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view);
 
 static inline ShovelerSpatialosWorkerViewEntity *shovelerSpatialosWorkerViewGetEntity(ShovelerSpatialosWorkerView *view, long long int entityId)

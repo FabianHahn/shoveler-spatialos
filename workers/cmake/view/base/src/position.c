@@ -24,10 +24,7 @@ bool shovelerSpatialosWorkerViewAddEntityPosition(ShovelerSpatialosWorkerView *v
 	position->y = y;
 	position->z = z;
 
-	component = malloc(sizeof(ShovelerSpatialosWorkerViewComponent));
-	component->data = position;
-	component->free = &freeComponent;
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", component)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "position", position, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -53,8 +50,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityPosition(ShovelerSpatialosWorkerView
 	position->y = y;
 	position->z = z;
 
-	// updateEntityPosition(entity);
-	return true;
+	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, "position");
 }
 
 bool shovelerSpatialosWorkerViewRemoveEntityPosition(ShovelerSpatialosWorkerView *view, long long int entityId)
@@ -71,7 +67,7 @@ bool shovelerSpatialosWorkerViewRemoveEntityPosition(ShovelerSpatialosWorkerView
 		return false;
 	}
 
-	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "model");
+	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "position");
 }
 
 
