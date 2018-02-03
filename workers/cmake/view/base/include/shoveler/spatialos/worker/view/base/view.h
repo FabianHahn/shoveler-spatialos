@@ -16,6 +16,7 @@ typedef enum {
 	VIEW_COMPONENT_CALLBACK_ADD,
 	VIEW_COMPONENT_CALLBACK_REMOVE,
 	VIEW_COMPONENT_CALLBACK_UPDATE,
+	VIEW_COMPONENT_CALLBACK_USER,
 } ShovelerSpatialosWorkerViewComponentCallbackType;
 
 typedef void (ShovelerSpatialosWorkerViewComponentCallbackFunction)(struct ShovelerSpatialosWorkerViewComponentStruct *component, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *userData);

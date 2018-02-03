@@ -6,6 +6,7 @@
 #include <shoveler/material/color.h>
 #include <shoveler/material/particle.h>
 #include <shoveler/material/texture.h>
+#include <shoveler/spatialos/worker/view/base/position.h>
 #include <shoveler/spatialos/worker/view/base/view.h>
 #include <shoveler/log.h>
 #include <shoveler/model.h>
@@ -14,7 +15,8 @@
 
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration);
 static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewMaterialConfiguration configuration);
-static void updateEntityPosition(ShovelerSpatialosWorkerViewEntity *entity);
+static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ShovelerModel *model);
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelPointer);
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
 bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration)
@@ -53,7 +55,10 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	model->polygonMode = modelConfiguration.polygonMode;
 
 	// shovelerSceneAddModel(view->scene, entity->model);
-	updateEntityPosition(entity);
+	if(!shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, model)) {
+		freeComponent(component);
+		return false;
+	}
 
 	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", model, &freeComponent)) {
 		freeComponent(component);
@@ -89,7 +94,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelDrawable(ShovelerSpatialosWorke
 
 	// shovelerSceneRemoveModel(view->scene, oldModel);
 	// shovelerSceneAddModel(view->scene, entity->model);
-	updateEntityPosition(entity);
+	updatePositionIfAvailable(entity, model);
 	return true;
 }
 
@@ -122,7 +127,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelMaterial(ShovelerSpatialosWorke
 	// shovelerSceneRemoveModel(view->scene, oldModel);
 	shovelerMaterialFree(oldMaterial);
 	// shovelerSceneAddModel(view->scene, entity->model);
-	updateEntityPosition(entity);
+	updatePositionIfAvailable(entity, model);
 	return true;
 }
 
@@ -303,22 +308,23 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, Shove
 	}
 }
 
-static void updateEntityPosition(ShovelerSpatialosWorkerViewEntity *entity)
+static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ShovelerModel *model)
 {
-	/*
-	if(entity->position == NULL) {
-		return;
+	ShovelerSpatialosWorkerViewComponent *positionComponent = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
+	if(positionComponent != NULL) {
+		positionCallback(positionComponent, VIEW_COMPONENT_CALLBACK_USER, model);
 	}
+}
 
-	if(entity->model != NULL) {
-		entity->model->translation = *entity->position;
-		shovelerModelUpdateTransformation(entity->model);
-	}
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelPointer)
+{
+	ShovelerSpatialosWorkerViewPosition *position = positionComponent->data;
+	ShovelerModel *model = modelPointer;
 
-	if(entity->light != NULL) {
-		shovelerLightUpdatePosition(entity->light, *entity->position);
-	}
-	*/
+	model->translation.values[0] = position->x;
+	model->translation.values[1] = position->y;
+	model->translation.values[2] = position->z;
+	shovelerModelUpdateTransformation(model);
 }
 
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
