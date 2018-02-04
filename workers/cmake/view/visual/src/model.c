@@ -1,3 +1,4 @@
+#include <assert.h> // assert
 #include <stdlib.h> // malloc free
 
 #include <shoveler/drawable/cube.h>
@@ -12,6 +13,7 @@
 #include <shoveler/model.h>
 
 #include "shoveler/spatialos/worker/view/visual/model.h"
+#include "shoveler/spatialos/worker/view/visual/scene.h"
 
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration);
 static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewMaterialConfiguration configuration);
@@ -21,6 +23,8 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
 bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
 	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
 		shovelerLogWarning("Trying to add model to non existing entity %lld, ignoring.", entityId);
@@ -54,7 +58,9 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	model->castsShadow = modelConfiguration.castsShadow;
 	model->polygonMode = modelConfiguration.polygonMode;
 
-	// shovelerSceneAddModel(view->scene, entity->model);
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneAddModel(scene, model);
+
 	if(!shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, model)) {
 		freeComponent(component);
 		return false;
@@ -69,6 +75,8 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 
 bool shovelerSpatialosWorkerViewUpdateEntityModelDrawable(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewDrawableConfiguration drawableConfiguration)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
 	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
 		shovelerLogWarning("Trying to update model drawable of non existing entity %lld, ignoring.", entityId);
@@ -92,14 +100,18 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelDrawable(ShovelerSpatialosWorke
 	model->castsShadow = oldModel->castsShadow;
 	model->polygonMode = oldModel->polygonMode;
 
-	// shovelerSceneRemoveModel(view->scene, oldModel);
-	// shovelerSceneAddModel(view->scene, entity->model);
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneRemoveModel(scene, oldModel);
+	shovelerSceneAddModel(scene, model);
+
 	updatePositionIfAvailable(entity, model);
 	return true;
 }
 
 bool shovelerSpatialosWorkerViewUpdateEntityModelMaterial(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewMaterialConfiguration materialConfiguration)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
 	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
 		shovelerLogWarning("Trying to update model material of non existing entity %lld, ignoring.", entityId);
@@ -124,15 +136,19 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelMaterial(ShovelerSpatialosWorke
 	model->castsShadow = oldModel->castsShadow;
 	model->polygonMode = oldModel->polygonMode;
 
-	// shovelerSceneRemoveModel(view->scene, oldModel);
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneRemoveModel(scene, oldModel);
 	shovelerMaterialFree(oldMaterial);
-	// shovelerSceneAddModel(view->scene, entity->model);
+	shovelerSceneAddModel(scene, model);
+
 	updatePositionIfAvailable(entity, model);
 	return true;
 }
 
 bool shovelerSpatialosWorkerViewUpdateEntityModelRotation(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerVector3 rotation)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
 	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
 		shovelerLogWarning("Trying to update model rotation of non existing entity %lld, ignoring.", entityId);
@@ -249,6 +265,8 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelPolygonMode(ShovelerSpatialosWo
 
 bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *view, long long int entityId)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
 	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
 	if(entity == NULL) {
 		shovelerLogWarning("Trying to remove model from non existing entity %lld, ignoring.", entityId);
@@ -260,8 +278,11 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 		shovelerLogWarning("Trying to remove model from entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
+	ShovelerModel *model = component->data;
 
-	// shovelerSceneRemoveModel(view->scene, entity->model);
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneRemoveModel(scene, model);
+
 	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "model");
 }
 
@@ -329,10 +350,13 @@ static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionCompo
 
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 {
+	assert(shovelerSpatialosWorkerViewHasScene(component->entity->view));
+
 	ShovelerModel *model = component->data;
 
 	if(model != NULL) {
-		// shovelerSceneRemoveModel(entity->view->scene, entity->model);
+		ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(component->entity->view);
+		shovelerSceneRemoveModel(scene, model);
 	}
 
 	shovelerModelFree(model);

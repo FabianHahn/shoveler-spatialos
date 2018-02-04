@@ -10,6 +10,8 @@ struct ShovelerSpatialosWorkerViewComponentStruct; // forward declaration
 typedef struct {
 	/** map from entity id (long long int) to entities (ShovelerSpatialosWorkerViewEntity *) */
 	GHashTable *entities;
+	/** map from string target name to target type */
+	GHashTable *targets;
 } ShovelerSpatialosWorkerView;
 
 typedef enum {
@@ -62,6 +64,11 @@ static inline ShovelerSpatialosWorkerViewEntity *shovelerSpatialosWorkerViewGetE
 static inline ShovelerSpatialosWorkerViewComponent *shovelerSpatialosWorkerViewEntityGetComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *component)
 {
 	return (ShovelerSpatialosWorkerViewComponent *) g_hash_table_lookup(entity->components, component);
+}
+
+static inline void *shovelerSpatialosWorkerViewGetTarget(ShovelerSpatialosWorkerView *view, const char *targetName)
+{
+	return g_hash_table_lookup(view->targets, targetName);
 }
 
 #endif
