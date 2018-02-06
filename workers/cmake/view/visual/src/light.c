@@ -1,4 +1,5 @@
 #include <assert.h> // assert
+#include <stdlib.h> // malloc free
 
 #include <shoveler/light/point.h>
 #include <shoveler/light.h>
@@ -10,7 +11,12 @@
 #include "shoveler/spatialos/worker/view/visual/light.h"
 #include "shoveler/spatialos/worker/view/visual/scene.h"
 
-static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightPointer);
+typedef struct {
+	ShovelerLight *light;
+	ShovelerSpatialosWorkerViewComponentCallback *positionCallback;
+} LightComponentData;
+
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightComponentDataPointer);
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
 bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewLightConfiguration lightConfiguration)
@@ -46,12 +52,11 @@ bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneAddLight(scene, light);
 
-	if(!shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, light)) {
-		freeComponent(component);
-		return false;
-	}
+	LightComponentData *lightComponentData = malloc(sizeof(LightComponentData));
+	lightComponentData->light = light;
+	lightComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, lightComponentData);
 
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "light", light, &freeComponent)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "light", lightComponentData, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -73,27 +78,28 @@ bool shovelerSpatialosWorkerViewRemoveEntityLight(ShovelerSpatialosWorkerView *v
 		shovelerLogWarning("Trying to remove light from entity %lld which does not have a light, ignoring.", entityId);
 		return false;
 	}
-	ShovelerLight *light = component->data;
+	LightComponentData *lightComponentData = component->data;
 
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
-	shovelerSceneRemoveLight(scene, light);
+	shovelerSceneRemoveLight(scene, lightComponentData->light);
 
 	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "light");
 }
 
-static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightPointer)
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightComponentDataPointer)
 {
 	ShovelerSpatialosWorkerViewPosition *position = positionComponent->data;
-	ShovelerLight *light = lightPointer;
-
-	shovelerLightUpdatePosition(light, (ShovelerVector3){position->x, position->y, position->z});
+	LightComponentData *lightComponentData = lightComponentDataPointer;
+	shovelerLightUpdatePosition(lightComponentData->light, (ShovelerVector3){position->x, position->y, position->z});
 }
 
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 {
 	assert(shovelerSpatialosWorkerViewHasScene(component->entity->view));
 
-	ShovelerLight *light = component->data;
+	LightComponentData *lightComponentData = component->data;
+
+	ShovelerLight *light = lightComponentData->light;
 
 	if(light != NULL) {
 		ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(component->entity->view);
@@ -101,4 +107,8 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 	}
 
 	shovelerLightFree(light);
+
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, "position", lightComponentData->positionCallback);
+
+	free(lightComponentData);
 }

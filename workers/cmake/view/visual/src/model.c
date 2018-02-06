@@ -15,10 +15,15 @@
 #include "shoveler/spatialos/worker/view/visual/model.h"
 #include "shoveler/spatialos/worker/view/visual/scene.h"
 
+typedef struct {
+	ShovelerModel *model;
+	ShovelerSpatialosWorkerViewComponentCallback *positionCallback;
+} ModelComponentData;
+
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration);
 static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewMaterialConfiguration configuration);
-static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ShovelerModel *model);
-static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelPointer);
+static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ModelComponentData *modelComponentData);
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelComponentDataPointer);
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
 bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration)
@@ -61,10 +66,9 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneAddModel(scene, model);
 
-	if(!shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, model)) {
-		freeComponent(component);
-		return false;
-	}
+	ModelComponentData *modelComponentData = malloc(sizeof(ModelComponentData));
+	modelComponentData->model = model;
+	modelComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, modelComponentData);
 
 	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", model, &freeComponent)) {
 		freeComponent(component);
@@ -88,23 +92,24 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelDrawable(ShovelerSpatialosWorke
 		shovelerLogWarning("Trying to update model drawable of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
+	ModelComponentData *modelComponentData = component->data;
 
-	ShovelerModel *oldModel = component->data;
+	ShovelerModel *oldModel = modelComponentData->model;
 	ShovelerDrawable *drawable = getDrawable(view, drawableConfiguration);
-	ShovelerModel *model = shovelerModelCreate(drawable, oldModel->material);
-	model->rotation = oldModel->rotation;
-	model->scale = oldModel->scale;
-	model->visible = oldModel->visible;
-	model->emitter = oldModel->emitter;
-	model->screenspace = oldModel->screenspace;
-	model->castsShadow = oldModel->castsShadow;
-	model->polygonMode = oldModel->polygonMode;
+	modelComponentData->model = shovelerModelCreate(drawable, oldModel->material);
+	modelComponentData->model->rotation = oldModel->rotation;
+	modelComponentData->model->scale = oldModel->scale;
+	modelComponentData->model->visible = oldModel->visible;
+	modelComponentData->model->emitter = oldModel->emitter;
+	modelComponentData->model->screenspace = oldModel->screenspace;
+	modelComponentData->model->castsShadow = oldModel->castsShadow;
+	modelComponentData->model->polygonMode = oldModel->polygonMode;
 
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneRemoveModel(scene, oldModel);
-	shovelerSceneAddModel(scene, model);
+	shovelerSceneAddModel(scene, modelComponentData->model);
 
-	updatePositionIfAvailable(entity, model);
+	updatePositionIfAvailable(entity, modelComponentData);
 	return true;
 }
 
@@ -123,25 +128,26 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelMaterial(ShovelerSpatialosWorke
 		shovelerLogWarning("Trying to update model material of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
+	ModelComponentData *modelComponentData = component->data;
 
-	ShovelerModel *oldModel = component->data;
+	ShovelerModel *oldModel = modelComponentData->model;
 	ShovelerMaterial *oldMaterial = oldModel->material;
 	ShovelerMaterial *material = createMaterial(view, materialConfiguration);
-	ShovelerModel *model = shovelerModelCreate(oldModel->drawable, material);
-	model->rotation = oldModel->rotation;
-	model->scale = oldModel->scale;
-	model->visible = oldModel->visible;
-	model->emitter = oldModel->emitter;
-	model->screenspace = oldModel->screenspace;
-	model->castsShadow = oldModel->castsShadow;
-	model->polygonMode = oldModel->polygonMode;
+	modelComponentData->model = shovelerModelCreate(oldModel->drawable, material);
+	modelComponentData->model->rotation = oldModel->rotation;
+	modelComponentData->model->scale = oldModel->scale;
+	modelComponentData->model->visible = oldModel->visible;
+	modelComponentData->model->emitter = oldModel->emitter;
+	modelComponentData->model->screenspace = oldModel->screenspace;
+	modelComponentData->model->castsShadow = oldModel->castsShadow;
+	modelComponentData->model->polygonMode = oldModel->polygonMode;
 
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneRemoveModel(scene, oldModel);
 	shovelerMaterialFree(oldMaterial);
-	shovelerSceneAddModel(scene, model);
+	shovelerSceneAddModel(scene, modelComponentData->model);
 
-	updatePositionIfAvailable(entity, model);
+	updatePositionIfAvailable(entity, modelComponentData);
 	return true;
 }
 
@@ -160,8 +166,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelRotation(ShovelerSpatialosWorke
 		shovelerLogWarning("Trying to update model rotation of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->rotation = rotation;
 	shovelerModelUpdateTransformation(model);
 	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, "model");
@@ -180,8 +187,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelScale(ShovelerSpatialosWorkerVi
 		shovelerLogWarning("Trying to update model scale of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->scale = scale;
 	shovelerModelUpdateTransformation(model);
 	return true;
@@ -200,8 +208,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelVisible(ShovelerSpatialosWorker
 		shovelerLogWarning("Trying to update model visibility of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->visible = visible;
 	return true;
 }
@@ -219,8 +228,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelEmitter(ShovelerSpatialosWorker
 		shovelerLogWarning("Trying to update model emitter of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->emitter = emitter;
 	return true;
 }
@@ -238,8 +248,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelScreenspace(ShovelerSpatialosWo
 		shovelerLogWarning("Trying to update model screenspace of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->screenspace = screenspace;
 	return true;
 }
@@ -257,8 +268,9 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelPolygonMode(ShovelerSpatialosWo
 		shovelerLogWarning("Trying to update model polygon mode of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	model->polygonMode = polygonMode;
 	return true;
 }
@@ -278,7 +290,9 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 		shovelerLogWarning("Trying to remove model from entity %lld which does not have a model, ignoring.", entityId);
 		return false;
 	}
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
+
+	ShovelerModel *model = modelComponentData->model;
 
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneRemoveModel(scene, model);
@@ -329,18 +343,19 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, Shove
 	}
 }
 
-static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ShovelerModel *model)
+static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ModelComponentData *modelComponentData)
 {
 	ShovelerSpatialosWorkerViewComponent *positionComponent = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
 	if(positionComponent != NULL) {
-		positionCallback(positionComponent, VIEW_COMPONENT_CALLBACK_USER, model);
+		positionCallback(positionComponent, VIEW_COMPONENT_CALLBACK_USER, modelComponentData);
 	}
 }
 
-static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelPointer)
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *modelComponentDataPointer)
 {
 	ShovelerSpatialosWorkerViewPosition *position = positionComponent->data;
-	ShovelerModel *model = modelPointer;
+	ModelComponentData *modelComponentData = modelComponentDataPointer;
+	ShovelerModel *model = modelComponentData->model;
 
 	model->translation.values[0] = position->x;
 	model->translation.values[1] = position->y;
@@ -352,12 +367,17 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 {
 	assert(shovelerSpatialosWorkerViewHasScene(component->entity->view));
 
-	ShovelerModel *model = component->data;
+	ModelComponentData *modelComponentData = component->data;
 
+	ShovelerModel *model = modelComponentData->model;
 	if(model != NULL) {
 		ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(component->entity->view);
 		shovelerSceneRemoveModel(scene, model);
 	}
 
 	shovelerModelFree(model);
+
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, "position", modelComponentData->positionCallback);
+
+	free(modelComponentData);
 }
