@@ -1,0 +1,104 @@
+#include <assert.h> // assert
+
+#include <shoveler/light/point.h>
+#include <shoveler/light.h>
+#include <shoveler/log.h>
+#include <shoveler/scene.h>
+#include <shoveler/spatialos/worker/view/base/position.h>
+#include <shoveler/spatialos/worker/view/base/view.h>
+
+#include "shoveler/spatialos/worker/view/visual/light.h"
+#include "shoveler/spatialos/worker/view/visual/scene.h"
+
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightPointer);
+static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
+
+bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewLightConfiguration lightConfiguration)
+{
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
+	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to add light to non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	if(component != NULL) {
+		shovelerLogWarning("Trying to add light to entity %lld which already has a light, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerLight *light;
+	switch(lightConfiguration.type) {
+		case SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT:
+			shovelerLogWarning("Trying to create light with unsupported spot type, ignoring.");
+			return false;
+			break;
+		case SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT:
+			light = shovelerLightPointCreate((ShovelerVector3) {0.0f, 0.0f, 0.0f}, lightConfiguration.width, lightConfiguration.height, lightConfiguration.samples, lightConfiguration.ambientFactor, lightConfiguration.exponentialFactor, lightConfiguration.color);
+			break;
+		default:
+			shovelerLogWarning("Trying to create light with unknown light type %d, ignoring.", lightConfiguration.type);
+			return false;
+	}
+
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneAddLight(scene, light);
+
+	if(!shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, light)) {
+		freeComponent(component);
+		return false;
+	}
+
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "light", light, &freeComponent)) {
+		freeComponent(component);
+		return false;
+	}
+	return true;
+}
+
+bool shovelerSpatialosWorkerViewRemoveEntityLight(ShovelerSpatialosWorkerView *view, long long int entityId)
+{
+	assert(shovelerSpatialosWorkerViewHasScene(view));
+
+	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerLogWarning("Trying to remove light from non existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	if(component == NULL) {
+		shovelerLogWarning("Trying to remove light from entity %lld which does not have a light, ignoring.", entityId);
+		return false;
+	}
+	ShovelerLight *light = component->data;
+
+	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
+	shovelerSceneRemoveLight(scene, light);
+
+	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "light");
+}
+
+static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightPointer)
+{
+	ShovelerSpatialosWorkerViewPosition *position = positionComponent->data;
+	ShovelerLight *light = lightPointer;
+
+	shovelerLightUpdatePosition(light, (ShovelerVector3){position->x, position->y, position->z});
+}
+
+static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
+{
+	assert(shovelerSpatialosWorkerViewHasScene(component->entity->view));
+
+	ShovelerLight *light = component->data;
+
+	if(light != NULL) {
+		ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(component->entity->view);
+		shovelerSceneRemoveLight(scene, light);
+	}
+
+	shovelerLightFree(light);
+}
