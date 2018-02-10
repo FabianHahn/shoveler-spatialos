@@ -5,7 +5,7 @@
       "type": "worker_sdk",
       "packages": [
         {
-          "name": "cpp-static-x86_64-gcc_libstdcpp-linux"
+          "name": "cpp-static-x86_64-gcc_libstdcpp_pic-linux"
         }
       ]
     },
