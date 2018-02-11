@@ -133,6 +133,12 @@ bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerView
 	return true;
 }
 
+void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view)
+{
+	g_hash_table_destroy(view->entities);
+	free(view);
+}
+
 static void freeEntity(void *entityPointer)
 {
 	ShovelerSpatialosWorkerViewEntity *entity = entityPointer;

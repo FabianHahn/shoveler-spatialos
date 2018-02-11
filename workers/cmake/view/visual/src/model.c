@@ -300,12 +300,6 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "model");
 }
 
-void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view)
-{
-	g_hash_table_destroy(view->entities);
-	free(view);
-}
-
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration)
 {
 	switch (configuration.type) {
