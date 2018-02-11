@@ -373,8 +373,6 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 		shovelerSceneRemoveModel(scene, model);
 	}
 
-	shovelerModelFree(model);
-
 	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, modelComponentData->positionCallback);
 
 	free(modelComponentData);

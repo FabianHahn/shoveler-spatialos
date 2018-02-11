@@ -106,8 +106,6 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 		shovelerSceneRemoveLight(scene, light);
 	}
 
-	shovelerLightFree(light);
-
 	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, lightComponentData->positionCallback);
 
 	free(lightComponentData);
