@@ -3,14 +3,18 @@
 #include <shoveler.h>
 
 extern "C" {
+#include <shoveler/spatialos/worker/view/base/view.h>
+#include <shoveler/spatialos/worker/view/base/position.h>
+#include <shoveler/spatialos/worker/view/visual/drawables.h>
+#include <shoveler/spatialos/worker/view/visual/light.h>
+#include <shoveler/spatialos/worker/view/visual/model.h>
+#include <shoveler/spatialos/worker/view/visual/scene.h>
 #include <shoveler/camera/perspective.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
 #include <shoveler/game.h>
 #include <shoveler/log.h>
 #include <shoveler/types.h>
-
-#include "worker_view.h"
 }
 
 using shoveler::Drawable;
@@ -25,8 +29,8 @@ using improbable::Coordinates;
 using improbable::Position;
 
 static void updateGame(ShovelerGame *game, double dt);
-static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
-static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
+static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
+static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
 static GLuint getPolygonMode(PolygonMode polygonMode);
 
 static ShovelerController *controller;
@@ -74,7 +78,10 @@ int main(int argc, char **argv) {
 	controller = shovelerControllerCreate(game, 2.0f, 0.0005f);
 	shovelerCameraPerspectiveAttachController(game->camera, controller);
 
-	ShovelerSpatialOsWorkerView *view = shovelerSpatialOsWorkerViewCreate(game->scene);
+	ShovelerSpatialosWorkerView *view = shovelerSpatialosWorkerViewCreate();
+	shovelerSpatialosWorkerViewSetTarget(view, "scene", game->scene);
+
+	ShovelerSpatialosWorkerViewDrawables *drawables = shovelerSpatialosWorkerViewDrawablesCreate(view);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
@@ -83,37 +90,35 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
 		shovelerLogInfo("Adding entity %lld.", op.EntityId);
-		shovelerSpatialOsWorkerViewAddEntity(view, op.EntityId);
+		shovelerSpatialosWorkerViewAddEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
 		shovelerLogInfo("Removing entity %lld.", op.EntityId);
-		shovelerSpatialOsWorkerViewRemoveEntity(view, op.EntityId);
+		shovelerSpatialosWorkerViewRemoveEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Position>([&](const worker::AddComponentOp<Position>& op) {
 		shovelerLogInfo("Adding position to entity %lld.", op.EntityId);
-		ShovelerVector3 position{(float) -op.Data.coords().x(), (float) op.Data.coords().y(), (float) op.Data.coords().z()};
-		shovelerSpatialOsWorkerViewAddEntityPosition(view, op.EntityId, position);
+		shovelerSpatialosWorkerViewAddEntityPosition(view, op.EntityId, -op.Data.coords().x(), op.Data.coords().y(), op.Data.coords().z());
 	});
 
 	dispatcher.OnComponentUpdate<Position>([&](const worker::ComponentUpdateOp<Position>& op) {
 		shovelerLogInfo("Updating position for entity %lld.", op.EntityId);
 		if(op.Update.coords()) {
 			const Coordinates& coordinates = *op.Update.coords();
-			ShovelerVector3 position{(float) -coordinates.x(), (float) coordinates.y(), (float) coordinates.z()};
-			shovelerSpatialOsWorkerViewUpdateEntityPosition(view, op.EntityId, position);
+			shovelerSpatialosWorkerViewUpdateEntityPosition(view, op.EntityId, -coordinates.x(), coordinates.y(), coordinates.z());
 		}
 	});
 
 	dispatcher.OnRemoveComponent<Position>([&](const worker::RemoveComponentOp& op) {
 		shovelerLogInfo("Removing position from entity %lld.", op.EntityId);
-		shovelerSpatialOsWorkerViewRemoveEntityPosition(view, op.EntityId);
+		shovelerSpatialosWorkerViewRemoveEntityPosition(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Model>([&](const worker::AddComponentOp<Model>& op) {
 		shovelerLogInfo("Adding model to entity %lld.", op.EntityId);
-		ShovelerSpatialOsWorkerViewModelConfiguration modelConfiguration;
+		ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration;
 		modelConfiguration.drawable = createDrawableConfiguration(op.Data.drawable());
 		modelConfiguration.material = createMaterialConfiguration(op.Data.material());
 		modelConfiguration.rotation = ShovelerVector3{op.Data.rotation().x(), op.Data.rotation().y(), op.Data.rotation().z()};
@@ -123,59 +128,59 @@ int main(int argc, char **argv) {
 		modelConfiguration.screenspace = op.Data.screenspace();
 		modelConfiguration.castsShadow = op.Data.casts_shadow();
 		modelConfiguration.polygonMode = getPolygonMode(op.Data.polygon_mode());
-		shovelerSpatialOsWorkerViewAddEntityModel(view, op.EntityId, modelConfiguration);
+		shovelerSpatialosWorkerViewAddEntityModel(view, op.EntityId, modelConfiguration);
 	});
 
 	dispatcher.OnComponentUpdate<Model>([&](const worker::ComponentUpdateOp<Model>& op) {
 		shovelerLogInfo("Updating model for entity %lld.", op.EntityId);
 
 		if(op.Update.drawable()) {
-			ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
-			shovelerSpatialOsWorkerViewUpdateEntityModelDrawable(view, op.EntityId, drawableConfiguration);
+			ShovelerSpatialosWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
+			shovelerSpatialosWorkerViewUpdateEntityModelDrawable(view, op.EntityId, drawableConfiguration);
 		}
 
 		if(op.Update.material()) {
-			ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration = createMaterialConfiguration(*op.Update.material());
-			shovelerSpatialOsWorkerViewUpdateEntityModelMaterial(view, op.EntityId, materialConfiguration);
+			ShovelerSpatialosWorkerViewMaterialConfiguration materialConfiguration = createMaterialConfiguration(*op.Update.material());
+			shovelerSpatialosWorkerViewUpdateEntityModelMaterial(view, op.EntityId, materialConfiguration);
 		}
 
 		if(op.Update.rotation()) {
 			ShovelerVector3 rotation{op.Update.rotation()->x(), op.Update.rotation()->y(), op.Update.rotation()->z()};
-			shovelerSpatialOsWorkerViewUpdateEntityModelRotation(view, op.EntityId, rotation);
+			shovelerSpatialosWorkerViewUpdateEntityModelRotation(view, op.EntityId, rotation);
 		}
 
 		if(op.Update.scale()) {
 			ShovelerVector3 scale{-op.Update.scale()->x(), op.Update.scale()->y(), op.Update.scale()->z()};
-			shovelerSpatialOsWorkerViewUpdateEntityModelScale(view, op.EntityId, scale);
+			shovelerSpatialosWorkerViewUpdateEntityModelScale(view, op.EntityId, scale);
 		}
 
 		if(op.Update.visible()) {
-			shovelerSpatialOsWorkerViewUpdateEntityModelVisible(view, op.EntityId, *op.Update.visible());
+			shovelerSpatialosWorkerViewUpdateEntityModelVisible(view, op.EntityId, *op.Update.visible());
 		}
 
 		if(op.Update.emitter()) {
-			shovelerSpatialOsWorkerViewUpdateEntityModelEmitter(view, op.EntityId, *op.Update.emitter());
+			shovelerSpatialosWorkerViewUpdateEntityModelEmitter(view, op.EntityId, *op.Update.emitter());
 		}
 
 		if(op.Update.screenspace()) {
-			shovelerSpatialOsWorkerViewUpdateEntityModelScreenspace(view, op.EntityId, *op.Update.screenspace());
+			shovelerSpatialosWorkerViewUpdateEntityModelScreenspace(view, op.EntityId, *op.Update.screenspace());
 		}
 
 		if(op.Update.polygon_mode()) {
 			GLuint polygonMode = getPolygonMode(*op.Update.polygon_mode());
-			shovelerSpatialOsWorkerViewUpdateEntityModelPolygonMode(view, op.EntityId, polygonMode);
+			shovelerSpatialosWorkerViewUpdateEntityModelPolygonMode(view, op.EntityId, polygonMode);
 		}
 	});
 
 	dispatcher.OnRemoveComponent<Model>([&](const worker::RemoveComponentOp& op) {
 		shovelerLogInfo("Removing model from entity %lld.", op.EntityId);
-		shovelerSpatialOsWorkerViewRemoveEntityModel(view, op.EntityId);
+		shovelerSpatialosWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Light>([&](const worker::AddComponentOp<Light>& op) {
 		shovelerLogInfo("Adding light to entity %lld.", op.EntityId);
 
-		ShovelerSpatialOsWorkerViewLightConfiguration lightConfiguration;
+		ShovelerSpatialosWorkerViewLightConfiguration lightConfiguration;
 		switch(op.Data.type()) {
 			case LightType::SPOT:
 				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_SPOT;
@@ -195,12 +200,12 @@ int main(int argc, char **argv) {
 		lightConfiguration.ambientFactor = op.Data.ambient_factor();
 		lightConfiguration.exponentialFactor = op.Data.exponential_factor();
 		lightConfiguration.color = ShovelerVector3{op.Data.color().r(), op.Data.color().g(), op.Data.color().b()};
-		shovelerSpatialOsWorkerViewAddEntityLight(view, op.EntityId, lightConfiguration);
+		shovelerSpatialosWorkerViewAddEntityLight(view, op.EntityId, lightConfiguration);
 	});
 
 	dispatcher.OnRemoveComponent<Light>([&](const worker::RemoveComponentOp& op) {
 		shovelerLogInfo("Removing light from entity %lld.", op.EntityId);
-		shovelerSpatialOsWorkerViewRemoveEntityLight(view, op.EntityId);
+		shovelerSpatialosWorkerViewRemoveEntityLight(view, op.EntityId);
 	});
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
@@ -209,7 +214,9 @@ int main(int argc, char **argv) {
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
-	shovelerSpatialOsWorkerViewFree(view);
+	shovelerSpatialosWorkerViewFree(view);
+
+	shovelerSpatialosWorkerViewDrawablesFree(drawables);
 
 	shovelerControllerFree(controller);
 
@@ -225,9 +232,9 @@ static void updateGame(ShovelerGame *game, double dt)
 	shovelerCameraUpdateView(game->camera);
 }
 
-static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
+static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
 {
-	ShovelerSpatialOsWorkerViewDrawableConfiguration drawableConfiguration;
+	ShovelerSpatialosWorkerViewDrawableConfiguration drawableConfiguration;
 	switch(drawable.type()) {
 		case DrawableType::CUBE:
 			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE;
@@ -246,9 +253,9 @@ static ShovelerSpatialOsWorkerViewDrawableConfiguration createDrawableConfigurat
 	return drawableConfiguration;
 }
 
-static ShovelerSpatialOsWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material)
+static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material)
 {
-	ShovelerSpatialOsWorkerViewMaterialConfiguration materialConfiguration;
+	ShovelerSpatialosWorkerViewMaterialConfiguration materialConfiguration;
 	switch(material.type()) {
 		case MaterialType::COLOR:
 			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
