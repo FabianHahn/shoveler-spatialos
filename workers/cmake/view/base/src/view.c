@@ -11,6 +11,7 @@ ShovelerSpatialosWorkerView *shovelerSpatialosWorkerViewCreate()
 {
 	ShovelerSpatialosWorkerView *view = malloc(sizeof(ShovelerSpatialosWorkerView));
 	view->entities = g_hash_table_new_full(g_int64_hash, g_int64_equal, NULL, freeEntity);
+	view->targets = g_hash_table_new_full(&g_str_hash, &g_str_equal, &free, NULL);
 
 	return view;
 }
@@ -118,6 +119,11 @@ ShovelerSpatialosWorkerViewComponentCallback *shovelerSpatialosWorkerViewEntityA
 	return callback;
 }
 
+bool shovelerSpatialosWorkerViewSetTarget(ShovelerSpatialosWorkerView *view, const char *targetName, void *target)
+{
+	return g_hash_table_insert(view->targets, strdup(targetName), target);
+}
+
 bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallback *callback)
 {
 	GQueue *callbacks = g_hash_table_lookup(entity->callbacks, componentName);
@@ -136,6 +142,7 @@ bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerView
 void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view)
 {
 	g_hash_table_destroy(view->entities);
+	g_hash_table_destroy(view->targets);
 	free(view);
 }
 

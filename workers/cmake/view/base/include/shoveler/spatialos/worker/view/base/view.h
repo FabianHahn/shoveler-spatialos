@@ -54,6 +54,8 @@ bool shovelerSpatialosWorkerViewEntityUpdateComponent(ShovelerSpatialosWorkerVie
 bool shovelerSpatialosWorkerViewEntityRemoveComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
 ShovelerSpatialosWorkerViewComponentCallback *shovelerSpatialosWorkerViewEntityAddCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallbackFunction *function, void *userData);
 bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallback *callback);
+/** Sets a target that is expected to be freed by the caller. */
+bool shovelerSpatialosWorkerViewSetTarget(ShovelerSpatialosWorkerView *view, const char *targetName, void *target);
 void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view);
 
 static inline ShovelerSpatialosWorkerViewEntity *shovelerSpatialosWorkerViewGetEntity(ShovelerSpatialosWorkerView *view, long long int entityId)
