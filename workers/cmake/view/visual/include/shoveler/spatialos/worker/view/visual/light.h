@@ -18,6 +18,8 @@ typedef struct {
 	ShovelerVector3 color;
 } ShovelerSpatialosWorkerViewLightConfiguration;
 
+static const char *shovelerSpatialosWorkerViewLightComponentName = "light";
+
 bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewLightConfiguration lightConfiguration);
 bool shovelerSpatialosWorkerViewRemoveEntityLight(ShovelerSpatialosWorkerView *view, long long int entityId);
 

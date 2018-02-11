@@ -29,7 +29,7 @@ bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewLightComponentName);
 	if(component != NULL) {
 		shovelerLogWarning("Trying to add light to entity %lld which already has a light, ignoring.", entityId);
 		return false;
@@ -56,7 +56,7 @@ bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view
 	lightComponentData->light = light;
 	lightComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, lightComponentData);
 
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "light", lightComponentData, &freeComponent)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewLightComponentName, lightComponentData, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -73,7 +73,7 @@ bool shovelerSpatialosWorkerViewRemoveEntityLight(ShovelerSpatialosWorkerView *v
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewLightComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to remove light from entity %lld which does not have a light, ignoring.", entityId);
 		return false;
@@ -83,7 +83,7 @@ bool shovelerSpatialosWorkerViewRemoveEntityLight(ShovelerSpatialosWorkerView *v
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneRemoveLight(scene, lightComponentData->light);
 
-	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "light");
+	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, shovelerSpatialosWorkerViewLightComponentName);
 }
 
 static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *lightComponentDataPointer)
