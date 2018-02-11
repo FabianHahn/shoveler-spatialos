@@ -12,6 +12,7 @@
 #include <shoveler/log.h>
 #include <shoveler/model.h>
 
+#include "shoveler/spatialos/worker/view/visual/drawables.h"
 #include "shoveler/spatialos/worker/view/visual/model.h"
 #include "shoveler/spatialos/worker/view/visual/scene.h"
 
@@ -302,15 +303,18 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration)
 {
+	assert(shovelerSpatialosWorkerViewHasDrawables(view));
+	ShovelerSpatialosWorkerViewDrawables *drawables = shovelerSpatialosWorkerViewGetDrawables(view);
+
 	switch (configuration.type) {
 		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE:
-			// return view->cube;
+			return drawables->cube;
 		break;
 		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_QUAD:
-			// return view->quad;
+			return drawables->quad;
 		break;
 		case SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_POINT:
-			// return view->point;
+			return drawables->point;
 		break;
 		default:
 			shovelerLogWarning("Trying to create drawable with unknown type %d, ignoring.", configuration.type);
