@@ -70,7 +70,7 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	modelComponentData->model = model;
 	modelComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, modelComponentData);
 
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", model, &freeComponent)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", modelComponentData, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
