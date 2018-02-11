@@ -13,7 +13,7 @@ bool shovelerSpatialosWorkerViewAddEntityPosition(ShovelerSpatialosWorkerView *v
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 	if(component != NULL) {
 		// shovelerLogWarning("Trying to add position to entity %lld which already has a position, ignoring.", entityId);
 		return false;
@@ -24,7 +24,7 @@ bool shovelerSpatialosWorkerViewAddEntityPosition(ShovelerSpatialosWorkerView *v
 	position->y = y;
 	position->z = z;
 
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "position", position, &freeComponent)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewPositionComponentName, position, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -39,7 +39,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityPosition(ShovelerSpatialosWorkerView
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 	if(component == NULL) {
 		// shovelerLogWarning("Trying to update position for entity %lld which does not have a position, ignoring.", entityId);
 		return false;
@@ -50,7 +50,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityPosition(ShovelerSpatialosWorkerView
 	position->y = y;
 	position->z = z;
 
-	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, "position");
+	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 }
 
 bool shovelerSpatialosWorkerViewRemoveEntityPosition(ShovelerSpatialosWorkerView *view, long long int entityId)
@@ -61,13 +61,13 @@ bool shovelerSpatialosWorkerViewRemoveEntityPosition(ShovelerSpatialosWorkerView
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 	if(component == NULL) {
 		// shovelerLogWarning("Trying to remove position from entity %lld which does not have a position, ignoring.", entityId);
 		return false;
 	}
 
-	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "position");
+	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 }
 
 

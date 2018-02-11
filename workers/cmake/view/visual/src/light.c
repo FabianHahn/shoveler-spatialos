@@ -54,7 +54,7 @@ bool shovelerSpatialosWorkerViewAddEntityLight(ShovelerSpatialosWorkerView *view
 
 	LightComponentData *lightComponentData = malloc(sizeof(LightComponentData));
 	lightComponentData->light = light;
-	lightComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, lightComponentData);
+	lightComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewPositionComponentName, &positionCallback, lightComponentData);
 
 	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewLightComponentName, lightComponentData, &freeComponent)) {
 		freeComponent(component);
@@ -108,7 +108,7 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 
 	shovelerLightFree(light);
 
-	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, "position", lightComponentData->positionCallback);
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, lightComponentData->positionCallback);
 
 	free(lightComponentData);
 }

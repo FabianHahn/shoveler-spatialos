@@ -69,7 +69,7 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 
 	ModelComponentData *modelComponentData = malloc(sizeof(ModelComponentData));
 	modelComponentData->model = model;
-	modelComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, modelComponentData);
+	modelComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewPositionComponentName, &positionCallback, modelComponentData);
 
 	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewModelComponentName, modelComponentData, &freeComponent)) {
 		freeComponent(component);
@@ -343,7 +343,7 @@ static ShovelerMaterial *createMaterial(ShovelerSpatialosWorkerView *view, Shove
 
 static void updatePositionIfAvailable(ShovelerSpatialosWorkerViewEntity *entity, ModelComponentData *modelComponentData)
 {
-	ShovelerSpatialosWorkerViewComponent *positionComponent = shovelerSpatialosWorkerViewEntityGetComponent(entity, "position");
+	ShovelerSpatialosWorkerViewComponent *positionComponent = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewPositionComponentName);
 	if(positionComponent != NULL) {
 		positionCallback(positionComponent, VIEW_COMPONENT_CALLBACK_USER, modelComponentData);
 	}
@@ -375,7 +375,7 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 
 	shovelerModelFree(model);
 
-	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, "position", modelComponentData->positionCallback);
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, modelComponentData->positionCallback);
 
 	free(modelComponentData);
 }

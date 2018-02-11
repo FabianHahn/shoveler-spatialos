@@ -13,6 +13,8 @@ typedef struct {
 	double z;
 } ShovelerSpatialosWorkerViewPosition;
 
+static const char *shovelerSpatialosWorkerViewPositionComponentName = "position";
+
 bool shovelerSpatialosWorkerViewAddEntityPosition(ShovelerSpatialosWorkerView *view, long long int entityId, double x, double y, double z);
 bool shovelerSpatialosWorkerViewUpdateEntityPosition(ShovelerSpatialosWorkerView *view, long long int entityId, double x, double y, double z);
 bool shovelerSpatialosWorkerViewRemoveEntityPosition(ShovelerSpatialosWorkerView *view, long long int entityId);
