@@ -37,7 +37,7 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component != NULL) {
 		shovelerLogWarning("Trying to add model to entity %lld which already has a model, ignoring.", entityId);
 		return false;
@@ -71,7 +71,7 @@ bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view
 	modelComponentData->model = model;
 	modelComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, "position", &positionCallback, modelComponentData);
 
-	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, "model", modelComponentData, &freeComponent)) {
+	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewModelComponentName, modelComponentData, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
@@ -88,7 +88,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelDrawable(ShovelerSpatialosWorke
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model drawable of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -124,7 +124,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelMaterial(ShovelerSpatialosWorke
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model material of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -162,7 +162,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelRotation(ShovelerSpatialosWorke
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model rotation of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -172,7 +172,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelRotation(ShovelerSpatialosWorke
 	ShovelerModel *model = modelComponentData->model;
 	model->rotation = rotation;
 	shovelerModelUpdateTransformation(model);
-	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, "model");
+	return shovelerSpatialosWorkerViewEntityUpdateComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 }
 
 bool shovelerSpatialosWorkerViewUpdateEntityModelScale(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerVector3 scale)
@@ -183,7 +183,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelScale(ShovelerSpatialosWorkerVi
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model scale of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -204,7 +204,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelVisible(ShovelerSpatialosWorker
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model visibility of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -224,7 +224,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelEmitter(ShovelerSpatialosWorker
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model emitter of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -244,7 +244,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelScreenspace(ShovelerSpatialosWo
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model screenspace of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -264,7 +264,7 @@ bool shovelerSpatialosWorkerViewUpdateEntityModelPolygonMode(ShovelerSpatialosWo
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to update model polygon mode of entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -286,7 +286,7 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 		return false;
 	}
 
-	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, "model");
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 	if(component == NULL) {
 		shovelerLogWarning("Trying to remove model from entity %lld which does not have a model, ignoring.", entityId);
 		return false;
@@ -298,7 +298,7 @@ bool shovelerSpatialosWorkerViewRemoveEntityModel(ShovelerSpatialosWorkerView *v
 	ShovelerScene *scene = shovelerSpatialosWorkerViewGetScene(view);
 	shovelerSceneRemoveModel(scene, model);
 
-	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, "model");
+	return shovelerSpatialosWorkerViewEntityRemoveComponent(entity, shovelerSpatialosWorkerViewModelComponentName);
 }
 
 static ShovelerDrawable *getDrawable(ShovelerSpatialosWorkerView *view, ShovelerSpatialosWorkerViewDrawableConfiguration configuration)
