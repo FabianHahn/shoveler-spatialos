@@ -6,7 +6,7 @@
 
 static inline ShovelerScene *shovelerSpatialosWorkerViewGetScene(ShovelerSpatialosWorkerView *view)
 {
-	return shovelerSpatialosWorkerViewGetTarget(view, "scene");
+	return (ShovelerScene *) shovelerSpatialosWorkerViewGetTarget(view, "scene");
 }
 
 static inline bool shovelerSpatialosWorkerViewHasScene(ShovelerSpatialosWorkerView *view)
