@@ -218,6 +218,7 @@ int main(int argc, char **argv) {
 
 	shovelerSpatialosWorkerViewDrawablesFree(drawables);
 
+	shovelerCameraPerspectiveDetachController(game->camera, controller);
 	shovelerControllerFree(controller);
 
 	shovelerCameraFree(game->camera);
