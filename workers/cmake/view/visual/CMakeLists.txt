@@ -1,8 +1,10 @@
 include_directories(..)
 
 set(SHOVELER_SPATIALOS_WORKER_VIEW_VISUAL_SRC
+	src/drawables.c
 	src/light.c
 	src/model.c
+	include/shoveler/spatialos/worker/view/visual/drawables.h
 	include/shoveler/spatialos/worker/view/visual/light.h
 	include/shoveler/spatialos/worker/view/visual/model.h
 	include/shoveler/spatialos/worker/view/visual/scene.h
