@@ -39,7 +39,7 @@ bool shovelerSpatialosWorkerViewRemoveEntity(ShovelerSpatialosWorkerView *view, 
 
 bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, void *data, ShovelerSpatialosWorkerViewComponentFreeFunction *freeFunction)
 {
-	ShovelerSpatialosWorkerViewComponent *component = malloc(sizeof(ShovelerSpatialosWorkerViewComponentFreeFunction));
+	ShovelerSpatialosWorkerViewComponent *component = malloc(sizeof(ShovelerSpatialosWorkerViewComponent));
 	component->entity = entity;
 	component->name = strdup(componentName);
 	component->data = data;
