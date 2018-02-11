@@ -3,6 +3,9 @@ include_directories(..)
 set(SHOVELER_SPATIALOS_WORKER_VIEW_VISUAL_SRC
 	src/light.c
 	src/model.c
+	include/shoveler/spatialos/worker/view/visual/light.h
+	include/shoveler/spatialos/worker/view/visual/model.h
+	include/shoveler/spatialos/worker/view/visual/scene.h
 )
 
 add_library(shoveler_spatialos_worker_view_visual ${SHOVELER_SPATIALOS_WORKER_VIEW_VISUAL_SRC})
