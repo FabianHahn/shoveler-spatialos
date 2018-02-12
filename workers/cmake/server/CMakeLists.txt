@@ -5,4 +5,4 @@ set(SHOVELER_SERVER_SRC
 )
 
 add_executable(ShovelerServer ${SHOVELER_SERVER_SRC})
-target_link_libraries(ShovelerServer schema worker_sdk shoveler_spatialos_worker_view_base)
+target_link_libraries(ShovelerServer schema worker_sdk shoveler_spatialos_common shoveler_spatialos_worker_view_base)
