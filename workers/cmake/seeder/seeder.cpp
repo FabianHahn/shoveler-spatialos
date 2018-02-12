@@ -3,7 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 
-using shoveler::Client;
+using shoveler::Bootstrap;
 using shoveler::Color;
 using shoveler::Drawable;
 using shoveler::DrawableType;
@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
 	std::string path(argv[1]);
 
 	const worker::ComponentRegistry& components = worker::Components<
+		shoveler::Bootstrap,
 		shoveler::Client,
 		shoveler::Light,
 		shoveler::Model,
@@ -50,18 +51,20 @@ int main(int argc, char **argv) {
 	worker::Map<std::uint32_t, WorkerRequirementSet> emptyComponentAclMap;
 
 	WorkerAttributeSet clientAttributeSet({"client"});
+	WorkerAttributeSet serverAttributeSet({"server"});
 	WorkerRequirementSet clientRequirementSet({clientAttributeSet});
+	WorkerRequirementSet serverRequirementSet({serverAttributeSet});
 
 	std::unordered_map<worker::EntityId, worker::Entity> entities;
 
 	worker::Entity bootstrapEntity;
 	bootstrapEntity.Add<Metadata>({"bootstrap"});
 	bootstrapEntity.Add<Persistence>({});
+	bootstrapEntity.Add<Bootstrap>({});
 	bootstrapEntity.Add<Position>({{0, 0, 0}});
-	bootstrapEntity.Add<Client>({});
 	worker::Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
-	bootstrapComponentAclMap.insert({{Client::ComponentId, clientRequirementSet}});
-	EntityAclData bootstrapEntityAclData(clientRequirementSet, bootstrapComponentAclMap);
+	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
+	EntityAclData bootstrapEntityAclData(serverRequirementSet, bootstrapComponentAclMap);
 	bootstrapEntity.Add<EntityAcl>(bootstrapEntityAclData);
 	entities[1] = bootstrapEntity;
 
@@ -91,6 +94,11 @@ int main(int argc, char **argv) {
 	lightEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
 	entities[4] = lightEntity;
 
-	worker::SaveSnapshot(components, path, entities);
+	worker::Option<std::string> optionalError = worker::SaveSnapshot(components, path, entities);
+	if (optionalError) {
+		std::cerr << "Failed to write snapshot: " << *optionalError << std::endl;
+		return 1;
+	}
+
 	return 0;
 }

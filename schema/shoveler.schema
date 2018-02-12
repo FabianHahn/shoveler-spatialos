@@ -54,6 +54,19 @@ type PerspectiveCamera {
 	float far_clipping_plane = 6;
 }
 
+type CreateClientEntityRequest {
+
+}
+
+type CreateClientEntityResponse {
+
+}
+
+component Bootstrap {
+	id = 1336;
+	command CreateClientEntityResponse create_client_entity(CreateClientEntityRequest);
+}
+
 component Client {
 	id = 1337;
 }
