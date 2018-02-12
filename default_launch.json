@@ -13,18 +13,42 @@
   "workers": [
     {
       "worker_type": "ShovelerClient",
-      "permissions": [{
-        "entity_creation": {
-          "allow": true
-        },
-        "entity_deletion": {
-          "allow": true
-        },
-        "entity_query": {
-          "allow": true,
-          "components": []
+      "permissions": [
+        {
+          "entity_creation": {
+            "allow": false
+          },
+          "entity_deletion": {
+            "allow": false
+          },
+          "entity_query": {
+            "allow": true,
+            "components": []
+          }
         }
-      }]
+      ]
+    },
+    {
+      "worker_type": "ShovelerServer",
+      "permissions": [
+        {
+          "entity_creation": {
+            "allow": true
+          },
+          "entity_deletion": {
+            "allow": true
+          },
+          "entity_query": {
+            "allow": true,
+            "components": []
+          }
+        }
+      ],
+      "load_balancing": {
+        "auto_hex_grid": {
+          "num_workers": 1
+        }
+      }
     }
   ]
 }

@@ -16,6 +16,7 @@ target_link_libraries(schema PRIVATE worker_sdk)
 
 add_subdirectory(client)
 add_subdirectory(seeder)
+add_subdirectory(server)
 add_subdirectory(shoveler)
 add_subdirectory(view)
 add_subdirectory(worker_sdk)
