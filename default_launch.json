@@ -23,7 +23,7 @@
           },
           "entity_query": {
             "allow": true,
-            "components": []
+            "components": ["*"]
           }
         }
       ]
@@ -40,7 +40,7 @@
           },
           "entity_query": {
             "allow": true,
-            "components": []
+            "components": ["*"]
           }
         }
       ],
