@@ -19,6 +19,8 @@ extern "C" {
 #include <shoveler/types.h>
 }
 
+using shoveler::Bootstrap;
+using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using shoveler::Drawable;
 using shoveler::DrawableType;
 using shoveler::Material;
@@ -69,8 +71,12 @@ int main(int argc, char **argv) {
 	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
 
 	const worker::ComponentRegistry& components = worker::Components<
+		shoveler::Bootstrap,
 		shoveler::Light,
 		shoveler::Model,
+		improbable::EntityAcl,
+		improbable::Metadata,
+		improbable::Persistence,
 		improbable::Position>{};
 
 	shovelerLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
@@ -93,6 +99,33 @@ int main(int argc, char **argv) {
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerSpatialosLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
+	});
+
+	dispatcher.OnMetrics([&](const worker::MetricsOp& op) {
+		auto metrics = op.Metrics;
+		connection.SendMetrics(metrics);
+	});
+
+	dispatcher.OnLogMessage([&](const worker::LogMessageOp& op) {
+		switch(op.Level) {
+			case worker::LogLevel::kDebug:
+				shovelerSpatialosLogTrace(op.Message.c_str());
+				break;
+			case worker::LogLevel::kInfo:
+				shovelerSpatialosLogInfo(op.Message.c_str());
+				break;
+			case worker::LogLevel::kWarn:
+				shovelerSpatialosLogWarning(op.Message.c_str());
+				break;
+			case worker::LogLevel::kError:
+				shovelerSpatialosLogError(op.Message.c_str());
+				break;
+			case worker::LogLevel::kFatal:
+				shovelerSpatialosLogError(op.Message.c_str());
+				std::terminate();
+			default:
+				break;
+		}
 	});
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
@@ -213,6 +246,23 @@ int main(int argc, char **argv) {
 	dispatcher.OnRemoveComponent<Light>([&](const worker::RemoveComponentOp& op) {
 		shovelerSpatialosLogInfo("Removing light from entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntityLight(view, op.EntityId);
+	});
+
+	worker::query::EntityQuery bootstrapEntityQuery{worker::query::ComponentConstraint{Bootstrap::ComponentId}, worker::query::SnapshotResultType{{{Bootstrap::ComponentId}}}};
+	worker::RequestId<worker::EntityQueryRequest> bootstrapQueryRequestId = connection.SendEntityQueryRequest(bootstrapEntityQuery, {});
+
+	dispatcher.OnEntityQueryResponse([&](const worker::EntityQueryResponseOp& op) {
+		shovelerSpatialosLogInfo("Received entity query response for request %lld.", op.RequestId.Id);
+		if(op.RequestId == bootstrapQueryRequestId && op.Result.size() > 0) {
+			worker::EntityId bootstrapEntityId = op.Result.begin()->first;
+			shovelerSpatialosLogInfo("Received bootstrap query response containing entity %lld.", bootstrapEntityId);
+			worker::RequestId<worker::OutgoingCommandRequest<CreateClientEntity>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {}, {});
+			shovelerSpatialosLogInfo("Sent create client entity request with id %d.", createClientEntityRequestId.Id);
+		}
+	});
+
+	dispatcher.OnCommandResponse<CreateClientEntity>([&](const worker::CommandResponseOp<CreateClientEntity>& op) {
+		shovelerSpatialosLogInfo("Received create client entity command response %d with status code %d.", op.RequestId.Id, op.StatusCode);
 	});
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
