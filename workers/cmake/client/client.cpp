@@ -9,10 +9,12 @@ extern "C" {
 #include <shoveler/spatialos/worker/view/visual/light.h>
 #include <shoveler/spatialos/worker/view/visual/model.h>
 #include <shoveler/spatialos/worker/view/visual/scene.h>
+#include <shoveler/spatialos/log.h>
 #include <shoveler/camera/perspective.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
 #include <shoveler/game.h>
+#include <shoveler/global.h>
 #include <shoveler/log.h>
 #include <shoveler/types.h>
 }
@@ -28,6 +30,7 @@ using shoveler::PolygonMode;
 using improbable::Coordinates;
 using improbable::Position;
 
+static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message);
 static void updateGame(ShovelerGame *game, double dt);
 static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
@@ -46,6 +49,10 @@ int main(int argc, char **argv) {
 	int samples = 4;
 	int width = 640;
 	int height = 480;
+
+	shovelerSpatialosLogInit(SHOVELER_SPATIALOS_LOG_LEVEL_INFO_UP, stdout);
+	shovelerLogInitWithCallback(SHOVELER_LOG_LEVEL_INFO_UP, &shovelerLogHandler);
+	shovelerGlobalInit();
 
 	ShovelerGame *game = shovelerGameCreate(windowTitle, width, height, samples, fullscreen, vsync);
 	if(game == NULL) {
@@ -84,27 +91,27 @@ int main(int argc, char **argv) {
 	ShovelerSpatialosWorkerViewDrawables *drawables = shovelerSpatialosWorkerViewDrawablesCreate(view);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
-		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
+		shovelerSpatialosLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
 	});
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
-		shovelerLogInfo("Adding entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Adding entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewAddEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
-		shovelerLogInfo("Removing entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Removing entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Position>([&](const worker::AddComponentOp<Position>& op) {
-		shovelerLogInfo("Adding position to entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Adding position to entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewAddEntityPosition(view, op.EntityId, -op.Data.coords().x(), op.Data.coords().y(), op.Data.coords().z());
 	});
 
 	dispatcher.OnComponentUpdate<Position>([&](const worker::ComponentUpdateOp<Position>& op) {
-		shovelerLogInfo("Updating position for entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Updating position for entity %lld.", op.EntityId);
 		if(op.Update.coords()) {
 			const Coordinates& coordinates = *op.Update.coords();
 			shovelerSpatialosWorkerViewUpdateEntityPosition(view, op.EntityId, -coordinates.x(), coordinates.y(), coordinates.z());
@@ -112,12 +119,12 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnRemoveComponent<Position>([&](const worker::RemoveComponentOp& op) {
-		shovelerLogInfo("Removing position from entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Removing position from entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntityPosition(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Model>([&](const worker::AddComponentOp<Model>& op) {
-		shovelerLogInfo("Adding model to entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Adding model to entity %lld.", op.EntityId);
 		ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration;
 		modelConfiguration.drawable = createDrawableConfiguration(op.Data.drawable());
 		modelConfiguration.material = createMaterialConfiguration(op.Data.material());
@@ -132,7 +139,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnComponentUpdate<Model>([&](const worker::ComponentUpdateOp<Model>& op) {
-		shovelerLogInfo("Updating model for entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Updating model for entity %lld.", op.EntityId);
 
 		if(op.Update.drawable()) {
 			ShovelerSpatialosWorkerViewDrawableConfiguration drawableConfiguration = createDrawableConfiguration(*op.Update.drawable());
@@ -173,12 +180,12 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnRemoveComponent<Model>([&](const worker::RemoveComponentOp& op) {
-		shovelerLogInfo("Removing model from entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Removing model from entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntityModel(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Light>([&](const worker::AddComponentOp<Light>& op) {
-		shovelerLogInfo("Adding light to entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Adding light to entity %lld.", op.EntityId);
 
 		ShovelerSpatialosWorkerViewLightConfiguration lightConfiguration;
 		switch(op.Data.type()) {
@@ -189,7 +196,7 @@ int main(int argc, char **argv) {
 				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT;
 				break;
 			default:
-				shovelerLogWarning("Tried to create light configuration with invalid light type %d, defaulting to point.", op.Data.type());
+				shovelerSpatialosLogWarning("Tried to create light configuration with invalid light type %d, defaulting to point.", op.Data.type());
 				lightConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_LIGHT_TYPE_POINT;
 				break;
 		}
@@ -204,7 +211,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnRemoveComponent<Light>([&](const worker::RemoveComponentOp& op) {
-		shovelerLogInfo("Removing light from entity %lld.", op.EntityId);
+		shovelerSpatialosLogInfo("Removing light from entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntityLight(view, op.EntityId);
 	});
 
@@ -212,7 +219,7 @@ int main(int argc, char **argv) {
 		dispatcher.Process(connection.GetOpList(0));
 		shovelerGameRenderFrame(game);
 	}
-	shovelerLogInfo("Exiting main loop, goodbye.");
+	shovelerSpatialosLogInfo("Exiting main loop, goodbye.");
 
 	shovelerSpatialosWorkerViewFree(view);
 
@@ -225,6 +232,30 @@ int main(int argc, char **argv) {
 	shovelerSceneFree(game->scene);
 
 	shovelerGameFree(game);
+
+	shovelerGlobalUninit();
+	shovelerLogTerminate();
+}
+
+static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message)
+{
+	switch(level) {
+		case SHOVELER_LOG_LEVEL_TRACE:
+			shovelerSpatialosLogMessage(file, line, SHOVELER_SPATIALOS_LOG_LEVEL_TRACE, message);
+			break;
+		case SHOVELER_LOG_LEVEL_INFO:
+			shovelerSpatialosLogMessage(file, line, SHOVELER_SPATIALOS_LOG_LEVEL_INFO, message);
+			break;
+		case SHOVELER_LOG_LEVEL_WARNING:
+			shovelerSpatialosLogMessage(file, line, SHOVELER_SPATIALOS_LOG_LEVEL_WARNING, message);
+			break;
+		case SHOVELER_LOG_LEVEL_ERROR:
+			shovelerSpatialosLogMessage(file, line, SHOVELER_SPATIALOS_LOG_LEVEL_ERROR, message);
+			break;
+		default:
+			shovelerSpatialosLogMessage(file, line, SHOVELER_SPATIALOS_LOG_LEVEL_NONE, message);
+			break;
+	}
 }
 
 static void updateGame(ShovelerGame *game, double dt)
@@ -247,7 +278,7 @@ static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfigurat
 			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_POINT;
 			break;
 		default:
-			shovelerLogWarning("Tried to create drawable configuration with invalid drawable type %d, defaulting to cube.", drawable.type());
+			shovelerSpatialosLogWarning("Tried to create drawable configuration with invalid drawable type %d, defaulting to cube.", drawable.type());
 			drawableConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_DRAWABLE_TYPE_CUBE;
 			break;
 	}
@@ -263,7 +294,7 @@ static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfigurat
 			if(material.color()) {
 				materialConfiguration.color = ShovelerVector3{material.color()->r(), material.color()->g(), material.color()->b()};
 			} else {
-				shovelerLogWarning("Tried to create color material configuration without color, defaulting to white.");
+				shovelerSpatialosLogWarning("Tried to create color material configuration without color, defaulting to white.");
 				materialConfiguration.color = ShovelerVector3{1.0f, 1.0f, 1.0f};
 			}
 			break;
@@ -272,7 +303,7 @@ static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfigurat
 			if(material.texture()) {
 				materialConfiguration.texture = material.texture()->c_str();
 			} else {
-				shovelerLogWarning("Tried to create texture material configuration without texture, defaulting to null.");
+				shovelerSpatialosLogWarning("Tried to create texture material configuration without texture, defaulting to null.");
 				materialConfiguration.texture = NULL;
 			}
 			break;
@@ -281,12 +312,12 @@ static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfigurat
 			if(material.color()) {
 				materialConfiguration.color = ShovelerVector3{material.color()->r(), material.color()->g(), material.color()->b()};
 			} else {
-				shovelerLogWarning("Tried to create particle material configuration without color, defaulting to white.");
+				shovelerSpatialosLogWarning("Tried to create particle material configuration without color, defaulting to white.");
 				materialConfiguration.color = ShovelerVector3{1.0f, 1.0f, 1.0f};
 			}
 			break;
 		default:
-			shovelerLogWarning("Tried to create material configuration with invalid material type %d, defaulting to pink color.", material.type());
+			shovelerSpatialosLogWarning("Tried to create material configuration with invalid material type %d, defaulting to pink color.", material.type());
 			materialConfiguration.type = SHOVELER_SPATIALOS_WORKER_VIEW_MATERIAL_TYPE_COLOR;
 			materialConfiguration.color = ShovelerVector3{1.0f, 0.41f, 0.71f};
 			break;
@@ -304,7 +335,7 @@ static GLuint getPolygonMode(PolygonMode polygonMode)
 		case PolygonMode::POINT:
 			return GL_POINT;
 		default:
-			shovelerLogWarning("Tried to retrieve invalid polygon mode %d, defaulting to FILL.", polygonMode);
+			shovelerSpatialosLogWarning("Tried to retrieve invalid polygon mode %d, defaulting to FILL.", polygonMode);
 			return GL_FILL;
 	}
 }
