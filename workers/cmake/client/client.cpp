@@ -5,6 +5,7 @@
 extern "C" {
 #include <shoveler/spatialos/worker/view/base/view.h>
 #include <shoveler/spatialos/worker/view/base/position.h>
+#include <shoveler/spatialos/worker/view/visual/client.h>
 #include <shoveler/spatialos/worker/view/visual/drawables.h>
 #include <shoveler/spatialos/worker/view/visual/light.h>
 #include <shoveler/spatialos/worker/view/visual/model.h>
@@ -20,7 +21,7 @@ extern "C" {
 }
 
 using shoveler::Bootstrap;
-using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
+using shoveler::Client;
 using shoveler::Drawable;
 using shoveler::DrawableType;
 using shoveler::Material;
@@ -31,6 +32,8 @@ using shoveler::LightType;
 using shoveler::PolygonMode;
 using improbable::Coordinates;
 using improbable::Position;
+
+using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 
 static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message);
 static void updateGame(ShovelerGame *game, double dt);
@@ -136,6 +139,16 @@ int main(int argc, char **argv) {
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
 		shovelerSpatialosLogInfo("Removing entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntity(view, op.EntityId);
+	});
+
+	dispatcher.OnAddComponent<Client>([&](const worker::AddComponentOp<Client>& op) {
+		shovelerSpatialosLogInfo("Adding client to entity %lld.", op.EntityId);
+		shovelerSpatialosWorkerViewAddEntityClient(view, op.EntityId);
+	});
+
+	dispatcher.OnRemoveComponent<Client>([&](const worker::RemoveComponentOp& op) {
+		shovelerSpatialosLogInfo("Removing client from entity %lld.", op.EntityId);
+		shovelerSpatialosWorkerViewRemoveEntityClient(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Position>([&](const worker::AddComponentOp<Position>& op) {
