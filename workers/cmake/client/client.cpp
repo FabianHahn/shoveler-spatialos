@@ -36,8 +36,13 @@ using improbable::Position;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 
+struct PositionUpdateRequestContext {
+	worker::Connection *connection;
+};
+
 static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message);
 static void updateGame(ShovelerGame *game, double dt);
+static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer);
 static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
 static GLuint getPolygonMode(PolygonMode polygonMode);
@@ -76,6 +81,7 @@ int main(int argc, char **argv) {
 
 	const worker::ComponentRegistry& components = worker::Components<
 		shoveler::Bootstrap,
+		shoveler::Client,
 		shoveler::Light,
 		shoveler::Model,
 		improbable::EntityAcl,
@@ -163,6 +169,16 @@ int main(int argc, char **argv) {
 		if(op.Update.coords()) {
 			const Coordinates& coordinates = *op.Update.coords();
 			shovelerSpatialosWorkerViewUpdateEntityPosition(view, op.EntityId, -coordinates.x(), coordinates.y(), coordinates.z());
+		}
+	});
+
+	PositionUpdateRequestContext positionUpdateRequestContext{&connection};
+	dispatcher.OnAuthorityChange<Position>([&](const worker::AuthorityChangeOp& op) {
+		shovelerSpatialosLogInfo("Changing position authority for entity %lld to %d.", op.EntityId, op.Authority);
+		if (op.Authority == worker::Authority::kAuthoritative) {
+			shovelerSpatialosWorkerViewDelegatePosition(view, op.EntityId, requestPositionUpdate, &positionUpdateRequestContext);
+		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
+			shovelerSpatialosWorkerViewUndelegatePosition(view, op.EntityId);
 		}
 	});
 
@@ -327,6 +343,15 @@ static void updateGame(ShovelerGame *game, double dt)
 {
 	shovelerControllerUpdate(controller, dt);
 	shovelerCameraUpdateView(game->camera);
+}
+
+static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer)
+{
+	PositionUpdateRequestContext *context = (PositionUpdateRequestContext *) positionUpdateRequestContextPointer;
+
+	Position::Update positionUpdate;
+	positionUpdate.set_coords({x, y, z});
+	context->connection->SendComponentUpdate<Position>(component->entity->entityId, positionUpdate);
 }
 
 static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
