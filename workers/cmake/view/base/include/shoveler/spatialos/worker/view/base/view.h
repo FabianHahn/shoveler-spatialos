@@ -18,6 +18,8 @@ typedef enum {
 	VIEW_COMPONENT_CALLBACK_ADD,
 	VIEW_COMPONENT_CALLBACK_REMOVE,
 	VIEW_COMPONENT_CALLBACK_UPDATE,
+	VIEW_COMPONENT_CALLBACK_DELEGATE,
+	VIEW_COMPONENT_CALLBACK_UNDELEGATE,
 	VIEW_COMPONENT_CALLBACK_USER,
 } ShovelerSpatialosWorkerViewComponentCallbackType;
 
@@ -43,6 +45,7 @@ typedef struct ShovelerSpatialosWorkerViewComponentStruct {
 	ShovelerSpatialosWorkerViewEntity *entity;
 	char *name;
 	void *data;
+	bool authoritative;
 	ShovelerSpatialosWorkerViewComponentFreeFunction *free;
 } ShovelerSpatialosWorkerViewComponent;
 
@@ -51,6 +54,8 @@ bool shovelerSpatialosWorkerViewAddEntity(ShovelerSpatialosWorkerView *view, lon
 bool shovelerSpatialosWorkerViewRemoveEntity(ShovelerSpatialosWorkerView *view, long long int entityId);
 bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, void *data, ShovelerSpatialosWorkerViewComponentFreeFunction *freeFunction);
 bool shovelerSpatialosWorkerViewEntityUpdateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
+bool shovelerSpatialosWorkerViewDelegateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
+bool shovelerSpatialosWorkerViewUndelegateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
 bool shovelerSpatialosWorkerViewEntityRemoveComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName);
 ShovelerSpatialosWorkerViewComponentCallback *shovelerSpatialosWorkerViewEntityAddCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallbackFunction *function, void *userData);
 bool shovelerSpatialosWorkerViewEntityRemoveCallback(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName, ShovelerSpatialosWorkerViewComponentCallback *callback);

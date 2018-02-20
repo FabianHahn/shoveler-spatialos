@@ -3,6 +3,7 @@
 
 #include "shoveler/spatialos/worker/view/base/view.h"
 
+static void triggerComponentCallback(ShovelerSpatialosWorkerViewComponent *component, ShovelerSpatialosWorkerViewComponentCallbackType callbackType);
 static void freeEntity(void *entityPointer);
 static void freeComponent(void *componentPointer);
 static void freeCallbacks(void *callbacksPointer);
@@ -43,6 +44,7 @@ bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEn
 	component->entity = entity;
 	component->name = strdup(componentName);
 	component->data = data;
+	component->authoritative = false;
 	component->free = freeFunction;
 
 	if(!g_hash_table_insert(entity->components, component->name, component)) {
@@ -50,14 +52,7 @@ bool shovelerSpatialosWorkerViewEntityAddComponent(ShovelerSpatialosWorkerViewEn
 		return false;
 	}
 
-	GQueue *callbacks = g_hash_table_lookup(entity->callbacks, componentName);
-	if(callbacks != NULL) {
-		for(GList *iter = callbacks->head; iter != NULL; iter = iter->next) {
-			ShovelerSpatialosWorkerViewComponentCallback *callback = iter->data;
-			callback->function(component, VIEW_COMPONENT_CALLBACK_ADD, callback->userData);
-		}
-	}
-
+	triggerComponentCallback(component, VIEW_COMPONENT_CALLBACK_ADD);
 	return true;
 }
 
@@ -68,14 +63,33 @@ bool shovelerSpatialosWorkerViewEntityUpdateComponent(ShovelerSpatialosWorkerVie
 		return false;
 	}
 
-	GQueue *callbacks = g_hash_table_lookup(entity->callbacks, componentName);
-	if(callbacks != NULL) {
-		for(GList *iter = callbacks->head; iter != NULL; iter = iter->next) {
-			ShovelerSpatialosWorkerViewComponentCallback *callback = iter->data;
-			callback->function(component, VIEW_COMPONENT_CALLBACK_UPDATE, callback->userData);
-		}
+	triggerComponentCallback(component, VIEW_COMPONENT_CALLBACK_UPDATE);
+	return true;
+}
+
+bool shovelerSpatialosWorkerViewDelegateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName)
+{
+	ShovelerSpatialosWorkerViewComponent *component = g_hash_table_lookup(entity->components, componentName);
+	if(component == NULL) {
+		return false;
 	}
 
+	component->authoritative = true;
+
+	triggerComponentCallback(component, VIEW_COMPONENT_CALLBACK_DELEGATE);
+	return true;
+}
+
+bool shovelerSpatialosWorkerViewUndelegateComponent(ShovelerSpatialosWorkerViewEntity *entity, const char *componentName)
+{
+	ShovelerSpatialosWorkerViewComponent *component = g_hash_table_lookup(entity->components, componentName);
+	if(component == NULL) {
+		return false;
+	}
+
+	component->authoritative = false;
+
+	triggerComponentCallback(component, VIEW_COMPONENT_CALLBACK_UNDELEGATE);
 	return true;
 }
 
@@ -86,14 +100,7 @@ bool shovelerSpatialosWorkerViewEntityRemoveComponent(ShovelerSpatialosWorkerVie
 		return false;
 	}
 
-	GQueue *callbacks = g_hash_table_lookup(entity->callbacks, componentName);
-	if(callbacks != NULL) {
-		for(GList *iter = callbacks->head; iter != NULL; iter = iter->next) {
-			ShovelerSpatialosWorkerViewComponentCallback *callback = iter->data;
-			callback->function(component, VIEW_COMPONENT_CALLBACK_REMOVE, callback->userData);
-		}
-	}
-
+	triggerComponentCallback(component, VIEW_COMPONENT_CALLBACK_REMOVE);
 	return g_hash_table_remove(entity->components, componentName);
 }
 
@@ -144,6 +151,17 @@ void shovelerSpatialosWorkerViewFree(ShovelerSpatialosWorkerView *view)
 	g_hash_table_destroy(view->entities);
 	g_hash_table_destroy(view->targets);
 	free(view);
+}
+
+static void triggerComponentCallback(ShovelerSpatialosWorkerViewComponent *component, ShovelerSpatialosWorkerViewComponentCallbackType callbackType)
+{
+	GQueue *callbacks = g_hash_table_lookup(component->entity->callbacks, component->name);
+	if(callbacks != NULL) {
+		for(GList *iter = callbacks->head; iter != NULL; iter = iter->next) {
+			ShovelerSpatialosWorkerViewComponentCallback *callback = iter->data;
+			callback->function(component, callbackType, callback->userData);
+		}
+	}
 }
 
 static void freeEntity(void *entityPointer)
