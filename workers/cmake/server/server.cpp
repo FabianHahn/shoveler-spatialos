@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
 		WorkerRequirementSet clientAndServerRequirementSet({op.CallerAttributeSet, serverAttributeSet});
 		worker::Map<std::uint32_t, WorkerRequirementSet> clientEntityComponentAclMap;
 		clientEntityComponentAclMap.insert({{Client::ComponentId, clientRequirementSet}});
+		clientEntityComponentAclMap.insert({{Position::ComponentId, clientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
 		connection.SendCreateEntityRequest(clientEntity, {}, {});
