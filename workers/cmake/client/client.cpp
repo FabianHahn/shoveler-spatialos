@@ -6,6 +6,7 @@ extern "C" {
 #include <shoveler/spatialos/worker/view/base/view.h>
 #include <shoveler/spatialos/worker/view/base/position.h>
 #include <shoveler/spatialos/worker/view/visual/client.h>
+#include <shoveler/spatialos/worker/view/visual/controller.h>
 #include <shoveler/spatialos/worker/view/visual/drawables.h>
 #include <shoveler/spatialos/worker/view/visual/light.h>
 #include <shoveler/spatialos/worker/view/visual/model.h>
@@ -95,6 +96,7 @@ int main(int argc, char **argv) {
 	shovelerCameraPerspectiveAttachController(game->camera, controller);
 
 	ShovelerSpatialosWorkerView *view = shovelerSpatialosWorkerViewCreate();
+	shovelerSpatialosWorkerViewSetTarget(view, "controller", controller);
 	shovelerSpatialosWorkerViewSetTarget(view, "scene", game->scene);
 
 	ShovelerSpatialosWorkerViewDrawables *drawables = shovelerSpatialosWorkerViewDrawablesCreate(view);
