@@ -9,6 +9,7 @@ set(SHOVELER_SPATIALOS_WORKER_VIEW_BASE_SRC
 
 add_library(shoveler_spatialos_worker_view_base ${SHOVELER_SPATIALOS_WORKER_VIEW_BASE_SRC})
 set_property(TARGET shoveler_spatialos_worker_view_base PROPERTY C_STANDARD 99)
+target_link_libraries(shoveler_spatialos_worker_view_base shoveler_spatialos_common)
 
 target_include_directories(shoveler_spatialos_worker_view_base
 		PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
