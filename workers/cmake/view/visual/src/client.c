@@ -40,21 +40,71 @@ bool shovelerSpatialosWorkerViewAddEntityClient(ShovelerSpatialosWorkerView *vie
 		return false;
 	}
 
-	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(view);
-
 	ClientComponentData *clientComponentData = malloc(sizeof(ClientComponentData));
 	clientComponentData->entity = entity;
 	clientComponentData->x = 0;
 	clientComponentData->y = 0;
 	clientComponentData->z = 0;
-	clientComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewPositionComponentName, positionCallback, clientComponentData);
-	clientComponentData->moveCallback = shovelerControllerAddMoveCallback(controller, moveCallback, clientComponentData);
+	clientComponentData->positionCallback = NULL;
+	clientComponentData->moveCallback = NULL;
 
 	if (!shovelerSpatialosWorkerViewEntityAddComponent(entity, shovelerSpatialosWorkerViewClientComponentName, clientComponentData, &freeComponent)) {
 		freeComponent(component);
 		return false;
 	}
 	return true;
+}
+
+bool shovelerSpatialosWorkerViewDelegateClient(ShovelerSpatialosWorkerView *view, long long int entityId)
+{
+	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerSpatialosLogWarning("Trying to delegate client on existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewClientComponentName);
+	if(component == NULL) {
+		shovelerSpatialosLogWarning("Trying to delegate client on entity %lld which does not have a client, ignoring.", entityId);
+		return false;
+	}
+	ClientComponentData *clientComponentData = component->data;
+
+	clientComponentData->x = 0;
+	clientComponentData->y = 0;
+	clientComponentData->z = 0;
+
+	clientComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewPositionComponentName, positionCallback, clientComponentData);
+
+	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(view);
+	clientComponentData->moveCallback = shovelerControllerAddMoveCallback(controller, moveCallback, clientComponentData);
+
+	return shovelerSpatialosWorkerViewDelegateComponent(entity, shovelerSpatialosWorkerViewClientComponentName);
+}
+
+bool shovelerSpatialosWorkerViewUndelegateClient(ShovelerSpatialosWorkerView *view, long long int entityId)
+{
+	ShovelerSpatialosWorkerViewEntity *entity = shovelerSpatialosWorkerViewGetEntity(view, entityId);
+	if(entity == NULL) {
+		shovelerSpatialosLogWarning("Trying to undelegate client on existing entity %lld, ignoring.", entityId);
+		return false;
+	}
+
+	ShovelerSpatialosWorkerViewComponent *component = shovelerSpatialosWorkerViewEntityGetComponent(entity, shovelerSpatialosWorkerViewClientComponentName);
+	if(component == NULL) {
+		shovelerSpatialosLogWarning("Trying to undelegate client on entity %lld which does not have a client, ignoring.", entityId);
+		return false;
+	}
+	ClientComponentData *clientComponentData = component->data;
+
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, clientComponentData->positionCallback);
+	clientComponentData->positionCallback = NULL;
+
+	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(component->entity->view);
+	shovelerControllerRemoveMoveCallback(controller, clientComponentData->moveCallback);
+	clientComponentData->moveCallback = NULL;
+
+	return shovelerSpatialosWorkerViewUndelegateComponent(entity, shovelerSpatialosWorkerViewClientComponentName);
 }
 
 bool shovelerSpatialosWorkerViewRemoveEntityClient(ShovelerSpatialosWorkerView *view, long long int entityId)
@@ -105,10 +155,14 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 
 	ClientComponentData *clientComponentData = component->data;
 
-	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, clientComponentData->positionCallback);
+	if(clientComponentData->positionCallback != NULL) {
+		shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, clientComponentData->positionCallback);
+	}
 
-	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(component->entity->view);
-	shovelerControllerRemoveMoveCallback(controller, clientComponentData->moveCallback);
+	if(clientComponentData->moveCallback != NULL) {
+		ShovelerController *controller = shovelerSpatialosWorkerViewGetController(component->entity->view);
+		shovelerControllerRemoveMoveCallback(controller, clientComponentData->moveCallback);
+	}
 
 	free(clientComponentData);
 }
