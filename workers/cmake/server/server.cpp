@@ -125,12 +125,13 @@ int main(int argc, char **argv) {
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
 
+		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerAttributeSet serverAttributeSet({"server"});
-		WorkerRequirementSet clientRequirementSet({op.CallerAttributeSet});
-		WorkerRequirementSet clientAndServerRequirementSet({op.CallerAttributeSet, serverAttributeSet});
+		WorkerRequirementSet specificClientRequirementSet({op.CallerAttributeSet});
+		WorkerRequirementSet clientAndServerRequirementSet({clientAttributeSet, serverAttributeSet});
 		worker::Map<std::uint32_t, WorkerRequirementSet> clientEntityComponentAclMap;
-		clientEntityComponentAclMap.insert({{Client::ComponentId, clientRequirementSet}});
-		clientEntityComponentAclMap.insert({{Position::ComponentId, clientRequirementSet}});
+		clientEntityComponentAclMap.insert({{Client::ComponentId, specificClientRequirementSet}});
+		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
 		connection.SendCreateEntityRequest(clientEntity, {}, {});
