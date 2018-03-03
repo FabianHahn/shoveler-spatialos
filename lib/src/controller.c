@@ -4,11 +4,15 @@
 #include <GLFW/glfw3.h>
 
 #include "shoveler/controller.h"
+#include "shoveler/input.h"
 
+static void windowSizeHandler(ShovelerInput *input, int width, int height, void *controllerPointer);
 static void triggerTilt(ShovelerController *controller, ShovelerVector2 tiltAmount);
 static void triggerMove(ShovelerController *controller, ShovelerVector3 moveAmount);
+static void triggerAspectRatioChange(ShovelerController *controller, float aspectRatio);
 static void freeTiltCallback(void *tiltCallbackPointer);
 static void freeMoveCallback(void *moveCallbackPointer);
+static void freeAspectRatioChangeCallback(void *aspectRatioCallbackChangePointer);
 
 ShovelerController *shovelerControllerCreate(ShovelerGame *game, float moveFactor, float tiltFactor)
 {
@@ -21,6 +25,9 @@ ShovelerController *shovelerControllerCreate(ShovelerGame *game, float moveFacto
 
 	controller->tiltCallbacks = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeTiltCallback, NULL);
 	controller->moveCallbacks = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeMoveCallback, NULL);
+	controller->aspectRatioChangeCallbacks = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeAspectRatioChangeCallback, NULL);
+
+	controller->windowSizeCallback = shovelerInputAddWindowSizeCallback(game->input, windowSizeHandler, controller);
 
 	return controller;
 }
@@ -55,8 +62,27 @@ bool shovelerControllerRemoveMoveCallback(ShovelerController *controller, Shovel
 	return g_hash_table_remove(controller->moveCallbacks, moveCallback);
 }
 
+ShovelerControllerAspectRatioChangeCallback *shovelerControllerAddAspectRatioChangeCallback(ShovelerController *controller, ShovelerControllerAspectRatioChangeCallbackFunction *callbackFunction, void *userData)
+{
+	ShovelerControllerAspectRatioChangeCallback *callback = malloc(sizeof(ShovelerControllerAspectRatioChangeCallback));
+	callback->function = callbackFunction;
+	callback->userData = userData;
+
+	g_hash_table_add(controller->aspectRatioChangeCallbacks, callback);
+	return callback;
+}
+
+bool shovelerControllerRemoveAspectRatioChangeCallback(ShovelerController *controller, ShovelerControllerAspectRatioChangeCallback *aspectRatioChangeCallback)
+{
+return g_hash_table_remove(controller->aspectRatioChangeCallbacks, aspectRatioChangeCallback);
+}
+
 void shovelerControllerUpdate(ShovelerController *controller, float dt)
 {
+	if(glfwGetInputMode(controller->game->window, GLFW_CURSOR) != GLFW_CURSOR_DISABLED) {
+		return;
+	}
+
 	double newCursorX;
 	double newCursorY;
 	glfwGetCursorPos(controller->game->window, &newCursorX, &newCursorY);
@@ -108,9 +134,18 @@ void shovelerControllerUpdate(ShovelerController *controller, float dt)
 
 void shovelerControllerFree(ShovelerController *controller)
 {
+	shovelerInputRemoveWindowSizeCallback(controller->game->input, controller->windowSizeCallback);
+
 	g_hash_table_destroy(controller->tiltCallbacks);
 	g_hash_table_destroy(controller->moveCallbacks);
+	g_hash_table_destroy(controller->aspectRatioChangeCallbacks);
 	free(controller);
+}
+
+static void windowSizeHandler(ShovelerInput *input, int width, int height, void *controllerPointer)
+{
+	ShovelerController *controller = controllerPointer;
+	triggerAspectRatioChange(controller, (float) width / height);
 }
 
 static void triggerTilt(ShovelerController *controller, ShovelerVector2 tiltAmount)
@@ -133,6 +168,16 @@ static void triggerMove(ShovelerController *controller, ShovelerVector3 moveAmou
 	}
 }
 
+static void triggerAspectRatioChange(ShovelerController *controller, float aspectRatio)
+{
+	GHashTableIter iter;
+	ShovelerControllerAspectRatioChangeCallback *callback;
+	g_hash_table_iter_init(&iter, controller->aspectRatioChangeCallbacks);
+	while(g_hash_table_iter_next(&iter, (gpointer *) &callback, NULL)) {
+		callback->function(controller, aspectRatio, callback->userData);
+	}
+}
+
 static void freeTiltCallback(void *tiltCallbackPointer)
 {
 	free(tiltCallbackPointer);
@@ -141,4 +186,9 @@ static void freeTiltCallback(void *tiltCallbackPointer)
 static void freeMoveCallback(void *moveCallbackPointer)
 {
 	free(moveCallbackPointer);
+}
+
+static void freeAspectRatioChangeCallback(void *aspectRatioCallbackChangePointer)
+{
+	free(aspectRatioCallbackChangePointer);
 }
