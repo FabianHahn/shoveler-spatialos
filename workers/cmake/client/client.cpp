@@ -154,6 +154,15 @@ int main(int argc, char **argv) {
 		shovelerSpatialosWorkerViewAddEntityClient(view, op.EntityId);
 	});
 
+	dispatcher.OnAuthorityChange<Client>([&](const worker::AuthorityChangeOp& op) {
+		shovelerSpatialosLogInfo("Changing client authority for entity %lld to %d.", op.EntityId, op.Authority);
+		if (op.Authority == worker::Authority::kAuthoritative) {
+			shovelerSpatialosWorkerViewDelegateClient(view, op.EntityId);
+		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
+			shovelerSpatialosWorkerViewUndelegateClient(view, op.EntityId);
+		}
+	});
+
 	dispatcher.OnRemoveComponent<Client>([&](const worker::RemoveComponentOp& op) {
 		shovelerSpatialosLogInfo("Removing client from entity %lld.", op.EntityId);
 		shovelerSpatialosWorkerViewRemoveEntityClient(view, op.EntityId);
