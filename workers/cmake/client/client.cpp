@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnComponentUpdate<Position>([&](const worker::ComponentUpdateOp<Position>& op) {
-		shovelerSpatialosLogInfo("Updating position for entity %lld.", op.EntityId);
+		shovelerSpatialosLogTrace("Updating position for entity %lld.", op.EntityId);
 		if(op.Update.coords()) {
 			const Coordinates& coordinates = *op.Update.coords();
 			shovelerSpatialosWorkerViewUpdateEntityPosition(view, op.EntityId, -coordinates.x(), coordinates.y(), coordinates.z());
