@@ -21,7 +21,7 @@ typedef struct {
 } ClientComponentData;
 
 static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *clientComponentDataPointer);
-static void moveCallback(ShovelerController *controller, ShovelerVector3 amount, void *clientComponentDataPointer);
+static void moveCallback(ShovelerController *controller, ShovelerVector3 position, void *clientComponentDataPointer);
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
 bool shovelerSpatialosWorkerViewAddEntityClient(ShovelerSpatialosWorkerView *view, long long int entityId)
@@ -138,13 +138,13 @@ static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionCompo
 	}
 }
 
-static void moveCallback(ShovelerController *controller, ShovelerVector3 amount, void *clientComponentDataPointer)
+static void moveCallback(ShovelerController *controller, ShovelerVector3 position, void *clientComponentDataPointer)
 {
 	ClientComponentData *clientComponentData = clientComponentDataPointer;
 
-	clientComponentData->x += amount.values[0];
-	clientComponentData->y += amount.values[1];
-	clientComponentData->z += amount.values[2];
+	clientComponentData->x = position.values[0];
+	clientComponentData->y = position.values[1];
+	clientComponentData->z = position.values[2];
 
 	shovelerSpatialosWorkerViewRequestPositionUpdate(clientComponentData->entity->view, clientComponentData->entity->entityId, clientComponentData->x, clientComponentData->y, clientComponentData->z);
 }

@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 	game->scene = shovelerSceneCreate();
 	game->update = updateGame;
 
-	controller = shovelerControllerCreate(game, 2.0f, 0.0005f);
+	controller = shovelerControllerCreate(game, ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f, 0.0005f);
 	shovelerCameraPerspectiveAttachController(game->camera, controller);
 
 	ShovelerSpatialosWorkerView *view = shovelerSpatialosWorkerViewCreate();
@@ -359,7 +359,7 @@ static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *componen
 	PositionUpdateRequestContext *context = (PositionUpdateRequestContext *) positionUpdateRequestContextPointer;
 
 	Position::Update positionUpdate;
-	positionUpdate.set_coords({x, y, z});
+	positionUpdate.set_coords({-x, y, z});
 	context->connection->SendComponentUpdate<Position>(component->entity->entityId, positionUpdate);
 }
 
