@@ -3,13 +3,14 @@
 
 #include <shoveler/spatialos/worker/view/base/position.h>
 #include <shoveler/spatialos/worker/view/base/view.h>
-#include <shoveler/spatialos/worker/view/visual/controller.h>
 #include <shoveler/spatialos/log.h>
 #include <shoveler/controller.h>
 #include <shoveler/types.h>
-#include <base/include/shoveler/spatialos/worker/view/base/view.h>
+#include <shoveler/model.h>
 
 #include "shoveler/spatialos/worker/view/visual/client.h"
+#include "shoveler/spatialos/worker/view/visual/controller.h"
+#include "shoveler/spatialos/worker/view/visual/model.h"
 
 typedef struct {
 	ShovelerSpatialosWorkerViewEntity *entity;
@@ -17,10 +18,12 @@ typedef struct {
 	double y;
 	double z;
 	ShovelerSpatialosWorkerViewComponentCallback *positionCallback;
+	ShovelerSpatialosWorkerViewComponentCallback *modelCallback;
 	ShovelerControllerMoveCallback *moveCallback;
 } ClientComponentData;
 
 static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *clientComponentDataPointer);
+static void modelCallback(ShovelerSpatialosWorkerViewComponent *modelComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *unused);
 static void moveCallback(ShovelerController *controller, ShovelerVector3 position, void *clientComponentDataPointer);
 static void freeComponent(ShovelerSpatialosWorkerViewComponent *component);
 
@@ -75,6 +78,7 @@ bool shovelerSpatialosWorkerViewDelegateClient(ShovelerSpatialosWorkerView *view
 	clientComponentData->z = 0;
 
 	clientComponentData->positionCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewPositionComponentName, positionCallback, clientComponentData);
+	clientComponentData->modelCallback = shovelerSpatialosWorkerViewEntityAddCallback(entity, shovelerSpatialosWorkerViewModelComponentName, modelCallback, NULL);
 
 	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(view);
 	clientComponentData->moveCallback = shovelerControllerAddMoveCallback(controller, moveCallback, clientComponentData);
@@ -99,6 +103,8 @@ bool shovelerSpatialosWorkerViewUndelegateClient(ShovelerSpatialosWorkerView *vi
 
 	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, clientComponentData->positionCallback);
 	clientComponentData->positionCallback = NULL;
+	shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewModelComponentName, clientComponentData->modelCallback);
+	clientComponentData->modelCallback = NULL;
 
 	ShovelerController *controller = shovelerSpatialosWorkerViewGetController(component->entity->view);
 	shovelerControllerRemoveMoveCallback(controller, clientComponentData->moveCallback);
@@ -130,11 +136,24 @@ static void positionCallback(ShovelerSpatialosWorkerViewComponent *positionCompo
 	ShovelerSpatialosWorkerViewPosition *position = positionComponent->data;
 	ClientComponentData *clientComponentData = clientComponentDataPointer;
 
-	if (callbackType == VIEW_COMPONENT_CALLBACK_ADD) {
+	if(callbackType == VIEW_COMPONENT_CALLBACK_ADD) {
 		shovelerSpatialosLogInfo("Resetting client component tracked position to (%.2f, %.2f, %.2f).", position->x, position->y, position->z);
 		clientComponentData->x = position->x;
 		clientComponentData->y = position->y;
 		clientComponentData->z = position->z;
+	}
+}
+
+static void modelCallback(ShovelerSpatialosWorkerViewComponent *modelComponent, ShovelerSpatialosWorkerViewComponentCallbackType callbackType, void *unused)
+{
+	ShovelerSpatialosWorkerViewModel *model = modelComponent->data;
+
+	if(callbackType == VIEW_COMPONENT_CALLBACK_ADD) {
+		shovelerSpatialosLogInfo("Hiding model for entity with authoritative client component.");
+		model->model->visible = false;
+	} else if(callbackType == VIEW_COMPONENT_CALLBACK_REMOVE) {
+		shovelerSpatialosLogInfo("Reenabling model visibility for entity with unauthoritative client component.");
+		model->model->visible = false;
 	}
 }
 
@@ -157,6 +176,10 @@ static void freeComponent(ShovelerSpatialosWorkerViewComponent *component)
 
 	if(clientComponentData->positionCallback != NULL) {
 		shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewPositionComponentName, clientComponentData->positionCallback);
+	}
+
+	if(clientComponentData->modelCallback != NULL) {
+		shovelerSpatialosWorkerViewEntityRemoveCallback(component->entity, shovelerSpatialosWorkerViewModelComponentName, clientComponentData->modelCallback);
 	}
 
 	if(clientComponentData->moveCallback != NULL) {
