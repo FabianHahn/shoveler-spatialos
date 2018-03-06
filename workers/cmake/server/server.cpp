@@ -15,8 +15,17 @@ extern "C" {
 using shoveler::Bootstrap;
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using shoveler::Client;
+using shoveler::Color;
 using shoveler::CreateClientEntityRequest;
 using shoveler::CreateClientEntityResponse;
+using shoveler::Drawable;
+using shoveler::DrawableType;
+using shoveler::Light;
+using shoveler::LightType;
+using shoveler::Material;
+using shoveler::MaterialType;
+using shoveler::Model;
+using shoveler::PolygonMode;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
 using improbable::Metadata;
@@ -52,6 +61,8 @@ int main(int argc, char **argv) {
 	const worker::ComponentRegistry& components = worker::Components<
 		shoveler::Bootstrap,
 		shoveler::Client,
+		shoveler::Light,
+		shoveler::Model,
 		improbable::EntityAcl,
 		improbable::Metadata,
 		improbable::Persistence,
@@ -119,11 +130,19 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
 		shovelerSpatialosLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
+
+		Color whiteColor{1.0f, 1.0f, 1.0f};
+
+		Drawable pointDrawable{DrawableType::POINT};
+		Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
+
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
+		clientEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
+		clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {0.1f, 0.1f, 0.1f}, {}});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerAttributeSet serverAttributeSet({"server"});
