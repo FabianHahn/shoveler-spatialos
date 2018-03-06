@@ -46,6 +46,11 @@ typedef struct {
 	GLuint polygonMode;
 } ShovelerSpatialosWorkerViewModelConfiguration;
 
+typedef struct {
+	ShovelerModel *model;
+	ShovelerSpatialosWorkerViewComponentCallback *positionCallback;
+} ShovelerSpatialosWorkerViewModel;
+
 static const char *shovelerSpatialosWorkerViewModelComponentName = "model";
 
 bool shovelerSpatialosWorkerViewAddEntityModel(ShovelerSpatialosWorkerView *view, long long int entityId, ShovelerSpatialosWorkerViewModelConfiguration modelConfiguration);
