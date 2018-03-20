@@ -62,17 +62,32 @@ type CreateClientEntityResponse {
 
 }
 
+type ClientPingRequest {
+	EntityId client_entity_id = 1;
+	int64 heartbeat = 2;
+}
+
+type ClientPingResponse {
+	int64 heartbeat = 1;
+}
+
 component Bootstrap {
 	id = 1336;
 	command CreateClientEntityResponse create_client_entity(CreateClientEntityRequest);
+	command ClientPingResponse client_ping(ClientPingRequest);
 }
 
 component Client {
 	id = 1337;
 }
 
-component Model {
+component ClientHeartbeat {
 	id = 1338;
+	int64 last_heartbeat = 1;
+}
+
+component Model {
+	id = 1339;
 	Drawable drawable = 1;
 	Material material = 2;
 	Vector3 rotation = 3;
@@ -85,7 +100,7 @@ component Model {
 }
 
 component Light {
-	id = 1339;
+	id = 1340;
 	LightType type = 1;
 	uint32 width = 2;
 	uint32 height = 3;
