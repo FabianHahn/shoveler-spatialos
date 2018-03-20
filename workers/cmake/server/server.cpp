@@ -3,18 +3,21 @@
 #include <iostream>
 
 #include <improbable/standard_library.h>
+#include <improbable/view.h>
 #include <improbable/worker.h>
 #include <shoveler.h>
 
 extern "C" {
+#include <glib.h>
+
 #include <shoveler/spatialos/log.h>
 #include <shoveler/spatialos/worker/view/base/view.h>
 #include <shoveler/spatialos/worker/view/base/position.h>
 }
 
 using shoveler::Bootstrap;
-using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using shoveler::Client;
+using shoveler::ClientHeartbeat;
 using shoveler::Color;
 using shoveler::CreateClientEntityRequest;
 using shoveler::CreateClientEntityResponse;
@@ -33,6 +36,9 @@ using improbable::Persistence;
 using improbable::Position;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
+
+using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
+using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 
 int main(int argc, char **argv) {
 	if (argc != 5) {
@@ -58,9 +64,10 @@ int main(int argc, char **argv) {
 	shovelerSpatialosLogInit(SHOVELER_SPATIALOS_LOG_LEVEL_ALL, logFile);
 	shovelerSpatialosLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
 
-	const worker::ComponentRegistry& components = worker::Components<
+	auto components = worker::Components<
 		shoveler::Bootstrap,
 		shoveler::Client,
+		shoveler::ClientHeartbeat,
 		shoveler::Light,
 		shoveler::Model,
 		improbable::EntityAcl,
@@ -70,7 +77,8 @@ int main(int argc, char **argv) {
 
 	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
 	bool disconnected = false;
-	worker::Dispatcher dispatcher{components};
+	worker::View view{components};
+	worker::Dispatcher& dispatcher = view;
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerSpatialosLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
@@ -136,9 +144,14 @@ int main(int argc, char **argv) {
 		Drawable pointDrawable{DrawableType::POINT};
 		Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
 
+		GDateTime *now = g_date_time_new_now_utc();
+		int64_t timestamp = g_date_time_to_unix(now);
+		g_date_time_unref(now);
+
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({});
+		clientEntity.Add<ClientHeartbeat>({timestamp});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
 		clientEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
@@ -147,14 +160,44 @@ int main(int argc, char **argv) {
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerAttributeSet serverAttributeSet({"server"});
 		WorkerRequirementSet specificClientRequirementSet({op.CallerAttributeSet});
+		WorkerRequirementSet serverRequirementSet({serverAttributeSet});
 		WorkerRequirementSet clientAndServerRequirementSet({clientAttributeSet, serverAttributeSet});
 		worker::Map<std::uint32_t, WorkerRequirementSet> clientEntityComponentAclMap;
 		clientEntityComponentAclMap.insert({{Client::ComponentId, specificClientRequirementSet}});
+		clientEntityComponentAclMap.insert({{ClientHeartbeat::ComponentId, serverRequirementSet}});
 		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
 		connection.SendCreateEntityRequest(clientEntity, {}, {});
 		connection.SendCommandResponse<CreateClientEntity>(op.RequestId, {});
+	});
+
+	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing>& op) {
+		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, worker::Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
+		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
+			shovelerSpatialosLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+		const worker::Map<worker::ComponentId, worker::Authority>& componentAuthorityMap = entityAuthorityQuery->second;
+
+		worker::Map<worker::ComponentId, worker::Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
+		if(componentAuthorityQuery == componentAuthorityMap.end()) {
+			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+		const worker::Authority& clientHeartbeatAuthority = componentAuthorityQuery->second;
+
+		if(clientHeartbeatAuthority != worker::Authority::kAuthoritative) {
+			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+
+		ClientHeartbeat::Update clientHeartbeatUpdate;
+		clientHeartbeatUpdate.set_last_heartbeat(op.Request.heartbeat());
+		connection.SendComponentUpdate<ClientHeartbeat>(clientEntityId, clientHeartbeatUpdate);
+
+		shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld: %lld.", op.CallerWorkerId.c_str(), clientEntityId, op.Request.heartbeat());
 	});
 
 	while(!disconnected) {
