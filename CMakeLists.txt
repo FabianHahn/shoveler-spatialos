@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.1)
 project(shoveler)
 
+enable_testing()
+
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
+option(SHOVELER_BUILD_TESTS "Build the shoveler tests" ON)
 option(SHOVELER_BUILD_SAMPLE "Build sample binary using shoveler." ON)
 option(SHOVELER_USE_GLIB "Link against system glib instead of bundled fakeglib." OFF)
 
@@ -23,6 +26,7 @@ set(PNG_TESTS OFF CACHE BOOL "Disable building libpng tests")
 set(SKIP_INSTALL_ALL ON CACHE BOOL "Skip libpng installation steps")
 set(ZLIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/zlib)
 
-add_subdirectory(lib)
+add_subdirectory(base)
+add_subdirectory(opengl)
 add_subdirectory(sample)
 add_subdirectory(thirdparty)
