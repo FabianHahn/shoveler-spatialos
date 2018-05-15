@@ -79,6 +79,7 @@ component Bootstrap {
 
 component Client {
 	id = 1337;
+	string worker_id = 1;
 }
 
 component ClientHeartbeat {
