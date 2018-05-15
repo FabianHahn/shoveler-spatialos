@@ -35,14 +35,22 @@ using improbable::Coordinates;
 using improbable::Position;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
+using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 
 struct PositionUpdateRequestContext {
 	worker::Connection *connection;
 };
 
+struct ClientPingTickContext {
+	worker::Connection *connection;
+	worker::EntityId bootstrapEntityId;
+	worker::EntityId clientEntityId;
+};
+
 static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message);
 static void updateGame(ShovelerGame *game, double dt);
 static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer);
+static void clientPingTick(void *clientPingTickContextPointer);
 static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerSpatialosWorkerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
 static GLuint getPolygonMode(PolygonMode polygonMode);
@@ -78,6 +86,7 @@ int main(int argc, char **argv) {
 	const std::string workerId = argv[1];
 	const std::string hostname = argv[2];
 	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
+	const int64_t clientPingTimeoutMs = 1000;
 
 	const worker::ComponentRegistry& components = worker::Components<
 		shoveler::Bootstrap,
@@ -93,6 +102,9 @@ int main(int argc, char **argv) {
 	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
 	bool disconnected = false;
 	worker::Dispatcher dispatcher{components};
+	worker::EntityId bootstrapEntityId;
+	ClientPingTickContext clientPingTickContext;
+	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 
 	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
 	game->scene = shovelerSceneCreate();
@@ -158,8 +170,11 @@ int main(int argc, char **argv) {
 		shovelerSpatialosLogInfo("Changing client authority for entity %lld to %d.", op.EntityId, op.Authority);
 		if (op.Authority == worker::Authority::kAuthoritative) {
 			shovelerSpatialosWorkerViewDelegateClient(view, op.EntityId);
+			clientPingTickContext = ClientPingTickContext{&connection, bootstrapEntityId, op.EntityId};
+			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &clientPingTickContext);
 		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
 			shovelerSpatialosWorkerViewUndelegateClient(view, op.EntityId);
+			shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
 		}
 	});
 
@@ -294,7 +309,7 @@ int main(int argc, char **argv) {
 	dispatcher.OnEntityQueryResponse([&](const worker::EntityQueryResponseOp& op) {
 		shovelerSpatialosLogInfo("Received entity query response for request %lld.", op.RequestId.Id);
 		if(op.RequestId == bootstrapQueryRequestId && op.Result.size() > 0) {
-			worker::EntityId bootstrapEntityId = op.Result.begin()->first;
+			bootstrapEntityId = op.Result.begin()->first;
 			shovelerSpatialosLogInfo("Received bootstrap query response containing entity %lld.", bootstrapEntityId);
 			worker::RequestId<worker::OutgoingCommandRequest<CreateClientEntity>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {}, {});
 			shovelerSpatialosLogInfo("Sent create client entity request with id %d.", createClientEntityRequestId.Id);
@@ -361,6 +376,14 @@ static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *componen
 	Position::Update positionUpdate;
 	positionUpdate.set_coords({-x, y, z});
 	context->connection->SendComponentUpdate<Position>(component->entity->entityId, positionUpdate);
+}
+
+static void clientPingTick(void *clientPingTickContextPointer)
+{
+	ClientPingTickContext *context = (ClientPingTickContext *) clientPingTickContextPointer;
+
+	int64_t now = g_get_monotonic_time();
+	context->connection->SendCommandRequest<ClientPing>(context->bootstrapEntityId, {context->clientEntityId, now}, {});
 }
 
 static ShovelerSpatialosWorkerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
