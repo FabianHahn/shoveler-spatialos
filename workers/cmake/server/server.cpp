@@ -19,7 +19,7 @@ extern "C" {
 
 using shoveler::Bootstrap;
 using shoveler::Client;
-using shoveler::ClientHeartbeat;
+using shoveler::Heartbeat;
 using shoveler::Color;
 using shoveler::CreateClientEntityRequest;
 using shoveler::CreateClientEntityResponse;
@@ -45,7 +45,7 @@ using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 struct ClientCleanupTickContext {
 	worker::Connection *connection;
 	int64_t maxHeartbeatTimeoutMs;
-	std::map<worker::EntityId, std::pair<std::string, int64_t>> *lastClientHeartbeatMicrosMap;
+	std::map<worker::EntityId, std::pair<std::string, int64_t>> *lastHeartbeatMicrosMap;
 };
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 	auto components = worker::Components<
 		shoveler::Bootstrap,
 		shoveler::Client,
-		shoveler::ClientHeartbeat,
+		shoveler::Heartbeat,
 		shoveler::Light,
 		shoveler::Model,
 		improbable::EntityAcl,
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 	worker::Dispatcher& dispatcher = view;
 
 	ShovelerExecutor *tickExecutor = shovelerExecutorCreateDirect();
-	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastClientHeartbeatMicrosMap;
+	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastHeartbeatMicrosMap;
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerSpatialosLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
@@ -152,25 +152,40 @@ int main(int argc, char **argv) {
 		shovelerSpatialosLogInfo("Authority change to %d for entity %lld.", op.Authority, op.EntityId);
 	});
 
-	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat>& op) {
-		lastClientHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_heartbeat());
+	dispatcher.OnAddComponent<Heartbeat>([&](const worker::AddComponentOp<Heartbeat>& op) {
+		lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", view.Entities[op.EntityId].Get<Heartbeat>()->last_server_heartbeat());
 		shovelerSpatialosLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat>& op) {
-		std::string clientWorkerId = "(unknown)";
-		const auto& clientComponentOption = view.Entities[op.EntityId].Get<Client>();
-		if (clientComponentOption) {
-			clientWorkerId = clientComponentOption->worker_id();
-		}
+	dispatcher.OnComponentUpdate<Heartbeat>([&](const worker::ComponentUpdateOp<Heartbeat>& op) {
+		if (lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
+			std::string clientWorkerId = "(unknown)";
+			const auto &clientComponentOption = view.Entities[op.EntityId].Get<Client>();
+			if (clientComponentOption) {
+				clientWorkerId = clientComponentOption->worker_id();
+			}
 
-		lastClientHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_heartbeat());
+			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<Heartbeat>()->last_server_heartbeat());
+		}
 		shovelerSpatialosLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp& op) {
-		lastClientHeartbeatMicrosMap.erase(op.EntityId);
+	dispatcher.OnRemoveComponent<Heartbeat>([&](const worker::RemoveComponentOp& op) {
 		shovelerSpatialosLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
+	});
+
+	dispatcher.OnAuthorityChange<Heartbeat>([&](const worker::AuthorityChangeOp& op) {
+		shovelerSpatialosLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
+		if (op.Authority == worker::Authority::kAuthoritative) {
+			int64_t now = g_get_monotonic_time();
+			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", now);
+
+			Heartbeat::Update heartbeatUpdate;
+			heartbeatUpdate.set_last_server_heartbeat(now);
+			connection.SendComponentUpdate<Heartbeat>(op.EntityId, heartbeatUpdate);
+		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
+			lastHeartbeatMicrosMap.erase(op.EntityId);
+		}
 	});
 
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
@@ -181,12 +196,10 @@ int main(int argc, char **argv) {
 		Drawable pointDrawable{DrawableType::POINT};
 		Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
 
-		int64_t timestamp = g_get_monotonic_time();
-
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({op.CallerWorkerId});
-		clientEntity.Add<ClientHeartbeat>({timestamp});
+		clientEntity.Add<Heartbeat>({0, 0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
 		clientEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
@@ -199,7 +212,7 @@ int main(int argc, char **argv) {
 		WorkerRequirementSet clientAndServerRequirementSet({clientAttributeSet, serverAttributeSet});
 		worker::Map<std::uint32_t, WorkerRequirementSet> clientEntityComponentAclMap;
 		clientEntityComponentAclMap.insert({{Client::ComponentId, specificClientRequirementSet}});
-		clientEntityComponentAclMap.insert({{ClientHeartbeat::ComponentId, serverRequirementSet}});
+		clientEntityComponentAclMap.insert({{Heartbeat::ComponentId, serverRequirementSet}});
 		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
@@ -216,27 +229,30 @@ int main(int argc, char **argv) {
 		}
 		const worker::Map<worker::ComponentId, worker::Authority>& componentAuthorityMap = entityAuthorityQuery->second;
 
-		worker::Map<worker::ComponentId, worker::Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
+		worker::Map<worker::ComponentId, worker::Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(Heartbeat::ComponentId);
 		if(componentAuthorityQuery == componentAuthorityMap.end()) {
 			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		const worker::Authority& clientHeartbeatAuthority = componentAuthorityQuery->second;
+		const worker::Authority& HeartbeatAuthority = componentAuthorityQuery->second;
 
-		if(clientHeartbeatAuthority != worker::Authority::kAuthoritative) {
+		if(HeartbeatAuthority != worker::Authority::kAuthoritative) {
 			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
 
-		ClientHeartbeat::Update clientHeartbeatUpdate;
-		clientHeartbeatUpdate.set_last_heartbeat(op.Request.heartbeat());
-		connection.SendComponentUpdate<ClientHeartbeat>(clientEntityId, clientHeartbeatUpdate);
-		connection.SendCommandResponse<ClientPing>(op.RequestId, {op.Request.heartbeat()});
+		int64_t now = g_get_monotonic_time();
 
-		shovelerSpatialosLogTrace("Received client ping from %s for client entity %lld: %lld.", op.CallerWorkerId.c_str(), clientEntityId, op.Request.heartbeat());
+		Heartbeat::Update heartbeatUpdate;
+		heartbeatUpdate.set_last_client_heartbeat(op.Request.client_heartbeat());
+		heartbeatUpdate.set_last_server_heartbeat(now);
+		connection.SendComponentUpdate<Heartbeat>(clientEntityId, heartbeatUpdate);
+		connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
+
+		shovelerSpatialosLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 	});
 
-	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastClientHeartbeatMicrosMap};
+	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
 	uint32_t clientCleanupTickPeriod = (uint32_t) (1000.0 / (double) clientCleanupTickRateHz);
 	shovelerExecutorSchedulePeriodic(tickExecutor, 0, clientCleanupTickPeriod, clientCleanupTick, &cleanupTickContext);
 
@@ -253,8 +269,8 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer)
 {
 	ClientCleanupTickContext *context = (ClientCleanupTickContext *) clientCleanupTickContextPointer;
 
-	gint64 now = g_get_monotonic_time();
-	for(const auto& item: *context->lastClientHeartbeatMicrosMap) {
+	int64_t now = g_get_monotonic_time();
+	for(const auto& item: *context->lastHeartbeatMicrosMap) {
 		worker::EntityId entityId = item.first;
 		const std::string &workerId = item.second.first;
 		int64_t last = item.second.second;

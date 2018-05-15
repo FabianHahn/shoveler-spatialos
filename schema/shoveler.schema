@@ -64,11 +64,11 @@ type CreateClientEntityResponse {
 
 type ClientPingRequest {
 	EntityId client_entity_id = 1;
-	int64 heartbeat = 2;
+	int64 client_heartbeat = 2;
 }
 
 type ClientPingResponse {
-	int64 heartbeat = 1;
+	int64 server_heartbeat = 1;
 }
 
 component Bootstrap {
@@ -82,9 +82,10 @@ component Client {
 	string worker_id = 1;
 }
 
-component ClientHeartbeat {
+component Heartbeat {
 	id = 1338;
-	int64 last_heartbeat = 1;
+	int64 last_client_heartbeat = 1;
+	int64 last_server_heartbeat = 2;
 }
 
 component Model {
