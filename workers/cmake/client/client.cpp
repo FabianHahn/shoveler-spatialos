@@ -3,6 +3,8 @@
 #include <shoveler.h>
 
 extern "C" {
+#include <glib.h>
+
 #include <shoveler/spatialos/worker/view/base/view.h>
 #include <shoveler/spatialos/worker/view/base/position.h>
 #include <shoveler/spatialos/worker/view/visual/client.h>
@@ -47,6 +49,7 @@ struct ClientPingTickContext {
 	worker::EntityId clientEntityId;
 };
 
+static worker::Option<worker::Connection> connect(int argc, char **argv, const worker::ComponentRegistry& components);
 static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message);
 static void updateGame(ShovelerGame *game, double dt);
 static void requestPositionUpdate(ShovelerSpatialosWorkerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer);
@@ -58,10 +61,6 @@ static GLuint getPolygonMode(PolygonMode polygonMode);
 static ShovelerController *controller;
 
 int main(int argc, char **argv) {
-	if (argc != 4) {
-		return 1;
-	}
-
 	const char *windowTitle = "ShovelerClient";
 	bool fullscreen = false;
 	bool vsync = true;
@@ -73,20 +72,10 @@ int main(int argc, char **argv) {
 	shovelerLogInitWithCallback(SHOVELER_LOG_LEVEL_INFO_UP, &shovelerLogHandler);
 	shovelerGlobalInit();
 
-	ShovelerGame *game = shovelerGameCreate(windowTitle, width, height, samples, fullscreen, vsync);
-	if(game == NULL) {
+	if (argc != 2 && argc != 4) {
+		shovelerSpatialosLogError("Usage:\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
-
-	worker::ConnectionParameters parameters;
-	parameters.WorkerType = "ShovelerClient";
-	parameters.Network.ConnectionType = worker::NetworkConnectionType::kTcp;
-	parameters.Network.UseExternalIp = false;
-
-	const std::string workerId = argv[1];
-	const std::string hostname = argv[2];
-	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
-	const int64_t clientPingTimeoutMs = 1000;
 
 	const worker::ComponentRegistry& components = worker::Components<
 		shoveler::Bootstrap,
@@ -98,13 +87,24 @@ int main(int argc, char **argv) {
 		improbable::Persistence,
 		improbable::Position>{};
 
-	shovelerLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
-	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
+	worker::Option<worker::Connection> connectionOption = connect(argc, argv, components);
+	if(!connectionOption || !connectionOption->IsConnected()) {
+		return EXIT_FAILURE;
+	}
+	worker::Connection& connection = *connectionOption;
+	shovelerLogInfo("Connected to SpatialOS deployment!");
+
+	const int64_t clientPingTimeoutMs = 1000;
 	bool disconnected = false;
 	worker::Dispatcher dispatcher{components};
 	worker::EntityId bootstrapEntityId;
 	ClientPingTickContext clientPingTickContext;
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
+
+	ShovelerGame *game = shovelerGameCreate(windowTitle, width, height, samples, fullscreen, vsync);
+	if(game == NULL) {
+		return EXIT_FAILURE;
+	}
 
 	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
 	game->scene = shovelerSceneCreate();
@@ -340,6 +340,74 @@ int main(int argc, char **argv) {
 
 	shovelerGlobalUninit();
 	shovelerLogTerminate();
+}
+
+static worker::Option<worker::Connection> connect(int argc, char **argv, const worker::ComponentRegistry& components)
+{
+	worker::ConnectionParameters connectionParameters;
+	connectionParameters.WorkerType = "ShovelerClient";
+	connectionParameters.Network.ConnectionType = worker::NetworkConnectionType::kTcp;
+
+	std::string launcherPrefix = "spatialos.launch:";
+	if(g_str_has_prefix(argv[1], launcherPrefix.c_str())) {
+		const char *launcherString = argv[1] + launcherPrefix.size();
+		gchar **projectNameSplit = g_strsplit(launcherString, "-", 2);
+		if(projectNameSplit[0] == NULL || projectNameSplit[1] == NULL) {
+			shovelerSpatialosLogError("Failed to extract project name from launcher string: %s", launcherString);
+			return {};
+		}
+		std::string projectName{projectNameSplit[0]};
+		std::string afterProjectName{projectNameSplit[1]};
+		g_strfreev(projectNameSplit);
+
+		gchar **deploymentNameSplit = g_strsplit(afterProjectName.c_str(), "?", 2);
+		if(deploymentNameSplit[0] == NULL || deploymentNameSplit[1] == NULL) {
+			shovelerSpatialosLogError("Failed to extract deployment name from launcher string: %s", afterProjectName.c_str());
+			return {};
+		}
+		std::string deploymentName{deploymentNameSplit[0]};
+		std::string afterDeploymentName{deploymentNameSplit[1]};
+		g_strfreev(deploymentNameSplit);
+
+		std::string tokenPrefix = "token=";
+		if(!g_str_has_prefix(afterDeploymentName.c_str(), tokenPrefix.c_str())) {
+			shovelerSpatialosLogError("Failed to extract auth token from launcher string: %s", afterDeploymentName.c_str());
+			return {};
+		}
+		std::string authToken{afterDeploymentName.substr(tokenPrefix.size())};
+
+		shovelerLogInfo("Connecting to cloud deployment...\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", projectName.c_str(), deploymentName.c_str(), authToken.c_str());
+
+		worker::LocatorParameters locatorParameters;
+		locatorParameters.ProjectName = projectName;
+		locatorParameters.CredentialsType = worker::LocatorCredentialsType::kLoginToken;
+		locatorParameters.LoginToken = worker::LoginTokenCredentials{authToken};
+		worker::Locator locator{"locator.improbable.io", locatorParameters};
+
+		auto queueStatusCallback = [&](const worker::QueueStatus& queueStatus) {
+			if (!queueStatus.Error.empty()) {
+				shovelerLogError("Error while queueing: %s", queueStatus.Error->c_str());
+				return false;
+			}
+			shovelerLogInfo("Current position in login queue: %d", queueStatus.PositionInQueue);
+			return true;
+		};
+
+		connectionParameters.Network.UseExternalIp = true;
+		return locator.ConnectAsync(components, deploymentName, connectionParameters, queueStatusCallback).Get();
+	} else {
+		if (argc != 4) {
+			shovelerSpatialosLogError("Usage:\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0]);
+			return {};
+		}
+
+		const std::string workerId = argv[1];
+		const std::string hostname = argv[2];
+		const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
+
+		shovelerLogInfo("Connecting to local deployment...\n\tWorker ID: %s\n\tAddress: %s:%d", workerId.c_str(), hostname.c_str(), port);
+		return worker::Connection::ConnectAsync(components, hostname, port, workerId, connectionParameters).Get();
+	}
 }
 
 static void shovelerLogHandler(const char *file, int line, ShovelerLogLevel level, const char *message)
