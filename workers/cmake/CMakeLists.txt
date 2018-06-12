@@ -3,7 +3,8 @@ project(shoveler-spatialos)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SHOVELER_BUILD_SAMPLE OFF CACHE BOOL "Disable building shoveler sample")
+set(SHOVELER_BUILD_TESTS OFF CACHE BOOL "Disable building shoveler tests")
+set(SHOVELER_BUILD_EXAMPLES OFF CACHE BOOL "Disable building shoveler examples")
 
 set(GENERATED_CODE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/generated)
 set(SCHEMA_SRC
