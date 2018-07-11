@@ -5,4 +5,4 @@ set(SHOVELER_CLIENT_SRC
 )
 
 add_executable(ShovelerClient ${SHOVELER_CLIENT_SRC})
-target_link_libraries(ShovelerClient schema worker_sdk shoveler_opengl shoveler_spatialos_common shoveler_spatialos_worker_view_visual)
+target_link_libraries(ShovelerClient schema worker_sdk shoveler_opengl)
