@@ -11,10 +11,8 @@
 extern "C" {
 #include <glib.h>
 
-#include <shoveler/spatialos/log.h>
-#include <shoveler/spatialos/worker/view/base/view.h>
-#include <shoveler/spatialos/worker/view/base/position.h>
 #include <shoveler/executor.h>
+#include <shoveler/log.h>
 }
 
 using shoveler::Bootstrap;
@@ -74,8 +72,8 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	shovelerSpatialosLogInit(SHOVELER_SPATIALOS_LOG_LEVEL_INFO_UP, logFile);
-	shovelerSpatialosLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
+	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, logFile);
+	shovelerLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
 
 	auto components = worker::Components<
 		shoveler::Bootstrap,
@@ -97,7 +95,7 @@ int main(int argc, char **argv) {
 	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastHeartbeatMicrosMap;
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
-		shovelerSpatialosLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
+		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
 	});
 
@@ -109,19 +107,19 @@ int main(int argc, char **argv) {
 	dispatcher.OnLogMessage([&](const worker::LogMessageOp& op) {
 		switch(op.Level) {
 			case worker::LogLevel::kDebug:
-				shovelerSpatialosLogTrace(op.Message.c_str());
+				shovelerLogTrace(op.Message.c_str());
 				break;
 			case worker::LogLevel::kInfo:
-				shovelerSpatialosLogInfo(op.Message.c_str());
+				shovelerLogInfo(op.Message.c_str());
 				break;
 			case worker::LogLevel::kWarn:
-				shovelerSpatialosLogWarning(op.Message.c_str());
+				shovelerLogWarning(op.Message.c_str());
 				break;
 			case worker::LogLevel::kError:
-				shovelerSpatialosLogError(op.Message.c_str());
+				shovelerLogError(op.Message.c_str());
 				break;
 			case worker::LogLevel::kFatal:
-				shovelerSpatialosLogError(op.Message.c_str());
+				shovelerLogError(op.Message.c_str());
 				std::terminate();
 			default:
 				break;
@@ -129,32 +127,32 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
-		shovelerSpatialosLogInfo("Adding entity %lld.", op.EntityId);
+		shovelerLogInfo("Adding entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
-		shovelerSpatialosLogInfo("Removing entity %lld.", op.EntityId);
+		shovelerLogInfo("Removing entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Bootstrap>([&](const worker::AddComponentOp<Bootstrap>& op) {
-		shovelerSpatialosLogInfo("Adding bootstrap to entity %lld.", op.EntityId);
+		shovelerLogInfo("Adding bootstrap to entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnComponentUpdate<Bootstrap>([&](const worker::ComponentUpdateOp<Bootstrap>& op) {
-		shovelerSpatialosLogInfo("Updating bootstrap for entity %lld.", op.EntityId);
+		shovelerLogInfo("Updating bootstrap for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnRemoveComponent<Bootstrap>([&](const worker::RemoveComponentOp& op) {
-		shovelerSpatialosLogInfo("Removing bootstrap from entity %lld.", op.EntityId);
+		shovelerLogInfo("Removing bootstrap from entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnAuthorityChange<Bootstrap>([&](const worker::AuthorityChangeOp& op) {
-		shovelerSpatialosLogInfo("Authority change to %d for entity %lld.", op.Authority, op.EntityId);
+		shovelerLogInfo("Authority change to %d for entity %lld.", op.Authority, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Heartbeat>([&](const worker::AddComponentOp<Heartbeat>& op) {
 		lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", view.Entities[op.EntityId].Get<Heartbeat>()->last_server_heartbeat());
-		shovelerSpatialosLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
+		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnComponentUpdate<Heartbeat>([&](const worker::ComponentUpdateOp<Heartbeat>& op) {
@@ -167,15 +165,15 @@ int main(int argc, char **argv) {
 
 			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<Heartbeat>()->last_server_heartbeat());
 		}
-		shovelerSpatialosLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
+		shovelerLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnRemoveComponent<Heartbeat>([&](const worker::RemoveComponentOp& op) {
-		shovelerSpatialosLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
+		shovelerLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnAuthorityChange<Heartbeat>([&](const worker::AuthorityChangeOp& op) {
-		shovelerSpatialosLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
+		shovelerLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
 		if (op.Authority == worker::Authority::kAuthoritative) {
 			int64_t now = g_get_monotonic_time();
 			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", now);
@@ -189,7 +187,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
-		shovelerSpatialosLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
+		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
 		Color whiteColor{1.0f, 1.0f, 1.0f};
 
@@ -224,20 +222,20 @@ int main(int argc, char **argv) {
 		worker::EntityId clientEntityId = op.Request.client_entity_id();
 		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, worker::Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
 		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
-			shovelerSpatialosLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			shovelerLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
 		const worker::Map<worker::ComponentId, worker::Authority>& componentAuthorityMap = entityAuthorityQuery->second;
 
 		worker::Map<worker::ComponentId, worker::Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(Heartbeat::ComponentId);
 		if(componentAuthorityQuery == componentAuthorityMap.end()) {
-			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			shovelerLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
 		const worker::Authority& HeartbeatAuthority = componentAuthorityQuery->second;
 
 		if(HeartbeatAuthority != worker::Authority::kAuthoritative) {
-			shovelerSpatialosLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			shovelerLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
 
@@ -249,7 +247,7 @@ int main(int argc, char **argv) {
 		connection.SendComponentUpdate<Heartbeat>(clientEntityId, heartbeatUpdate);
 		connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
 
-		shovelerSpatialosLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
+		shovelerLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 	});
 
 	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
@@ -276,7 +274,7 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer)
 		int64_t last = item.second.second;
 		int64_t diff = now - last;
 		if (diff > 1000 * context->maxHeartbeatTimeoutMs) {
-			shovelerSpatialosLogWarning("Removing client entity %lld of worker %s because it exceeded the max ping timeout of %lldms.", entityId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
+			shovelerLogWarning("Removing client entity %lld of worker %s because it exceeded the max ping timeout of %lldms.", entityId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
 			context->connection->SendDeleteEntityRequest(item.first, {});
 		}
 	}
