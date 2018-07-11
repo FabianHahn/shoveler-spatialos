@@ -5,8 +5,19 @@
 #include <shoveler/sampler.h>
 #include <shoveler/texture.h>
 
+typedef struct {
+	int tilemapWidth;
+	int tilemapHeight;
+	ShovelerTexture *tilemapTexture;
+	int tilesetHeight;
+	int tilesetWidth;
+	int tilesetId;
+	ShovelerTexture *tilesetTexture;
+	ShovelerSampler *tilesetSampler;
+} ShovelerMaterialTilemapLayer;
+
 ShovelerMaterial *shovelerMaterialTilemapCreate();
-void shovelerMaterialTilemapSetSource(ShovelerMaterial *tilemapMaterial, ShovelerTexture *texture);
-void shovelerMaterialTilemapSetTileset(ShovelerMaterial *tilemapMaterial, unsigned char tilesetId, ShovelerTexture *tilesetTexture, ShovelerSampler *tilesetSampler, unsigned char tilesetWidth, unsigned char tilesetHeight);
+/** adds a layer to a tilemap material, returning the index of the new layer */
+int shovelerMaterialTilemapAddLayer(ShovelerMaterial *tilemapMaterial, ShovelerMaterialTilemapLayer layer);
 
 #endif

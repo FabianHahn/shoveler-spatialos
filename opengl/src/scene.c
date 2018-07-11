@@ -1,15 +1,22 @@
 #include <stdlib.h> // malloc, free
 
 #include "shoveler/material/depth.h"
+#include "shoveler/light.h"
 #include "shoveler/log.h"
+#include "shoveler/model.h"
 #include "shoveler/scene.h"
 #include "shoveler/shader.h"
 
-static ShovelerShader *generateShader(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerMaterial *material);
-static ShovelerShader *getCachedShader(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerMaterial *material);
+typedef enum {
+	RENDER_MODE_OCCLUDED,
+	RENDER_MODE_EMITTERS,
+	RENDER_MODE_SCREENSPACE,
+	RENDER_MODE_ADDITIVE_LIGHT,
+} RenderMode;
+
+ShovelerSceneRenderPassOptions createRenderPassOptions(ShovelerScene *scene, RenderMode renderMode);
 static void freeLight(void *lightPointer);
 static void freeModel(void *modelPointer);
-static void freeHashTable(void *hashTablePointer);
 static void freeShader(void *shaderPointer);
 
 ShovelerScene *shovelerSceneCreate()
@@ -19,7 +26,7 @@ ShovelerScene *shovelerSceneCreate()
 	scene->depthMaterial = shovelerMaterialDepthCreate();
 	scene->lights = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeLight, NULL);
 	scene->models = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeModel, NULL);
-	scene->cameraShaderCache = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, freeHashTable);
+	scene->shaderCache = g_hash_table_new_full(shovelerShaderKeyHash, shovelerShaderKeyEqual, NULL, freeShader);
 	return scene;
 }
 
@@ -45,9 +52,26 @@ bool shovelerSceneRemoveModel(ShovelerScene *scene, ShovelerModel *model)
 	return g_hash_table_remove(scene->models, model);
 }
 
-int shovelerSceneRenderModels(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerMaterial *overrideMaterial, bool emitters, bool screenspace, bool onlyShadowCasters)
+int shovelerSceneRenderPass(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerSceneRenderPassOptions options)
 {
 	int rendered = 0;
+
+	if(options.blend) {
+		glEnable(GL_BLEND);
+		glBlendFunc(options.blendSourceFactor, options.blendDestinationFactor);
+	} else {
+		glDisable(GL_BLEND);
+	}
+
+	if(options.depthTest) {
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(options.depthFunction);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
+
+	glDepthMask(options.depthMask);
+
 	GHashTableIter iter;
 	ShovelerModel *model;
 	g_hash_table_iter_init(&iter, scene->models);
@@ -56,77 +80,26 @@ int shovelerSceneRenderModels(ShovelerScene *scene, ShovelerCamera *camera, Shov
 			continue;
 		}
 
-		if(model->emitter != emitters) {
+		if(model->emitter != options.emitters) {
 			continue;
 		}
 
-		if(model->screenspace != screenspace) {
+		if(model->screenspace != options.screenspace) {
 			continue;
 		}
 
-		if(onlyShadowCasters && !model->screenspace && !model->castsShadow) {
+		if(options.onlyShadowCasters && !model->screenspace && !model->castsShadow) {
 			continue;
 		}
 
-		ShovelerShader *shader = getCachedShader(scene, camera, light, model, overrideMaterial == NULL ? model->material : overrideMaterial);
-
-		if(!shovelerShaderUse(shader)) {
-			shovelerLogWarning("Failed to use shader for model %p and camera %p, hiding model.", model, camera);
-			model->visible = false;
-		}
-
-		if(!shovelerModelRender(model)) {
-			shovelerLogWarning("Failed to render model %p with camera %p, hiding model.", model, camera);
+		ShovelerMaterial *material = options.overrideMaterial == NULL ? model->material : options.overrideMaterial;
+		if(!shovelerMaterialRender(material, scene, camera, light, model, options)) {
 			model->visible = false;
 			continue;
 		}
 
 		rendered++;
 	}
-	return rendered;
-}
-
-int shovelerSceneRenderPass(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerFramebuffer *framebuffer, ShovelerSceneRenderMode renderMode)
-{
-	int rendered = 0;
-
-	shovelerFramebufferUse(framebuffer);
-
-	glEnable(GL_BLEND);
-	glEnable(GL_DEPTH_TEST);
-	bool emitters = false;
-	bool screenspace = false;
-	switch(renderMode) {
-		case SHOVELER_SCENE_RENDER_MODE_OCCLUDED:
-			glBlendFunc(GL_ONE, GL_ZERO);
-			glDepthFunc(GL_LESS);
-			glDepthMask(GL_TRUE);
-		break;
-		case SHOVELER_SCENE_RENDER_MODE_EMITTERS:
-			glBlendFunc(GL_ONE, GL_ONE);
-			glDepthFunc(GL_LESS);
-			glDepthMask(GL_FALSE);
-			emitters = true;
-		break;
-		case SHOVELER_SCENE_RENDER_MODE_SCREENSPACE:
-			glBlendFunc(GL_ONE, GL_ZERO);
-			glDepthFunc(GL_ALWAYS);
-			glDepthMask(GL_TRUE);
-			screenspace = true;
-		break;
-		case SHOVELER_SCENE_RENDER_MODE_ADDITIVE_LIGHT:
-			glBlendFunc(GL_ONE, GL_ONE);
-			glDepthFunc(GL_EQUAL);
-			glDepthMask(GL_TRUE);
-		break;
-	}
-
-	ShovelerMaterial *overrideMaterial = NULL;
-	if (light == NULL && renderMode == SHOVELER_SCENE_RENDER_MODE_OCCLUDED) {
-		overrideMaterial = scene->depthMaterial;
-	}
-	rendered += shovelerSceneRenderModels(scene, camera, light, overrideMaterial, emitters, screenspace, false);
-
 	return rendered;
 }
 
@@ -138,7 +111,7 @@ int shovelerSceneRenderFrame(ShovelerScene *scene, ShovelerCamera *camera, Shove
 
 	glClearDepth(1.0f);
 	glClear(GL_DEPTH_BUFFER_BIT);
-	rendered += shovelerSceneRenderPass(scene, camera, NULL, framebuffer, SHOVELER_SCENE_RENDER_MODE_OCCLUDED);
+	rendered += shovelerSceneRenderPass(scene, camera, NULL, createRenderPassOptions(scene, RENDER_MODE_OCCLUDED));
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -147,18 +120,59 @@ int shovelerSceneRenderFrame(ShovelerScene *scene, ShovelerCamera *camera, Shove
 	ShovelerLight *light;
 	g_hash_table_iter_init(&iter, scene->lights);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &light, NULL)) {
-		rendered += shovelerLightRender(light, scene, camera, framebuffer);
+		rendered += shovelerLightRender(light, scene, camera, framebuffer, createRenderPassOptions(scene, RENDER_MODE_ADDITIVE_LIGHT));
 	}
 
-	rendered += shovelerSceneRenderPass(scene, camera, NULL, framebuffer, SHOVELER_SCENE_RENDER_MODE_EMITTERS);
-	rendered += shovelerSceneRenderPass(scene, camera, NULL, framebuffer, SHOVELER_SCENE_RENDER_MODE_SCREENSPACE);
+	rendered += shovelerSceneRenderPass(scene, camera, NULL, createRenderPassOptions(scene, RENDER_MODE_EMITTERS));
+	rendered += shovelerSceneRenderPass(scene, camera, NULL, createRenderPassOptions(scene, RENDER_MODE_SCREENSPACE));
 
 	return rendered;
 }
 
+ShovelerShader *shovelerSceneGenerateShader(ShovelerScene *scene, ShovelerCamera *camera, struct ShovelerLightStruct *light, ShovelerModel *model, ShovelerMaterial *material, void *userData)
+{
+	ShovelerShaderKey shaderKey = {scene, camera, light, model, material, userData};
+
+	ShovelerShader *shader = g_hash_table_lookup(scene->shaderCache, &shaderKey);
+	if(shader == NULL) {
+		shader = shovelerShaderCreate(shaderKey, material);
+
+		int materialAttached = 0;
+		if(material != NULL) {
+			materialAttached = shovelerMaterialAttachUniforms(material, shader, userData);
+		}
+
+		int modelAttached = 0;
+		if(model != NULL) {
+			modelAttached = shovelerUniformMapAttach(model->uniforms, shader);
+		}
+
+		int lightAttached = 0;
+		if(light != NULL) {
+			lightAttached = shovelerUniformMapAttach(light->uniforms, shader);
+		}
+
+		int cameraAttached = 0;
+		if(camera != NULL) {
+			cameraAttached = shovelerUniformMapAttach(camera->uniforms, shader);
+		}
+
+		int sceneAttached = 0;
+		if(scene != NULL) {
+			sceneAttached = shovelerUniformMapAttach(scene->uniforms, shader);
+		}
+
+		shovelerLogInfo("Generated shader for program %d with %d scene %p, %d camera %p, %d light %p, %d model %p, and %d material %p uniforms.", material->program, sceneAttached, scene, cameraAttached, camera, lightAttached, light, modelAttached, model, materialAttached, material);
+
+		g_hash_table_insert(scene->shaderCache, &shader->key, shader);
+	}
+
+	return shader;
+}
+
 void shovelerSceneFree(ShovelerScene *scene)
 {
-	g_hash_table_destroy(scene->cameraShaderCache);
+	g_hash_table_destroy(scene->shaderCache);
 	g_hash_table_destroy(scene->models);
 	g_hash_table_destroy(scene->lights);
 	shovelerMaterialFree(scene->depthMaterial);
@@ -166,66 +180,53 @@ void shovelerSceneFree(ShovelerScene *scene)
 	free(scene);
 }
 
-static ShovelerShader *generateShader(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerMaterial *material)
+ShovelerSceneRenderPassOptions createRenderPassOptions(ShovelerScene *scene, RenderMode renderMode)
 {
-	ShovelerShader *shader = shovelerShaderCreate(material);
-
-	int materialAttached = 0;
-	if(material != NULL) {
-		materialAttached = shovelerShaderAttachUniforms(shader, material->uniforms);
+	ShovelerSceneRenderPassOptions options;
+	options.overrideMaterial = NULL;
+	options.emitters = false;
+	options.screenspace = false;
+	options.onlyShadowCasters = false;
+	options.blend = true;
+	options.blendSourceFactor = GL_ONE;
+	options.blendDestinationFactor = GL_ZERO;
+	options.depthTest = true;
+	options.depthFunction = GL_LESS;
+	options.depthMask = GL_TRUE;
+	switch(renderMode) {
+		case RENDER_MODE_OCCLUDED:
+			options.blendSourceFactor = GL_ONE;
+			options.blendDestinationFactor = GL_ZERO;
+			options.depthFunction = GL_LESS;
+			options.depthMask = GL_TRUE;
+		break;
+		case RENDER_MODE_EMITTERS:
+			options.emitters = true;
+			options.blendSourceFactor = GL_ONE;
+			options.blendDestinationFactor = GL_ONE;
+			options.depthFunction = GL_LESS;
+			options.depthMask = GL_FALSE;
+		break;
+		case RENDER_MODE_SCREENSPACE:
+			options.screenspace = true;
+			options.blendSourceFactor = GL_ONE;
+			options.blendDestinationFactor = GL_ZERO;
+			options.depthFunction = GL_ALWAYS;
+			options.depthMask = GL_TRUE;
+		break;
+		case RENDER_MODE_ADDITIVE_LIGHT:
+			options.blendSourceFactor = GL_ONE;
+			options.blendDestinationFactor = GL_ONE;
+			options.depthFunction = GL_EQUAL;
+			options.depthMask = GL_TRUE;
+		break;
 	}
 
-	int modelAttached = 0;
-	if(model != NULL) {
-		modelAttached = shovelerShaderAttachUniforms(shader, model->uniforms);
+	if(renderMode == RENDER_MODE_OCCLUDED) {
+		options.overrideMaterial = scene->depthMaterial;
 	}
 
-	int lightAttached = 0;
-	if(light != NULL) {
-		lightAttached = shovelerShaderAttachUniforms(shader, light->uniforms);
-	}
-
-	int cameraAttached = 0;
-	if(camera != NULL) {
-		cameraAttached = shovelerShaderAttachUniforms(shader, camera->uniforms);
-	}
-
-	int sceneAttached = 0;
-	if(scene != NULL) {
-		sceneAttached = shovelerShaderAttachUniforms(shader, scene->uniforms);
-	}
-
-	shovelerLogInfo("Generated shader for program %d with %d scene %p, %d camera %p, %d light %p, %d model %p, and %d material %p uniforms.", material->program, sceneAttached, scene, cameraAttached, camera, lightAttached, light, modelAttached, model, materialAttached, material);
-	return shader;
-}
-
-static ShovelerShader *getCachedShader(ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerMaterial *material)
-{
-	GHashTable *lightShaderCache = g_hash_table_lookup(scene->cameraShaderCache, camera);
-	if(lightShaderCache == NULL) {
-		lightShaderCache = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, freeHashTable);
-		g_hash_table_insert(scene->cameraShaderCache, camera, lightShaderCache);
-	}
-
-	GHashTable *modelShaderCache = g_hash_table_lookup(lightShaderCache, light);
-	if(modelShaderCache == NULL) {
-		modelShaderCache = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, freeHashTable);
-		g_hash_table_insert(lightShaderCache, light, modelShaderCache);
-	}
-
-	GHashTable *materialShaderCache = g_hash_table_lookup(modelShaderCache, model);
-	if(materialShaderCache == NULL) {
-		materialShaderCache = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, freeShader);
-		g_hash_table_insert(modelShaderCache, model, materialShaderCache);
-	}
-
-	ShovelerShader *shader = g_hash_table_lookup(materialShaderCache, material);
-	if(shader == NULL) {
-		shader = generateShader(scene, camera, light, model, material);
-		g_hash_table_insert(materialShaderCache, material, shader);
-	}
-
-	return shader;
+	return options;
 }
 
 static void freeLight(void *lightPointer)
