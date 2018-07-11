@@ -1,52 +1,65 @@
 #include <assert.h> // assert
 #include <stdbool.h> // bool
 #include <stdlib.h> // malloc, free
-#include <string.h> // strdup
+#include <string.h> // strdup, memcmp
 
+#include "shoveler/camera.h"
+#include "shoveler/light.h"
 #include "shoveler/log.h"
 #include "shoveler/opengl.h"
+#include "shoveler/scene.h"
 #include "shoveler/shader.h"
 #include "shoveler/uniform_attachment.h"
 
-void freeAttachment(void *attachmentPointer);
+static guint combineHashes(guint a, guint b);
+static void freeAttachment(void *attachmentPointer);
 
-ShovelerShader *shovelerShaderCreate(ShovelerMaterial *material)
+guint shovelerShaderKeyHash(gconstpointer shaderKeyPointer)
+{
+	ShovelerShaderKey *shaderKey = (ShovelerShaderKey *) shaderKeyPointer;
+
+	guint sceneHash = g_direct_hash(shaderKey->scene);
+	guint cameraHash = g_direct_hash(shaderKey->camera);
+	guint lightHash = g_direct_hash(shaderKey->light);
+	guint modelHash = g_direct_hash(shaderKey->model);
+	guint materialHash = g_direct_hash(shaderKey->material);
+	guint userDataHash = g_direct_hash(shaderKey->userData);
+
+	return combineHashes(sceneHash, combineHashes(cameraHash, combineHashes(lightHash, combineHashes(modelHash, combineHashes(materialHash, userDataHash)))));
+}
+
+gboolean shovelerShaderKeyEqual(gconstpointer firstShaderKeyPointer, gconstpointer secondShaderKeyPointer)
+{
+	return memcmp(firstShaderKeyPointer, secondShaderKeyPointer, sizeof(ShovelerShaderKey)) == 0;
+}
+
+ShovelerShader *shovelerShaderCreate(ShovelerShaderKey shaderKey, ShovelerMaterial *material)
 {
 	ShovelerShader *shader = malloc(sizeof(ShovelerShader));
+	shader->key = shaderKey;
 	shader->material = material;
 	shader->attachments = g_hash_table_new_full(g_str_hash, g_str_equal, free, freeAttachment);
 	return shader;
 }
 
-int shovelerShaderAttachUniforms(ShovelerShader *shader, ShovelerUniformMap *uniformMap)
+bool shovelerShaderAttachUniform(ShovelerShader *shader, const char *name, ShovelerUniform *uniform)
 {
-	int attached = 0;
-
-	GHashTableIter iter;
-	char *name;
-	ShovelerUniform *uniform;
-	g_hash_table_iter_init(&iter, uniformMap->uniforms);
-	while(g_hash_table_iter_next(&iter, (gpointer *) &name, (gpointer *) &uniform)) {
-		GLint location = glGetUniformLocation(shader->material->program, name);
-		if(!shovelerOpenGLCheckSuccess()) {
-			continue;
-		} else if(location < 0) {
-			shovelerLogTrace("Material %p with shader program %d does not have a uniform attachment point for '%s', skipping.", shader->material, shader->material->program, name);
-			continue;
-		} else if(g_hash_table_contains(shader->attachments, name)) {
-			shovelerLogWarning("Material %p with shader program %d already contains an attachment for '%s', skipping.", shader->material, shader->material->program, name);
-			continue;
-		}
-
-		ShovelerUniformAttachment *uniformAttachment = shovelerUniformAttachmentCreate(uniform, location);
-		g_hash_table_insert(shader->attachments, strdup(name), uniformAttachment);
-
-		shovelerLogTrace("Attached uniform '%s' to material %p with shader program %d.", name, shader->material, shader->material->program);
-
-		attached++;
+	GLint location = glGetUniformLocation(shader->material->program, name);
+	if(!shovelerOpenGLCheckSuccess()) {
+		return false;
+	} else if(location < 0) {
+		shovelerLogTrace("Material %p with shader program %d does not have a uniform attachment point for '%s', skipping.", shader->material, shader->material->program, name);
+		return false;
+	} else if(g_hash_table_contains(shader->attachments, name)) {
+		shovelerLogWarning("Material %p with shader program %d already contains an attachment for '%s', skipping.", shader->material, shader->material->program, name);
+		return false;
 	}
 
-	return attached;
+	ShovelerUniformAttachment *uniformAttachment = shovelerUniformAttachmentCreate(uniform, location);
+	g_hash_table_insert(shader->attachments, strdup(name), uniformAttachment);
+
+	shovelerLogTrace("Attached uniform '%s' to material %p with shader program %d.", name, shader->material, shader->material->program);
+	return true;
 }
 
 bool shovelerShaderUse(ShovelerShader *shader)
@@ -73,7 +86,13 @@ void shovelerShaderFree(ShovelerShader *shader)
 	free(shader);
 }
 
-void freeAttachment(void *attachmentPointer)
+static guint combineHashes(guint a, guint b)
+{
+	// see https://stackoverflow.com/questions/5889238/why-is-xor-the-default-way-to-combine-hashes/27952689#27952689
+	return a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2));
+}
+
+static void freeAttachment(void *attachmentPointer)
 {
 	shovelerUniformAttachmentFree(attachmentPointer);
 }
