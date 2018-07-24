@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -11,8 +12,10 @@
 extern "C" {
 #include <glib.h>
 
+#include <shoveler/color.h>
 #include <shoveler/executor.h>
 #include <shoveler/log.h>
+#include <shoveler/types.h>
 }
 
 using shoveler::Bootstrap;
@@ -47,11 +50,14 @@ struct ClientCleanupTickContext {
 };
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
+static Color colorFromHsv(float h, float s, float v);
 
 int main(int argc, char **argv) {
 	if (argc != 5) {
 		return 1;
 	}
+
+	srand(0);
 
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerServer";
@@ -189,10 +195,12 @@ int main(int argc, char **argv) {
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
-		Color whiteColor{1.0f, 1.0f, 1.0f};
+		float hue = (float) rand() / RAND_MAX;
+		Color playerParticleColor = colorFromHsv(hue, 1.0f, 0.9f);
+		Color playerLightColor = colorFromHsv(hue, 1.0f, 0.1f);
 
 		Drawable pointDrawable{DrawableType::POINT};
-		Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
+		Material playerParticleMaterial{MaterialType::PARTICLE, playerParticleColor, {}};
 
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
@@ -200,8 +208,8 @@ int main(int argc, char **argv) {
 		clientEntity.Add<Heartbeat>({0, 0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
-		clientEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
-		clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {0.1f, 0.1f, 0.1f}, {}});
+		clientEntity.Add<Model>({pointDrawable, playerParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
+		clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor, {}});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerAttributeSet serverAttributeSet({"server"});
@@ -278,4 +286,12 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer)
 			context->connection->SendDeleteEntityRequest(item.first, {});
 		}
 	}
+}
+
+static Color colorFromHsv(float h, float s, float v)
+{
+	ShovelerColor colorRgb = shovelerColorFromHsv(h, s, v);
+	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
+
+	return Color{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
 }
