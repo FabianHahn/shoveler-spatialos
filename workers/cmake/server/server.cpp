@@ -20,6 +20,8 @@ extern "C" {
 
 using shoveler::Bootstrap;
 using shoveler::Client;
+using shoveler::ClientInfo;
+using shoveler::ClientInfoData;
 using shoveler::Heartbeat;
 using shoveler::Color;
 using shoveler::CreateClientEntityRequest;
@@ -37,11 +39,13 @@ using improbable::EntityAclData;
 using improbable::Metadata;
 using improbable::Persistence;
 using improbable::Position;
+using improbable::PositionData;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
+using ClientSpawnCube = shoveler::Bootstrap::Commands::ClientSpawnCube;
 
 struct ClientCleanupTickContext {
 	worker::Connection *connection;
@@ -84,6 +88,7 @@ int main(int argc, char **argv) {
 	auto components = worker::Components<
 		shoveler::Bootstrap,
 		shoveler::Client,
+		shoveler::ClientInfo,
 		shoveler::Heartbeat,
 		shoveler::Light,
 		shoveler::Model,
@@ -196,8 +201,9 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
 		float hue = (float) rand() / RAND_MAX;
-		Color playerParticleColor = colorFromHsv(hue, 1.0f, 0.9f);
-		Color playerLightColor = colorFromHsv(hue, 1.0f, 0.1f);
+		float saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
+		Color playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
+		Color playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
 		Drawable pointDrawable{DrawableType::POINT};
 		Material playerParticleMaterial{MaterialType::PARTICLE, playerParticleColor, {}};
@@ -205,6 +211,7 @@ int main(int argc, char **argv) {
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({op.CallerWorkerId});
+		clientEntity.Add<ClientInfo>({hue, saturation});
 		clientEntity.Add<Heartbeat>({0, 0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
@@ -256,6 +263,49 @@ int main(int argc, char **argv) {
 		connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
 
 		shovelerLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
+	});
+
+	dispatcher.OnCommandRequest<ClientSpawnCube>([&](const worker::CommandRequestOp<ClientSpawnCube>& op) {
+		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		shovelerLogInfo("Received client spawn cube from %s for client entity %lld in direction (%.2f, %.2f, %.2f).", op.CallerWorkerId.c_str(), clientEntityId, op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z());
+
+		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(clientEntityId);
+		if(entityQuery == view.Entities.end()) {
+			shovelerLogWarning("Received client spawn cube from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+
+		const worker::Entity& clientEntity = entityQuery->second;
+		worker::Option<const ClientInfoData&> clientInfoComponent = clientEntity.Get<ClientInfo>();
+		if(!clientInfoComponent) {
+			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without client info component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+		worker::Option<const PositionData&> positionComponent = clientEntity.Get<Position>();
+		if(!positionComponent) {
+			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			return;
+		}
+
+		ShovelerVector3 normalizedDirection = shovelerVector3Normalize(shovelerVector3(op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z()));
+		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(positionComponent->coords().x(), positionComponent->coords().y(), positionComponent->coords().z()), 0.5f, normalizedDirection);
+
+		Color cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
+		Drawable cubeDrawable{DrawableType::CUBE};
+		Material cubeColorMaterial{MaterialType::COLOR, cubeColor, {}};
+
+		worker::Entity cubeEntity;
+		cubeEntity.Add<Metadata>({"cube"});
+		cubeEntity.Add<Persistence>({});
+		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
+		cubeEntity.Add<Model>({cubeDrawable, cubeColorMaterial, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, false, true, PolygonMode::FILL});
+
+		WorkerAttributeSet clientAttributeSet({"client"});
+		WorkerRequirementSet clientRequirementSet({clientAttributeSet});
+		cubeEntity.Add<EntityAcl>({clientRequirementSet, {}});
+
+		connection.SendCreateEntityRequest(cubeEntity, {}, {});
+		connection.SendCommandResponse<ClientSpawnCube>(op.RequestId, {});
 	});
 
 	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
