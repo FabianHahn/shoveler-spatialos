@@ -38,6 +38,7 @@ using improbable::Position;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
+using ClientSpawnCube = shoveler::Bootstrap::Commands::ClientSpawnCube;
 
 struct PositionUpdateRequestContext {
 	worker::Connection *connection;
@@ -49,10 +50,18 @@ struct ClientPingTickContext {
 	worker::EntityId clientEntityId;
 };
 
+struct MouseButtonEventContext {
+	worker::Connection *connection;
+	ShovelerCamera *camera;
+	worker::EntityId *bootstrapEntityId;
+	worker::EntityId *clientEntityId;
+};
+
 static worker::Option<worker::Connection> connect(int argc, char **argv, const worker::ComponentRegistry& components);
 static void updateGame(ShovelerGame *game, double dt);
 static void requestPositionUpdate(ShovelerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer);
 static void clientPingTick(void *clientPingTickContextPointer);
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *mouseButtonEventContextPointer);
 static ShovelerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable);
 static ShovelerViewMaterialConfiguration createMaterialConfiguration(const Material& material);
 static GLuint getPolygonMode(PolygonMode polygonMode);
@@ -95,7 +104,8 @@ int main(int argc, char **argv) {
 	const int64_t clientPingTimeoutMs = 1000;
 	bool disconnected = false;
 	worker::Dispatcher dispatcher{components};
-	worker::EntityId bootstrapEntityId;
+	worker::EntityId bootstrapEntityId = 0;
+	worker::EntityId clientEntityId = 0;
 	ClientPingTickContext clientPingTickContext;
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 
@@ -107,6 +117,9 @@ int main(int argc, char **argv) {
 	game->camera = shovelerCameraPerspectiveCreate(ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
 	game->scene = shovelerSceneCreate();
 	game->update = updateGame;
+
+	MouseButtonEventContext mouseButtonEventContext{&connection, game->camera, &bootstrapEntityId, &clientEntityId};
+	ShovelerInputMouseButtonCallback *mouseButtonCallback = shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &mouseButtonEventContext);
 
 	controller = shovelerControllerCreate(game, ShovelerVector3{0.0, 0.0, -1.0}, ShovelerVector3{0.0, 0.0, 1.0}, ShovelerVector3{0.0, 1.0, 0.0}, 2.0f, 0.0005f);
 	shovelerCameraPerspectiveAttachController(game->camera, controller);
@@ -170,9 +183,11 @@ int main(int argc, char **argv) {
 			shovelerViewDelegateClient(view, op.EntityId);
 			clientPingTickContext = ClientPingTickContext{&connection, bootstrapEntityId, op.EntityId};
 			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &clientPingTickContext);
+			clientEntityId = op.EntityId;
 		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
 			shovelerViewUndelegateClient(view, op.EntityId);
 			shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
+			clientEntityId = 0;
 		}
 	});
 
@@ -324,6 +339,8 @@ int main(int argc, char **argv) {
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
+	shovelerInputRemoveMouseButtonCallback(game->input, mouseButtonCallback);
+
 	shovelerViewFree(view);
 
 	shovelerViewDrawablesFree(drawables);
@@ -429,6 +446,17 @@ static void clientPingTick(void *clientPingTickContextPointer)
 
 	int64_t now = g_get_monotonic_time();
 	context->connection->SendCommandRequest<ClientPing>(context->bootstrapEntityId, {context->clientEntityId, now}, {});
+}
+
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *mouseButtonEventContextPointer)
+{
+	MouseButtonEventContext *context = (MouseButtonEventContext *) mouseButtonEventContextPointer;
+
+	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		shovelerLogInfo("Sending client cube spawn command...");
+		ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->camera->data;
+		context->connection->SendCommandRequest<ClientSpawnCube>(*context->bootstrapEntityId, {*context->clientEntityId, {-perspectiveCamera->direction.values[0], perspectiveCamera->direction.values[1], perspectiveCamera->direction.values[2]}, {0.0f, 0.0f, 0.0f}}, {});
+	}
 }
 
 static ShovelerViewDrawableConfiguration createDrawableConfiguration(const Drawable& drawable)
