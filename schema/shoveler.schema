@@ -71,15 +71,32 @@ type ClientPingResponse {
 	int64 server_heartbeat = 1;
 }
 
+type ClientSpawnCubeRequest {
+	EntityId client_entity_id = 1;
+	Vector3 direction = 2;
+	Vector3 rotation = 3;
+}
+
+type ClientSpawnCubeResponse {
+
+}
+
 component Bootstrap {
 	id = 1336;
 	command CreateClientEntityResponse create_client_entity(CreateClientEntityRequest);
 	command ClientPingResponse client_ping(ClientPingRequest);
+	command ClientSpawnCubeResponse client_spawn_cube(ClientSpawnCubeRequest);
 }
 
 component Client {
 	id = 1337;
 	string worker_id = 1;
+}
+
+component ClientInfo {
+	id = 133742;
+	float color_hue = 1;
+	float color_saturation = 2;
 }
 
 component Heartbeat {
