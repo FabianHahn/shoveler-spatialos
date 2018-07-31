@@ -8,6 +8,18 @@ The client worker can render a 3D world with moving light sources and simple geo
 
 Though I work at Improbable, this is a personal project built in my free time using publicly available resources. It is not an Improbable product.
 
+## Repository structure
+
+The overall directory structure of this repository was chosen to comply with the [SpatialOS project structure](https://docs.improbable.io/reference/13.1/shared/reference/project-structure#structure-of-a-spatialos-project) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
+ * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/13.1/shared/schema/introduction#schema-introduction) for the project
+ * [`workers/cmake/client/client.cpp`](workers/cmake/client/client.cpp): Complete source code for client worker
+ * [`workers/cmake/server/server.cpp`](workers/cmake/server/server.cpp): Complete source code for server worker
+ * [`workers/cmake/seeder/seeder.cpp`](workers/cmake/seeder/seeder.cpp): Complete source code for seeder tool used to generate the initial snapshot
+ * [`workers/cmake/shoveler`](workers/cmake/shoveler): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository
+ * [`workers/cmake/CMakeLists.txt`](workers/cmake/CMakeLists.txt): Root CMake project definition file
+ * [`workers/cmake/spatialos.*.worker.json`](workers/cmake): [SpatialOS worker configuration files](https://docs.improbable.io/reference/13.1/shared/worker-configuration/worker-configuration#configuration-file) for the defined worker types
+ * [`spatialos.json`](spatialos.json): [SpatialOS project definition file](https://docs.improbable.io/reference/13.1/shared/reference/file-formats/spatialos-json) containing the project name and the SpatialOS SDK version used
+
 ## Usage
 
 **shoveler-spatialos** was tested to compile out of the box on Linux (tested with _gcc_ and _clang_) and Windows (tested with _Visual Studio 2015_). It might work on other platforms, but since I do not have access to them I am unable to support them and guarantee that they work.
