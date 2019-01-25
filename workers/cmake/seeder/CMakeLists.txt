@@ -5,4 +5,4 @@ set(SEEDER_SRC
 )
 
 add_executable(seeder ${SEEDER_SRC})
-target_link_libraries(seeder schema worker_sdk)
+target_link_libraries(seeder schema worker_sdk shoveler_base)

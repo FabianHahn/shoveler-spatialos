@@ -61,7 +61,7 @@
             "command": "mkdir",
             "arguments": [
               "-p",
-              "../../build/assembly/workers"
+              "../../build/assembly/worker"
             ]
           },
           {

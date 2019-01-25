@@ -1,5 +1,27 @@
 {
-   pbio
+   pbio_cond
    Memcheck:Cond
    fun:Pbio_*
 }
+{
+   pbio_value8
+   Memcheck:Value8
+   fun:Pbio_*
+}
+{
+   pbio_ns_cond
+   Memcheck:Cond
+   fun:_ZN4pbio*
+}
+{
+   pbio_ns_value8
+   Memcheck:Value8
+   fun:_ZN4pbio*
+}
+{
+   pbio_stl_cond
+   Memcheck:Cond
+   fun:_ZNSt3_V28__*
+   fun:Pbio_*
+}
+

@@ -1,9 +1,25 @@
-#include <shoveler.h>
-#include <improbable/standard_library.h>
-#include <iostream>
-#include <unordered_map>
+#include <cstdlib>
 
+#include <improbable/standard_library.h>
+#include <improbable/worker.h>
+#include <shoveler.h>
+
+extern "C" {
+#include <glib.h>
+
+#include <shoveler/constants.h>
+#include <shoveler/file.h>
+#include <shoveler/log.h>
+}
+
+using improbable::EntityAcl;
+using improbable::Metadata;
+using improbable::Persistence;
+using improbable::Position;
+using improbable::WorkerAttributeSet;
+using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
+using shoveler::Client;
 using shoveler::Color;
 using shoveler::Drawable;
 using shoveler::DrawableType;
@@ -13,92 +29,133 @@ using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
-using improbable::EntityAcl;
-using improbable::EntityAclData;
-using improbable::Metadata;
-using improbable::Persistence;
-using improbable::Position;
-using improbable::WorkerAttributeSet;
-using improbable::WorkerRequirementSet;
-
-static const float PI = 3.14159265358979323846f;
+using worker::ComponentRegistry;
+using worker::Components;
+using worker::Entity;
+using worker::EntityId;
+using worker::List;
+using worker::Map;
+using worker::Option;
 
 int main(int argc, char **argv) {
+	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
+
 	if (argc != 2) {
-		std::cerr << "Usage: " << argv[0] << " <seed snapshot file>" << std::endl;
-		return 1;
+		shovelerLogError("Usage:\n\t%s <seed snapshot file>", argv[0]);
+		return EXIT_FAILURE;
 	}
 
-	std::string path(argv[1]);
+	std::string filename(argv[1]);
 
-	const worker::ComponentRegistry& components = worker::Components<
-		shoveler::Bootstrap,
-		shoveler::Client,
-		shoveler::Light,
-		shoveler::Model,
-		improbable::EntityAcl,
-		improbable::Metadata,
-		improbable::Persistence,
-		improbable::Position>{};
+	const ComponentRegistry& components = Components<
+		Bootstrap,
+		Client,
+		Drawable,
+		EntityAcl,
+		Light,
+		Material,
+		Metadata,
+		Model,
+		Persistence,
+		Position>{};
 
 	Color grayColor{0.7f, 0.7f, 0.7f};
 	Color whiteColor{1.0f, 1.0f, 1.0f};
-	Drawable cubeDrawable{DrawableType::CUBE};
-	Drawable quadDrawable{DrawableType::QUAD};
-	Drawable pointDrawable{DrawableType::POINT};
-	Material grayColorMaterial{MaterialType::COLOR, grayColor, {}};
-	Material whiteParticleMaterial{MaterialType::PARTICLE, whiteColor, {}};
-	worker::Map<std::uint32_t, WorkerRequirementSet> emptyComponentAclMap;
 
 	WorkerAttributeSet clientAttributeSet({"client"});
 	WorkerAttributeSet serverAttributeSet({"server"});
 	WorkerRequirementSet clientRequirementSet({clientAttributeSet});
 	WorkerRequirementSet serverRequirementSet({serverAttributeSet});
+	WorkerRequirementSet clientOrServerRequirementSet({clientAttributeSet, serverAttributeSet});
 
-	std::unordered_map<worker::EntityId, worker::Entity> entities;
+	std::unordered_map<EntityId, Entity> entities;
 
-	worker::Entity bootstrapEntity;
+	Entity bootstrapEntity;
 	bootstrapEntity.Add<Metadata>({"bootstrap"});
 	bootstrapEntity.Add<Persistence>({});
-	bootstrapEntity.Add<Bootstrap>({});
 	bootstrapEntity.Add<Position>({{0, 0, 0}});
-	worker::Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
+	bootstrapEntity.Add<Bootstrap>({});
+	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
 	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
-	EntityAclData bootstrapEntityAclData(serverRequirementSet, bootstrapComponentAclMap);
-	bootstrapEntity.Add<EntityAcl>(bootstrapEntityAclData);
+	bootstrapEntity.Add<EntityAcl>({clientOrServerRequirementSet, bootstrapComponentAclMap});
 	entities[1] = bootstrapEntity;
 
-	worker::Entity planeEntity;
+	Entity cubeDrawableEntity;
+	cubeDrawableEntity.Add<Metadata>({"drawable"});
+	cubeDrawableEntity.Add<Persistence>({});
+	cubeDrawableEntity.Add<Position>({{0, 0, 0}});
+	cubeDrawableEntity.Add<Drawable>({DrawableType::CUBE});
+	cubeDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	EntityId cubeDrawableEntityId = 2;
+	entities[cubeDrawableEntityId] = cubeDrawableEntity;
+
+	Entity quadDrawableEntity;
+	quadDrawableEntity.Add<Metadata>({"drawable"});
+	quadDrawableEntity.Add<Persistence>({});
+	quadDrawableEntity.Add<Position>({{0, 0, 0}});
+	quadDrawableEntity.Add<Drawable>({DrawableType::QUAD});
+	quadDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	EntityId quadDrawableEntityId = 3;
+	entities[quadDrawableEntityId] = quadDrawableEntity;
+
+	Entity pointDrawableEntity;
+	pointDrawableEntity.Add<Metadata>({"drawable"});
+	pointDrawableEntity.Add<Persistence>({});
+	pointDrawableEntity.Add<Position>({{0, 0, 0}});
+	pointDrawableEntity.Add<Drawable>({DrawableType::POINT});
+	pointDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	EntityId pointDrawableEntityId = 4;
+	entities[pointDrawableEntityId] = pointDrawableEntity;
+
+	Entity grayColorMaterialEntity;
+	grayColorMaterialEntity.Add<Metadata>({"material"});
+	grayColorMaterialEntity.Add<Persistence>({});
+	grayColorMaterialEntity.Add<Position>({{0, 0, 0}});
+	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, grayColor, {}, {}, {}});
+	grayColorMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	EntityId grayColorMaterialEntityId = 5;
+	entities[grayColorMaterialEntityId] = grayColorMaterialEntity;
+
+	Entity whiteParticleMaterialEntity;
+	whiteParticleMaterialEntity.Add<Metadata>({"material"});
+	whiteParticleMaterialEntity.Add<Persistence>({});
+	whiteParticleMaterialEntity.Add<Position>({{0, 0, 0}});
+	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, whiteColor, {}, {}, {}});
+	whiteParticleMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	EntityId whiteParticleMaterialEntityId = 6;
+	entities[whiteParticleMaterialEntityId] = whiteParticleMaterialEntity;
+
+	Entity planeEntity;
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<Position>({{0, -2, 0}});
-	planeEntity.Add<Model>({quadDrawable, grayColorMaterial, {PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
-	EntityAclData planeEntityAclData(clientRequirementSet, emptyComponentAclMap);
-	planeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
-	entities[2] = planeEntity;
+	planeEntity.Add<Model>({quadDrawableEntityId, grayColorMaterialEntityId, {SHOVELER_PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
+	planeEntity.Add<EntityAcl>({clientRequirementSet, {}});
+	entities[7] = planeEntity;
 
-	worker::Entity cubeEntity;
+	Entity cubeEntity;
 	cubeEntity.Add<Metadata>({"cube"});
 	cubeEntity.Add<Persistence>({});
 	cubeEntity.Add<Position>({{0, 0, 5}});
-	cubeEntity.Add<Model>({cubeDrawable, grayColorMaterial, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
-	cubeEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
-	entities[3] = cubeEntity;
+	cubeEntity.Add<Model>({cubeDrawableEntityId, grayColorMaterialEntityId, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
+	cubeEntity.Add<EntityAcl>({clientRequirementSet, {}});
+	entities[8] = cubeEntity;
 
-	worker::Entity lightEntity;
+	Entity lightEntity;
 	lightEntity.Add<Metadata>({"light"});
 	lightEntity.Add<Persistence>({});
 	lightEntity.Add<Position>({{-1, 5, -1}});
-	lightEntity.Add<Model>({pointDrawable, whiteParticleMaterial, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, false, PolygonMode::FILL});
+	lightEntity.Add<Model>({pointDrawableEntityId, whiteParticleMaterialEntityId, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, false, PolygonMode::FILL});
 	lightEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}, {}});
-	lightEntity.Add<EntityAcl>({clientRequirementSet, emptyComponentAclMap});
-	entities[4] = lightEntity;
+	lightEntity.Add<EntityAcl>({clientRequirementSet, {}});
+	entities[9] = lightEntity;
 
-	worker::Option<std::string> optionalError = worker::SaveSnapshot(components, path, entities);
+	Option<std::string> optionalError = SaveSnapshot(components, filename, entities);
 	if (optionalError) {
-		std::cerr << "Failed to write snapshot: " << *optionalError << std::endl;
-		return 1;
+		shovelerLogError("Failed to write snapshot: %s", optionalError->c_str());
+		return EXIT_FAILURE;
 	}
 
-	return 0;
+	shovelerLogInfo("Successfully wrote snapshot with %zu entities.", entities.size());
+	return EXIT_SUCCESS;
 }
