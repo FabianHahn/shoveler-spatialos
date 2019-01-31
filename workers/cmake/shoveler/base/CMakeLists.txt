@@ -3,7 +3,9 @@ set(SHOVELER_BASE_SRC
 	src/image/ppm.c
 	src/resources/image_png.c
 	src/view/position.c
+	src/view/resources.c
 	src/color.c
+	src/compression.c
 	src/executor.c
 	src/file.c
 	src/image.c
@@ -14,10 +16,13 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/image/ppm.h
 	include/shoveler/resources/image_png.h
 	include/shoveler/view/position.h
+	include/shoveler/view/resources.h
 	include/shoveler/color.h
+	include/shoveler/compression.h
 	include/shoveler/constants.h
 	include/shoveler/executor.h
 	include/shoveler/file.h
+	include/shoveler/hash.h
 	include/shoveler/image.h
 	include/shoveler/log.h
 	include/shoveler/resources.h
@@ -28,13 +33,17 @@ set(SHOVELER_BASE_SRC
 set(SHOVELER_BASE_TEST_SRC
 	src/image/png_test.cpp
 	src/resources/image_png_test.cpp
+	src/view/resources_test.cpp
 	src/color_test.cpp
+	src/compression_test.cpp
 	src/executor_test.cpp
 	src/resources_test.cpp
 	src/test.cpp
 	src/types_test.cpp
+	src/view_test.cpp
 )
 
+include_directories(${ZLIB_INCLUDE_DIR})
 add_library(shoveler_base ${SHOVELER_BASE_SRC})
 set_property(TARGET shoveler_base PROPERTY C_STANDARD 99)
 
@@ -61,4 +70,3 @@ if(SHOVELER_BUILD_TESTS)
 	set_property(TARGET shoveler_base_test PROPERTY CXX_STANDARD 11)
 	add_test(shoveler_base shoveler_base_test)
 endif()
-

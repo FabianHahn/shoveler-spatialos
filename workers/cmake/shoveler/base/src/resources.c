@@ -51,7 +51,10 @@ ShovelerResource *shovelerResourcesGet(ShovelerResources *resources, const char 
 		resource->data = typeLoader->defaultResourceData;
 
 		g_hash_table_insert(resources->resources, resource->id, resource);
-		resources->request(resources, typeId, resourceId, resources->requestUserData);
+
+		if (resources->request != NULL) {
+			resources->request(resources, typeId, resourceId, resources->requestUserData);
+		}
 	}
 
 	if(strcmp(resource->typeId, typeId) != 0) {
@@ -77,7 +80,7 @@ bool shovelerResourcesSet(ShovelerResources *resources, const char *typeId, cons
 		resource = malloc(sizeof(ShovelerResource));
 		resource->resources = resources;
 		resource->id = strdup(resourceId);
-		resource->typeId = typeId;
+		resource->typeId = typeLoader->typeId;
 		resource->data = typeLoader->defaultResourceData;
 
 		g_hash_table_insert(resources->resources, resource->id, resource);
@@ -112,8 +115,16 @@ void shovelerResourcesFree(ShovelerResources *resources)
 static void freeTypeLoader(void *typeLoaderPointer)
 {
 	ShovelerResourcesTypeLoader *typeLoader = (ShovelerResourcesTypeLoader *) typeLoaderPointer;
-	typeLoader->freeResourceData(typeLoader, typeLoader->defaultResourceData);
-	typeLoader->free(typeLoader);
+
+	if(typeLoader->freeResourceData != NULL) {
+		typeLoader->freeResourceData(typeLoader, typeLoader->defaultResourceData);
+	}
+
+	if(typeLoader->free != NULL) {
+		typeLoader->free(typeLoader);
+	}
+
+	free(typeLoader);
 }
 
 static void freeResource(void *resourcePointer)

@@ -8,14 +8,33 @@
 #include <GLFW/glfw3.h>
 
 #include <shoveler/camera.h>
+#include <shoveler/controller.h>
 #include <shoveler/executor.h>
 #include <shoveler/framebuffer.h>
 #include <shoveler/input.h>
 #include <shoveler/scene.h>
+#include <shoveler/view.h>
 
 struct ShovelerGameStruct;
 
 typedef void (ShovelerGameUpdateCallback)(struct ShovelerGameStruct *game, double dt);
+
+typedef struct {
+	const char *windowTitle;
+	int windowedWidth;
+	int windowedHeight;
+	int samples;
+	bool fullscreen;
+	bool vsync;
+} ShovelerGameWindowSettings;
+
+typedef struct {
+	ShovelerVector3 position;
+	ShovelerVector3 direction;
+	ShovelerVector3 up;
+	float moveFactor;
+	float tiltFactor;
+} ShovelerGameControllerSettings;
 
 typedef struct ShovelerGameStruct {
 	int windowedWidth;
@@ -24,17 +43,20 @@ typedef struct ShovelerGameStruct {
 	bool fullscreen;
 	ShovelerExecutor *updateExecutor;
 	GLFWwindow *window;
+	ShovelerRenderState renderState;
 	ShovelerInput *input;
 	ShovelerFramebuffer *framebuffer;
 	ShovelerScene *scene;
 	ShovelerCamera *camera;
+	ShovelerController *controller;
+	ShovelerView *view;
 	ShovelerGameUpdateCallback *update;
 	double lastFrameTime;
 	double lastFpsPrintTime;
 	int framesSinceLastFpsPrint;
 } ShovelerGame;
 
-ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int windowedHeight, int samples, bool fullscreen, bool vsync);
+ShovelerGame *shovelerGameCreate(ShovelerCamera *camera, ShovelerGameUpdateCallback *update, const ShovelerGameWindowSettings *windowSettings, const ShovelerGameControllerSettings *controllerSettings);
 ShovelerGame *shovelerGameGetForWindow(GLFWwindow *window);
 void shovelerGameToggleFullscreen(ShovelerGame *game);
 int shovelerGameRenderFrame(ShovelerGame *game);

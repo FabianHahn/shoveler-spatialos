@@ -1,7 +1,10 @@
 #ifndef SHOVELER_CONTROLLER_H
 #define SHOVELER_CONTROLLER_H
 
-#include <shoveler/game.h>
+#include <stdbool.h> // bool
+
+#include <glib.h>
+
 #include <shoveler/input.h>
 #include <shoveler/types.h>
 
@@ -29,13 +32,19 @@ typedef struct {
 } ShovelerControllerAspectRatioChangeCallback;
 
 typedef struct ShovelerControllerStruct {
-	ShovelerGame *game;
+	GLFWwindow *window;
+	ShovelerInput *input;
 	ShovelerVector3 position;
 	ShovelerVector3 direction;
 	ShovelerVector3 upwards;
 	ShovelerVector3 up;
 	float moveFactor;
 	float tiltFactor;
+	bool lockMoveX;
+	bool lockMoveY;
+	bool lockMoveZ;
+	bool lockTiltX;
+	bool lockTiltY;
 	double previousCursorX;
 	double previousCursorY;
 	/** set of (ShovelerControllerTiltCallback *) */
@@ -47,7 +56,7 @@ typedef struct ShovelerControllerStruct {
 	ShovelerInputWindowSizeCallback *windowSizeCallback;
 } ShovelerController;
 
-ShovelerController *shovelerControllerCreate(ShovelerGame *game, ShovelerVector3 position, ShovelerVector3 direction, ShovelerVector3 up, float moveFactor, float tiltFactor);
+ShovelerController *shovelerControllerCreate(GLFWwindow *window, ShovelerInput *input, ShovelerVector3 position, ShovelerVector3 direction, ShovelerVector3 up, float moveFactor, float tiltFactor);
 ShovelerControllerTiltCallback *shovelerControllerAddTiltCallback(ShovelerController *controller, ShovelerControllerTiltCallbackFunction *callbackFunction, void *userData);
 bool shovelerControllerRemoveTiltCallback(ShovelerController *controller, ShovelerControllerTiltCallback *tiltCallback);
 ShovelerControllerMoveCallback *shovelerControllerAddMoveCallback(ShovelerController *controller, ShovelerControllerMoveCallbackFunction *callbackFunction, void *userData);

@@ -13,9 +13,9 @@ ShovelerModel *shovelerModelCreate(ShovelerDrawable *drawable, ShovelerMaterial 
 	ShovelerModel *model = malloc(sizeof(ShovelerModel));
 	model->drawable = drawable;
 	model->material = material;
-	model->translation = (ShovelerVector3){{0, 0, 0}};
-	model->rotation = (ShovelerVector3){{0, 0, 0}};
-	model->scale = (ShovelerVector3){{1, 1, 1}};
+	model->translation = shovelerVector3(0, 0, 0);
+	model->rotation = shovelerVector3(0, 0, 0);
+	model->scale = shovelerVector3(1, 1, 1);
 	model->transformation = shovelerMatrixIdentity;
 	model->normalTransformation = shovelerMatrixIdentity;
 	model->visible = true;

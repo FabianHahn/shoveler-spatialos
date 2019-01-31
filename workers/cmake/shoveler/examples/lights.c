@@ -16,6 +16,7 @@
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
 #include <shoveler/framebuffer.h>
+#include <shoveler/game.h>
 #include <shoveler/global.h>
 #include <shoveler/image.h>
 #include <shoveler/input.h>
@@ -26,8 +27,6 @@
 #include <shoveler/shader_program.h>
 #include <shoveler/texture.h>
 
-static ShovelerGame *game;
-static ShovelerController *controller;
 static ShovelerSampler *nearestNeighborSampler;
 static ShovelerSampler *interpolatingSampler;
 static ShovelerMaterial *colorMaterial;
@@ -41,55 +40,44 @@ static ShovelerModel *downCubeModel;
 static ShovelerModel *frontCubeModel;
 static ShovelerModel *leftCubeModel;
 static ShovelerModel *rightCubeModel;
-static float previousCursorX;
-static float previousCursorY;
 
-static float eps = 1e-9;
-
-static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, int samples);
 static void shovelerSampleTerminate();
 static void shovelerSampleUpdate(ShovelerGame *game, double dt);
 
 int main(int argc, char *argv[])
 {
-	const char *windowTitle = "shoveler";
-	bool fullscreen = false;
-	bool vsync = true;
-	int samples = 4;
-	int width = 640;
-	int height = 480;
+	ShovelerGameWindowSettings windowSettings;
+	windowSettings.windowTitle = "shoveler";
+	windowSettings.fullscreen = false;
+	windowSettings.vsync = true;
+	windowSettings.samples = 4;
+	windowSettings.windowedWidth = 640;
+	windowSettings.windowedHeight = 480;
+
+	ShovelerGameControllerSettings controllerSettings;
+	controllerSettings.position = shovelerVector3(0, 0, -5);
+	controllerSettings.direction = shovelerVector3(0, 0, 1);
+	controllerSettings.up = shovelerVector3(0, 1, 0);
+	controllerSettings.moveFactor = 2.0f;
+	controllerSettings.tiltFactor = 0.0005f;
+
+	float fov = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
+	float aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
 
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	ShovelerGame *game = shovelerGameCreate(windowTitle, width, height, samples, fullscreen, vsync);
+	ShovelerCamera *camera = shovelerCameraPerspectiveCreate(controllerSettings.position, controllerSettings.direction, controllerSettings.up, fov, aspectRatio, 0.01, 1000);
+
+	ShovelerGame *game = shovelerGameCreate(camera, shovelerSampleUpdate, &windowSettings, &controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
 
-	shovelerSampleInit(game, width, height, samples);
+	shovelerCameraPerspectiveAttachController(camera, game->controller);
 
-	while(shovelerGameIsRunning(game)) {
-		shovelerGameRenderFrame(game);
-	}
-	shovelerLogInfo("Exiting main loop, goodbye.");
-
-	shovelerSampleTerminate();
-	shovelerGameFree(game);
-	shovelerGlobalUninit();
-	shovelerLogTerminate();
-
-	return EXIT_SUCCESS;
-}
-
-static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, int samples)
-{
-	game = sampleGame;
-
-	controller = shovelerControllerCreate(game, (ShovelerVector3){0, 0, -5}, (ShovelerVector3){0, 0, 1}, (ShovelerVector3){0, 1, 0}, 2.0f, 0.0005f);
-
-	nearestNeighborSampler = shovelerSamplerCreate(false, true);
-	interpolatingSampler = shovelerSamplerCreate(true, true);
+	nearestNeighborSampler = shovelerSamplerCreate(false, true, true);
+	interpolatingSampler = shovelerSamplerCreate(true, true, true);
 
 	colorMaterial = shovelerMaterialColorCreate((ShovelerVector3){0.7, 0.7, 0.7});
 
@@ -101,13 +89,12 @@ static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, 
 	shovelerImageGet(image, 1, 1, 0) = 255;
 	shovelerImageGet(image, 1, 1, 1) = 255;
 	shovelerImageGet(image, 1, 1, 2) = 255;
-	ShovelerTexture *texture = shovelerTextureCreate2d(image);
+	ShovelerTexture *texture = shovelerTextureCreate2d(image, true);
 	shovelerTextureUpdate(texture);
 	textureMaterial = shovelerMaterialTextureCreate(texture, true, nearestNeighborSampler, false);
 
 	shovelerOpenGLCheckSuccess();
 
-	game->scene = shovelerSceneCreate();
 	quad = shovelerDrawableQuadCreate();
 
 	ShovelerModel *groundModel = shovelerModelCreate(quad, colorMaterial);
@@ -178,9 +165,6 @@ static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, 
 	shovelerModelUpdateTransformation(rightCubeModel);
 	shovelerSceneAddModel(game->scene, rightCubeModel);
 
-	game->camera = shovelerCameraPerspectiveCreate((ShovelerVector3){0, 0, -5}, (ShovelerVector3){0, 0, 1}, (ShovelerVector3){0, 1, 0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
-	shovelerCameraPerspectiveAttachController(game->camera, controller);
-
 	ShovelerLight *pointlight = shovelerLightPointCreate((ShovelerVector3){0, 0, 0}, 1024, 1024, 1, 0.0f, 80.0f, (ShovelerVector3){1.0f, 1.0f, 1.0f});
 	shovelerSceneAddLight(game->scene, pointlight);
 
@@ -216,19 +200,23 @@ static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, 
 
 	shovelerOpenGLCheckSuccess();
 
-	double newCursorX;
-	double newCursorY;
-	glfwGetCursorPos(game->window, &newCursorX, &newCursorY);
-	previousCursorX = newCursorX;
-	previousCursorY = newCursorY;
+	while(shovelerGameIsRunning(game)) {
+		shovelerGameRenderFrame(game);
+	}
+	shovelerLogInfo("Exiting main loop, goodbye.");
 
-	game->update = shovelerSampleUpdate;
+	shovelerCameraPerspectiveDetachController(camera);
+	shovelerGameFree(game);
+	shovelerCameraFree(camera);
+	shovelerSampleTerminate();
+	shovelerGlobalUninit();
+	shovelerLogTerminate();
+
+	return EXIT_SUCCESS;
 }
 
 static void shovelerSampleTerminate()
 {
-	shovelerSceneFree(game->scene);
-	shovelerCameraFree(game->camera);
 	shovelerDrawableFree(cube);
 	shovelerDrawableFree(quad);
 	shovelerDrawableFree(point);
@@ -238,12 +226,10 @@ static void shovelerSampleTerminate()
 	shovelerMaterialFree(textureMaterial);
 	shovelerSamplerFree(interpolatingSampler);
 	shovelerSamplerFree(nearestNeighborSampler);
-	shovelerControllerFree(controller);
 }
 
 static void shovelerSampleUpdate(ShovelerGame *game, double dt)
 {
-	shovelerControllerUpdate(controller, dt);
 	shovelerCameraUpdateView(game->camera);
 
 	downCubeModel->rotation.values[0] += 0.1f * dt;

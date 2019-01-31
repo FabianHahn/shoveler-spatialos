@@ -5,56 +5,57 @@
 #include <GLFW/glfw3.h>
 
 #include <shoveler/camera/perspective.h>
-#include <shoveler/drawable/tiles.h>
+#include <shoveler/drawable/quad.h>
 #include <shoveler/material/tilemap.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
 #include <shoveler/framebuffer.h>
+#include <shoveler/game.h>
 #include <shoveler/global.h>
 #include <shoveler/image.h>
 #include <shoveler/input.h>
 #include <shoveler/model.h>
 #include <shoveler/opengl.h>
-#include <shoveler/sampler.h>
 #include <shoveler/scene.h>
 #include <shoveler/shader_program.h>
 #include <shoveler/texture.h>
 
-static float previousCursorX;
-static float previousCursorY;
-
-static float eps = 1e-9;
-
-static void shovelerSampleInit(ShovelerGame *sampleGame, int width, int height, int samples);
 static void shovelerSampleTerminate();
 static void shovelerSampleUpdate(ShovelerGame *game, double dt);
 
 int main(int argc, char *argv[])
 {
-	const char *windowTitle = "shoveler";
-	bool fullscreen = false;
-	bool vsync = true;
-	int samples = 4;
-	int width = 640;
-	int height = 480;
+	ShovelerGameWindowSettings windowSettings;
+	windowSettings.windowTitle = "shoveler";
+	windowSettings.fullscreen = false;
+	windowSettings.vsync = true;
+	windowSettings.samples = 4;
+	windowSettings.windowedWidth = 640;
+	windowSettings.windowedHeight = 480;
+
+	ShovelerGameControllerSettings controllerSettings;
+	controllerSettings.position = shovelerVector3(0, 0, 1);
+	controllerSettings.direction = shovelerVector3(0, 0, -1);
+	controllerSettings.up = shovelerVector3(0, 1, 0);
+	controllerSettings.moveFactor = 0.5f;
+	controllerSettings.tiltFactor = 0.0005f;
+
+	float fov = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
+	float aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
 
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	ShovelerGame *game = shovelerGameCreate(windowTitle, width, height, samples, fullscreen, vsync);
+	ShovelerCamera *camera = shovelerCameraPerspectiveCreate(controllerSettings.position, controllerSettings.direction, controllerSettings.up, fov, aspectRatio, 0.01, 1000);
+
+	ShovelerGame *game = shovelerGameCreate(camera, shovelerSampleUpdate, &windowSettings, &controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
-	game->scene = shovelerSceneCreate();
 
-	ShovelerController *controller = shovelerControllerCreate(game, (ShovelerVector3){0.5, 0.5, 1}, (ShovelerVector3){0, 0, -1}, (ShovelerVector3){0, 1, 0}, 2.0f, 0.0005f);
-	game->camera = shovelerCameraPerspectiveCreate((ShovelerVector3){0.5, 0.5, 1}, (ShovelerVector3){0, 0, -1}, (ShovelerVector3){0, 1, 0}, 2.0f * SHOVELER_PI * 50.0f / 360.0f, (float) width / height, 0.01, 1000);
-	shovelerCameraPerspectiveAttachController(game->camera, controller);
-
-	ShovelerSampler *nearestNeighborSampler = shovelerSamplerCreate(false, true);
-	ShovelerSampler *interpolatingSampler = shovelerSamplerCreate(true, true);
-
-	ShovelerMaterial *tilemapMaterial = shovelerMaterialTilemapCreate(2, 2);
+	game->controller->lockTiltX = true;
+	game->controller->lockTiltY = true;
+	shovelerCameraPerspectiveAttachController(camera, game->controller);
 
 	ShovelerImage *tilesetImage = shovelerImageCreate(2, 2, 3);
 	shovelerImageClear(tilesetImage);
@@ -64,70 +65,57 @@ int main(int argc, char *argv[])
 	shovelerImageGet(tilesetImage, 1, 1, 0) = 255;
 	shovelerImageGet(tilesetImage, 1, 1, 1) = 255;
 	shovelerImageGet(tilesetImage, 1, 1, 2) = 255; // white
-	ShovelerTexture *tilesetTexture = shovelerTextureCreate2d(tilesetImage);
-	shovelerTextureUpdate(tilesetTexture);
 
-	ShovelerMaterialTilemapTileset tileset = {2, 2, tilesetTexture, nearestNeighborSampler};
-	shovelerMaterialTilemapAddTileset(tilemapMaterial, tileset);
-	ShovelerMaterialTilemapTileset tileset2 = {1, 1, tilesetTexture, interpolatingSampler};
-	shovelerMaterialTilemapAddTileset(tilemapMaterial, tileset2);
+	ShovelerImage *borderTilesetImage = shovelerImageCreate(20, 20, 4);
+	shovelerImageClear(borderTilesetImage);
+	shovelerImageSet(borderTilesetImage, shovelerColor(255, 200, 255), 0);
+	shovelerImageAddFrame(borderTilesetImage, 3, shovelerColor(255, 200, 255));
 
-	ShovelerImage *layerImage = shovelerImageCreate(2, 2, 3);
-	shovelerImageClear(layerImage);
-	shovelerImageGet(layerImage, 0, 0, 0) = 0;
-	shovelerImageGet(layerImage, 0, 0, 1) = 0;
-	shovelerImageGet(layerImage, 0, 0, 2) = 1; // red
-	shovelerImageGet(layerImage, 0, 1, 0) = 0;
-	shovelerImageGet(layerImage, 0, 1, 1) = 0;
-	shovelerImageGet(layerImage, 0, 1, 2) = 1; // red
-	shovelerImageGet(layerImage, 1, 0, 0) = 0;
-	shovelerImageGet(layerImage, 1, 0, 1) = 1;
-	shovelerImageGet(layerImage, 1, 0, 2) = 1; // green
-	shovelerImageGet(layerImage, 1, 1, 0) = 0;
-	shovelerImageGet(layerImage, 1, 1, 1) = 0;
-	shovelerImageGet(layerImage, 1, 1, 2) = 2; // full tileset
-	ShovelerTexture *layerTexture = shovelerTextureCreate2d(layerImage);
-	shovelerTextureUpdate(layerTexture);
-	shovelerMaterialTilemapAddLayer(tilemapMaterial, layerTexture);
+	ShovelerImage *tilesImage = shovelerImageCreate(2, 2, 3);
+	shovelerImageClear(tilesImage);
+	shovelerImageGet(tilesImage, 0, 0, 0) = 0;
+	shovelerImageGet(tilesImage, 0, 0, 1) = 0;
+	shovelerImageGet(tilesImage, 0, 0, 2) = 1; // red
+	shovelerImageGet(tilesImage, 0, 1, 0) = 0;
+	shovelerImageGet(tilesImage, 0, 1, 1) = 0;
+	shovelerImageGet(tilesImage, 0, 1, 2) = 1; // red
+	shovelerImageGet(tilesImage, 1, 0, 0) = 0;
+	shovelerImageGet(tilesImage, 1, 0, 1) = 1;
+	shovelerImageGet(tilesImage, 1, 0, 2) = 1; // green
+	shovelerImageGet(tilesImage, 1, 1, 0) = 0;
+	shovelerImageGet(tilesImage, 1, 1, 1) = 0;
+	shovelerImageGet(tilesImage, 1, 1, 2) = 2; // full tileset
+	ShovelerTexture *tiles = shovelerTextureCreate2d(tilesImage, true);
+	shovelerTextureUpdate(tiles);
 
-	ShovelerImage *layer2Image = shovelerImageCreate(2, 2, 3);
-	shovelerImageClear(layer2Image);
-	shovelerImageGet(layer2Image, 0, 0, 0) = 0;
-	shovelerImageGet(layer2Image, 0, 0, 1) = 0;
-	shovelerImageGet(layer2Image, 0, 0, 2) = 2; // full tileset
-	ShovelerTexture *layer2Texture = shovelerTextureCreate2d(layer2Image);
-	shovelerTextureUpdate(layer2Texture);
-	shovelerMaterialTilemapAddLayer(tilemapMaterial, layer2Texture);
+	ShovelerTilemap *tilemap = shovelerTilemapCreate(tiles);
+	ShovelerTileset *tileset = shovelerTilesetCreate(tilesetImage, 2, 2, 1);
+	shovelerTilemapAddTileset(tilemap, tileset);
+	ShovelerTileset *tileset2 = shovelerTilesetCreate(tilesetImage, 1, 1, 1);
+	shovelerTilemapAddTileset(tilemap, tileset2);
 
-	ShovelerDrawable *tiles = shovelerDrawableTilesCreate(2, 2);
-	ShovelerModel *tilesModel = shovelerModelCreate(tiles, tilemapMaterial);
+	ShovelerMaterial *tilemapMaterial = shovelerMaterialTilemapCreate();
+	shovelerMaterialTilemapSetActive(tilemapMaterial, tilemap);
+
+	ShovelerDrawable *quad = shovelerDrawableQuadCreate();
+	ShovelerModel *tilesModel = shovelerModelCreate(quad, tilemapMaterial);
+	tilesModel->scale = shovelerVector3(0.5, 0.5, 1.0);
 	tilesModel->screenspace = true;
+	shovelerModelUpdateTransformation(tilesModel);
 	shovelerSceneAddModel(game->scene, tilesModel);
 
 	shovelerOpenGLCheckSuccess();
-
-	double newCursorX;
-	double newCursorY;
-	glfwGetCursorPos(game->window, &newCursorX, &newCursorY);
-	previousCursorX = newCursorX;
-	previousCursorY = newCursorY;
-
-	game->update = shovelerSampleUpdate;
 
 	while(shovelerGameIsRunning(game)) {
 		shovelerGameRenderFrame(game);
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
-	shovelerSceneFree(game->scene);
-	shovelerCameraFree(game->camera);
-	shovelerDrawableFree(tiles);
+	shovelerDrawableFree(quad);
 	shovelerMaterialFree(tilemapMaterial);
-	shovelerSamplerFree(interpolatingSampler);
-	shovelerSamplerFree(nearestNeighborSampler);
-	shovelerControllerFree(controller);
-
+	shovelerCameraPerspectiveDetachController(camera);
 	shovelerGameFree(game);
+	shovelerCameraFree(camera);
 	shovelerGlobalUninit();
 	shovelerLogTerminate();
 
@@ -136,6 +124,5 @@ int main(int argc, char *argv[])
 
 static void shovelerSampleUpdate(ShovelerGame *game, double dt)
 {
-	shovelerControllerUpdate(shovelerCameraPerspectiveGetController(game->camera), dt);
 	shovelerCameraUpdateView(game->camera);
 }

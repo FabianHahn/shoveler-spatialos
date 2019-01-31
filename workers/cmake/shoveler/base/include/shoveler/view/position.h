@@ -9,21 +9,20 @@
 
 typedef void (ShovelerViewPositionRequestUpdateFunction)(ShovelerViewComponent *component, double x, double y, double z, void *userData);
 
+static const char *shovelerViewPositionComponentName = "position";
+
 typedef struct {
 	double x;
 	double y;
 	double z;
-	ShovelerViewPositionRequestUpdateFunction *requestUpdate;
-	void *requestUpdateUserData;
 } ShovelerViewPosition;
 
-static const char *shovelerViewPositionComponentName = "position";
-
-bool shovelerViewAddEntityPosition(ShovelerView *view, long long int entityId, double x, double y, double z);
-bool shovelerViewUpdateEntityPosition(ShovelerView *view, long long int entityId, double x, double y, double z);
-bool shovelerViewDelegatePosition(ShovelerView *view, long long int entityId, ShovelerViewPositionRequestUpdateFunction *requestUpdateFunction, void *userData);
-bool shovelerViewUndelegatePosition(ShovelerView *view, long long int entityId);
-bool shovelerViewRequestPositionUpdate(ShovelerView *view, long long int entityId, double x, double y, double z);
-bool shovelerViewRemoveEntityPosition(ShovelerView *view, long long int entityId);
+bool shovelerViewEntityAddPosition(ShovelerViewEntity *entity, double x, double y, double z);
+ShovelerViewPosition *shovelerViewEntityGetPosition(ShovelerViewEntity *entity);
+bool shovelerViewEntityUpdatePosition(ShovelerViewEntity *entity, double x, double y, double z);
+bool shovelerViewEntityDelegatePosition(ShovelerViewEntity *entity, ShovelerViewPositionRequestUpdateFunction *requestUpdateFunction, void *userData);
+bool shovelerViewEntityUndelegatePosition(ShovelerViewEntity *entity);
+bool shovelerViewEntityRequestPositionUpdate(ShovelerViewEntity *entity, double x, double y, double z);
+bool shovelerViewEntityRemovePosition(ShovelerViewEntity *entity);
 
 #endif
