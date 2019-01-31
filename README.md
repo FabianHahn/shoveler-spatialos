@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/games). SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C++](https://docs.improbable.io/reference/13.1/cppsdk/introduction), [C#](https://docs.improbable.io/reference/13.1/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/13.1/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/13.1/shared/byoe/introduction). This project uses the C++ SDK to run _shoveler_ workers on both the client and the server side to implement a simple interactive 3D sandbox demo game, which harnesses the power of SpatialOS to enable multiplayer in the cloud.
+This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/games). SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C++](https://docs.improbable.io/reference/13.5/cppsdk/introduction), [C#](https://docs.improbable.io/reference/13.5/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/13.5/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/13.5/shared/byoe/introduction). This project uses the C++ SDK to run _shoveler_ workers on both the client and the server side to implement a simple interactive 3D sandbox demo game, which harnesses the power of SpatialOS to enable multiplayer in the cloud.
 
 The client worker can render a 3D world with moving light sources and simple geometry such as cubes and planes, while the server worker does basic client lifecycle management and object spawning on behalf of clients. Each player is a small point light with a random color that can fly around freely with WASD + mouse controls, and spawn cubes of their color by clicking the right mouse button. Players can see each other flying around and placing cubes, and everything in the world is fully persistent even if players disconnect.
 
@@ -10,15 +10,17 @@ Though I work at Improbable, this is a personal project built in my free time us
 
 ## Repository structure
 
-The overall directory structure of this repository was chosen to comply with the [SpatialOS project structure](https://docs.improbable.io/reference/13.1/shared/reference/project-structure#structure-of-a-spatialos-project) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
- * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/13.1/shared/schema/introduction#schema-introduction) for the project
- * [`workers/cmake/client/client.cpp`](workers/cmake/client/client.cpp): Complete source code for client worker
+The overall directory structure of this repository was chosen to comply with the [SpatialOS project structure](https://docs.improbable.io/reference/13.5/shared/reference/project-structure#structure-of-a-spatialos-project) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
+ * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/13.5/shared/schema/introduction#schema-introduction) for the project
+ * [`workers/cmake/client/`](workers/cmake/client/): Complete source code for client worker
+ * [`workers/cmake/client/client.cpp`](workers/cmake/client/client.cpp): Source file containing main function for client worker
  * [`workers/cmake/server/server.cpp`](workers/cmake/server/server.cpp): Complete source code for server worker
  * [`workers/cmake/seeder/seeder.cpp`](workers/cmake/seeder/seeder.cpp): Complete source code for seeder tool used to generate the initial snapshot
  * [`workers/cmake/shoveler`](workers/cmake/shoveler): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository
  * [`workers/cmake/CMakeLists.txt`](workers/cmake/CMakeLists.txt): Root CMake project definition file
- * [`workers/cmake/spatialos.*.worker.json`](workers/cmake): [SpatialOS worker configuration files](https://docs.improbable.io/reference/13.1/shared/worker-configuration/worker-configuration#configuration-file) for the defined worker types
- * [`spatialos.json`](spatialos.json): [SpatialOS project definition file](https://docs.improbable.io/reference/13.1/shared/reference/file-formats/spatialos-json) containing the project name and the SpatialOS SDK version used
+ * [`workers/cmake/spatialos.*.worker.json`](workers/cmake): [SpatialOS worker configuration files](https://docs.improbable.io/reference/13.5/shared/worker-configuration/worker-configuration#configuration-file) for the defined worker types
+ * [`default_launch.json`](default_launch.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/13.5/shared/reference/file-formats/launch-config#launch-configuration-file) containing the project name and the SpatialOS SDK version used
+ * [`spatialos.json`](spatialos.json): [SpatialOS project definition file](https://docs.improbable.io/reference/13.5/shared/reference/file-formats/spatialos-json) containing the project name and the SpatialOS SDK version used
 
 ## Usage
 
@@ -63,14 +65,16 @@ To connect a client, switch to the right directory and simply run it with the co
 ```
 # Linux:
 cd workers/cmake/build/client
-./ShovelerClient ShovelerClient1 localhost 7777
+./ShovelerClient # launch with random worker ID
+./ShovelerClient ShovelerClient1 localhost 7777 # launch with specific worker ID
 
 # Windows:
 cd workers/cmake/build/client/Release
-ShovelerClient.exe ShovelerClient1 localhost 7777
+ShovelerClient.exe # launch with random worker ID
+ShovelerClient.exe ShovelerClient1 localhost 7777 # launch with specific worker ID
 ```
 
-When running locally, the first argument to the `ShovelerClient` executable is the worker ID to use, the second one is the hostname to connect to, and the third one is the receptionist port of the SpatialOS Runtime.
+When running locally, you can either specify zero or three arguments. In the latter case, the first argument to the `ShovelerClient` executable is the worker ID to use, the second one is the hostname to connect to, and the third one is the receptionist port of the SpatialOS Runtime.
 
 You can connect multiple clients to the same local deployment as long as you choose a fresh worker ID that hasn't been used before since the deployment was started.
 
