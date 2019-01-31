@@ -7,6 +7,7 @@
 
 #include <shoveler/camera.h>
 #include <shoveler/framebuffer.h>
+#include <shoveler/render_state.h>
 #include <shoveler/sampler.h>
 #include <shoveler/shader.h>
 #include <shoveler/uniform_map.h>
@@ -18,6 +19,7 @@ struct ShovelerModelStruct; // forward declaration: model.h
 typedef struct ShovelerSceneStruct {
 	ShovelerUniformMap *uniforms;
 	struct ShovelerMaterialStruct *depthMaterial;
+	/* private */ int debugMode;
 	GHashTable *lights;
 	GHashTable *models;
 	GHashTable *shaderCache;
@@ -28,21 +30,17 @@ typedef struct {
 	bool emitters;
 	bool screenspace;
 	bool onlyShadowCasters;
-	bool blend;
-	GLenum blendSourceFactor;
-	GLenum blendDestinationFactor;
-	bool depthTest;
-	GLenum depthFunction;
-	GLboolean depthMask;
+	ShovelerRenderState renderState;
 } ShovelerSceneRenderPassOptions;
 
 ShovelerScene *shovelerSceneCreate();
+void shovelerSceneToggleDebugMode(ShovelerScene *scene);
 bool shovelerSceneAddLight(ShovelerScene *scene, struct ShovelerLightStruct *light);
 bool shovelerSceneRemoveLight(ShovelerScene *scene, struct ShovelerLightStruct *light);
 bool shovelerSceneAddModel(ShovelerScene *scene, struct ShovelerModelStruct *model);
 bool shovelerSceneRemoveModel(ShovelerScene *scene, struct ShovelerModelStruct *model);
-int shovelerSceneRenderPass(ShovelerScene *scene, ShovelerCamera *camera, struct ShovelerLightStruct *light, ShovelerSceneRenderPassOptions options);
-int shovelerSceneRenderFrame(ShovelerScene *scene, ShovelerCamera *camera, ShovelerFramebuffer *framebuffer);
+int shovelerSceneRenderPass(ShovelerScene *scene, ShovelerCamera *camera, struct ShovelerLightStruct *light, ShovelerSceneRenderPassOptions options, ShovelerRenderState *renderState);
+int shovelerSceneRenderFrame(ShovelerScene *scene, ShovelerCamera *camera, ShovelerFramebuffer *framebuffer, ShovelerRenderState *renderState);
 /** Generates a shader, where shaders for calls to this with the same arguments might be cached. */
 ShovelerShader *shovelerSceneGenerateShader(ShovelerScene *scene, ShovelerCamera *camera, struct ShovelerLightStruct *light, struct ShovelerModelStruct *model, struct ShovelerMaterialStruct *material, void *userData);
 void shovelerSceneFree(ShovelerScene *scene);

@@ -6,18 +6,19 @@
 #include "shoveler/global.h"
 #include "shoveler/input.h"
 #include "shoveler/opengl.h"
+#include "shoveler/scene.h"
 
-static void exitKeyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *unused);
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *unused);
 static gint64 elapsedNs(double dt);
 static void printFps(void *gamePointer);
 
-ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int windowedHeight, int samples, bool fullscreen, bool vsync)
+ShovelerGame *shovelerGameCreate(ShovelerCamera *camera, ShovelerGameUpdateCallback *update, const ShovelerGameWindowSettings  *windowSettings, const ShovelerGameControllerSettings *controllerSettings)
 {
 	ShovelerGame *game = malloc(sizeof(ShovelerGame));
-	game->windowedWidth = windowedWidth;
-	game->windowedHeight = windowedHeight;
-	game->samples = samples;
-	game->fullscreen = fullscreen;
+	game->windowedWidth = windowSettings->windowedWidth;
+	game->windowedHeight = windowSettings->windowedHeight;
+	game->samples = windowSettings->samples;
+	game->fullscreen = windowSettings->fullscreen;
 	game->updateExecutor = shovelerExecutorCreateDirect();
 
 	// request OpenGL4
@@ -25,10 +26,10 @@ ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 
-	int width = windowedWidth;
-	int height = windowedHeight;
+	int width = windowSettings->windowedWidth;
+	int height = windowSettings->windowedHeight;
 	GLFWmonitor *monitor = NULL;
-	if(fullscreen) {
+	if(windowSettings->fullscreen) {
 		monitor = glfwGetPrimaryMonitor();
 		shovelerLogInfo("Using borderless fullscreen mode on primary monitor '%s'.", glfwGetMonitorName(monitor));
 
@@ -43,7 +44,7 @@ ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int
 		shovelerLogInfo("Using windowed mode.");
 	}
 
-	game->window = glfwCreateWindow(width, height, windowTitle, monitor, NULL);
+	game->window = glfwCreateWindow(width, height, windowSettings->windowTitle, monitor, NULL);
 	if(game->window == NULL) {
 		shovelerLogError("Failed to create glfw window.");
 		free(game);
@@ -59,7 +60,7 @@ ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int
 		return NULL;
 	}
 
-	shovelerLogInfo("Opened glfw window with name '%s', using OpenGL driver version '%s' by '%s' and GLSL version '%s'.", windowTitle, glGetString(GL_VERSION), glGetString(GL_VENDOR), glGetString(GL_SHADING_LANGUAGE_VERSION));
+	shovelerLogInfo("Opened glfw window with name '%s', using OpenGL driver version '%s' by '%s' and GLSL version '%s'.", windowSettings->windowTitle, glGetString(GL_VERSION), glGetString(GL_VENDOR), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	if(!shovelerOpenGLCheckSuccess()) {
 		glfwDestroyWindow(game->window);
@@ -67,10 +68,17 @@ ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int
 		return NULL;
 	}
 
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
+	game->renderState.blend = true;
+	game->renderState.blendSourceFactor = GL_ONE;
+	game->renderState.blendDestinationFactor = GL_ZERO;
+	game->renderState.depthTest = true;
+	game->renderState.depthFunction = GL_LESS;
+	game->renderState.depthMask = GL_TRUE;
+	shovelerRenderStateReset(&game->renderState);
 
-	glfwSwapInterval(vsync ? 1 : 0);
+	glEnable(GL_CULL_FACE);
+
+	glfwSwapInterval(windowSettings->vsync ? 1 : 0);
 
 	if(!shovelerOpenGLCheckSuccess()) {
 		glfwTerminate();
@@ -80,13 +88,21 @@ ShovelerGame *shovelerGameCreate(const char *windowTitle, int windowedWidth, int
 	}
 
 	game->input = shovelerInputCreate(game);
-	shovelerInputAddKeyCallback(game->input, exitKeyHandler, NULL);
+	shovelerInputAddKeyCallback(game->input, keyHandler, NULL);
 
-	game->framebuffer = shovelerFramebufferCreate(width, height, samples, 4, 8);
+	game->framebuffer = shovelerFramebufferCreate(width, height, windowSettings->samples, 4, 8);
+	game->scene = shovelerSceneCreate();
+	game->camera = camera;
+	game->controller = shovelerControllerCreate(game->window, game->input, controllerSettings->position, controllerSettings->direction, controllerSettings->up, controllerSettings->moveFactor, controllerSettings->tiltFactor);
+	game->view = shovelerViewCreate();
+	game->update = update;
 	game->lastFrameTime = glfwGetTime();
 	game->lastFpsPrintTime = game->lastFrameTime;
 	game->framesSinceLastFpsPrint = 0;
 	shovelerExecutorSchedulePeriodic(game->updateExecutor, 1000, 1000, printFps, game);
+
+	shovelerViewSetTarget(game->view, "controller", game->controller);
+	shovelerViewSetTarget(game->view, "scene", game->scene);
 
 	ShovelerGlobalContext *global = shovelerGlobalGetContext();
 	g_hash_table_insert(global->games, game->window, game);
@@ -132,9 +148,10 @@ int shovelerGameRenderFrame(ShovelerGame *game)
 	game->framesSinceLastFpsPrint++;
 
 	shovelerExecutorUpdate(game->updateExecutor, elapsedNs(dt));
+	shovelerControllerUpdate(game->controller, dt);
 	game->update(game, dt);
 
-	int rendered = shovelerSceneRenderFrame(game->scene, game->camera, game->framebuffer);
+	int rendered = shovelerSceneRenderFrame(game->scene, game->camera, game->framebuffer, &game->renderState);
 	shovelerFramebufferBlitToDefault(game->framebuffer);
 
 	glfwSwapBuffers(game->window);
@@ -150,18 +167,32 @@ void shovelerGameFree(ShovelerGame *game)
 
 	shovelerFramebufferFree(game->framebuffer);
 
+	shovelerViewFree(game->view);
+	shovelerControllerFree(game->controller);
 	shovelerInputFree(game->input);
+	shovelerSceneFree(game->scene);
+
 	glfwDestroyWindow(game->window);
 
 	shovelerExecutorFree(game->updateExecutor);
 	free(game);
 }
 
-static void exitKeyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *unused)
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *unused)
 {
 	if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
 		shovelerLogInfo("Escape key pressed, terminating.");
 		glfwSetWindowShouldClose(input->game->window, GLFW_TRUE);
+	}
+
+	if(key == GLFW_KEY_F9 && action == GLFW_PRESS) {
+		shovelerLogInfo("F9 key pressed, writing view dependency graph.");
+		shovelerViewWriteDependencyGraph(input->game->view, "view_dependencies.dot");
+	}
+
+	if(key == GLFW_KEY_F10 && action == GLFW_PRESS) {
+		shovelerLogInfo("F10 key pressed, toggling scene debug mode.");
+		shovelerSceneToggleDebugMode(input->game->scene);
 	}
 }
 

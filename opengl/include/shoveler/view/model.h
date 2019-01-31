@@ -5,38 +5,14 @@
 
 #include <glib.h>
 
-#include <shoveler/drawable.h>
-#include <shoveler/material.h>
 #include <shoveler/model.h>
 #include <shoveler/scene.h>
 #include <shoveler/types.h>
 #include <shoveler/view.h>
 
-typedef enum {
-	SHOVELER_VIEW_DRAWABLE_TYPE_CUBE,
-	SHOVELER_VIEW_DRAWABLE_TYPE_QUAD,
-	SHOVELER_VIEW_DRAWABLE_TYPE_POINT,
-} ShovelerViewDrawableType;
-
 typedef struct {
-	ShovelerViewDrawableType type;
-} ShovelerViewDrawableConfiguration;
-
-typedef enum {
-	SHOVELER_VIEW_MATERIAL_TYPE_COLOR,
-	SHOVELER_VIEW_MATERIAL_TYPE_TEXTURE,
-	SHOVELER_VIEW_MATERIAL_TYPE_PARTICLE,
-} ShovelerViewMaterialType;
-
-typedef struct {
-	ShovelerViewMaterialType type;
-	ShovelerVector3 color;
-	const char *texture;
-} ShovelerViewMaterialConfiguration;
-
-typedef struct {
-	ShovelerViewDrawableConfiguration drawable;
-	ShovelerViewMaterialConfiguration material;
+	long long int drawableEntityId;
+	long long int materialEntityId;
 	ShovelerVector3 rotation;
 	ShovelerVector3 scale;
 	bool visible;
@@ -46,22 +22,19 @@ typedef struct {
 	GLuint polygonMode;
 } ShovelerViewModelConfiguration;
 
-typedef struct {
-	ShovelerModel *model;
-	ShovelerViewComponentCallback *positionCallback;
-} ShovelerViewModel;
-
 static const char *shovelerViewModelComponentName = "model";
 
-bool shovelerViewAddEntityModel(ShovelerView *view, long long int entityId, ShovelerViewModelConfiguration modelConfiguration);
-bool shovelerViewUpdateEntityModelDrawable(ShovelerView *view, long long int entityId, ShovelerViewDrawableConfiguration drawableConfiguration);
-bool shovelerViewUpdateEntityModelMaterial(ShovelerView *view, long long int entityId, ShovelerViewMaterialConfiguration materialConfiguration);
-bool shovelerViewUpdateEntityModelRotation(ShovelerView *view, long long int entityId, ShovelerVector3 rotation);
-bool shovelerViewUpdateEntityModelScale(ShovelerView *view, long long int entityId, ShovelerVector3 scale);
-bool shovelerViewUpdateEntityModelVisible(ShovelerView *view, long long int entityId, bool visible);
-bool shovelerViewUpdateEntityModelEmitter(ShovelerView *view, long long int entityId, bool emitter);
-bool shovelerViewUpdateEntityModelScreenspace(ShovelerView *view, long long int entityId, bool screenspace);
-bool shovelerViewUpdateEntityModelPolygonMode(ShovelerView *view, long long int entityId, GLuint polygonMode);
-bool shovelerViewRemoveEntityModel(ShovelerView *view, long long int entityId);
+bool shovelerViewEntityAddModel(ShovelerViewEntity *entity, ShovelerViewModelConfiguration configuration);
+ShovelerModel *shovelerViewEntityGetModel(ShovelerViewEntity *entity);
+const ShovelerViewModelConfiguration *shovelerViewEntityGetModelConfiguration(ShovelerViewEntity *entity);
+bool shovelerViewEntityUpdateModelDrawableEntityId(ShovelerViewEntity *entity, long long int drawableEntityId);
+bool shovelerViewEntityUpdateModelMaterialEntityId(ShovelerViewEntity *entity, long long int materialEntityId);
+bool shovelerViewEntityUpdateModelRotation(ShovelerViewEntity *entity, ShovelerVector3 rotation);
+bool shovelerViewEntityUpdateModelScale(ShovelerViewEntity *entity, ShovelerVector3 scale);
+bool shovelerViewEntityUpdateModelVisible(ShovelerViewEntity *entity, bool visible);
+bool shovelerViewEntityUpdateModelEmitter(ShovelerViewEntity *entity, bool emitter);
+bool shovelerViewEntityUpdateModelScreenspace(ShovelerViewEntity *entity, bool screenspace);
+bool shovelerViewEntityUpdateModelPolygonMode(ShovelerViewEntity *entity, GLuint polygonMode);
+bool shovelerViewEntityRemoveModel(ShovelerViewEntity *entity);
 
 #endif
