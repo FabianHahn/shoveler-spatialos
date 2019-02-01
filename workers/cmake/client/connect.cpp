@@ -31,12 +31,21 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 		std::string afterDeploymentName{deploymentNameSplit[1]};
 		g_strfreev(deploymentNameSplit);
 
-		std::string tokenPrefix = "token=";
-		if(!g_str_has_prefix(afterDeploymentName.c_str(), tokenPrefix.c_str())) {
+		gchar **afterDeploymentNameSplit = g_strsplit(afterDeploymentName.c_str(), "&", 0);
+		std::string authToken;
+		for(int i = 0; afterDeploymentNameSplit[i] != NULL; i++) {
+			std::string tokenPrefix = "token=";
+			if(g_str_has_prefix(afterDeploymentNameSplit[i], tokenPrefix.c_str())) {
+				authToken = std::string{afterDeploymentNameSplit[i]}.substr(tokenPrefix.size());
+				break;
+			}
+		}
+		g_strfreev(afterDeploymentNameSplit);
+
+		if(authToken.empty()) {
 			shovelerLogError("Failed to extract auth token from launcher string: %s", afterDeploymentName.c_str());
 			return {};
 		}
-		std::string authToken{afterDeploymentName.substr(tokenPrefix.size())};
 
 		shovelerLogInfo("Connecting to cloud deployment...\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", projectName.c_str(), deploymentName.c_str(), authToken.c_str());
 
