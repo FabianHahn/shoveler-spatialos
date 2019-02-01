@@ -94,15 +94,15 @@ To launch a cloud deployment, run the following command from the root directory 
 spatial cloud launch spatialos-shoveler-assembly default_launch.json shoveler_spatialos --snapshot=snapshots/default.snapshot
 ```
 
-It will take a few minutes for your deployment to start up, which you can also monitor in the [SpatialOS console](https://console.improbable.io/projects). As soon as it is running, open the deployment overview page in the console and click on the "LAUNCH" button on the left side. This will open a dialog instructing you to install the SpatialOS Launcher. The Launcher currently only supports clients built with _Unity_ or _Unreal Engine_ and thus won't work to start client workers for this project, so ignore Step 1 and instead copy the link that the blue "Launch" button in Step 2 points to (e.g. in Chrome: right click, select "copy link address"). Then connect a client by simply passing this link as its only command line argument:
+It will take a few minutes for your deployment to start up, which you can also monitor in the [SpatialOS console](https://console.improbable.io/projects). As soon as it is running, open the deployment overview page in the console and click on the "LAUNCH" button on the left side. This will open a dialog instructing you to install the SpatialOS Launcher. The Launcher currently only supports clients built with _Unity_ or _Unreal Engine_ and thus won't work to start client workers for this project, so ignore Step 1 and instead copy the link that the blue "Launch" button in Step 2 points to (e.g. in Chrome: right click, select "copy link address"). Then connect a client by simply passing this link as its only command line argument in quotes:
 ```
 # Linux:
 cd workers/cmake/build/client
-./ShovelerClient spatialos.launch:project_name-shoveler_spatialos?token=ey...
+./ShovelerClient "spatialos.launch:project_name-shoveler_spatialos?token=ey..."
 
 # Windows:
 cd workers/cmake/build/client/Release
-ShovelerClient.exe spatialos.launch:project_name-shoveler_spatialos?token=ey...
+ShovelerClient.exe "spatialos.launch:project_name-shoveler_spatialos?token=ey..."
 ```
 
 You can connect any number of clients from any number of different machines using the same login token. Since the worker executables are statically linked, you can distribute them directly without including any other files from the repository or the build.
