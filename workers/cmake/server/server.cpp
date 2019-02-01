@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
 	const int tickRateHz = 10;
 	const int clientCleanupTickRateHz = 2;
 	const int64_t maxHeartbeatTimeoutMs = 5000;
+	EntityId cubeDrawableEntityId = 2;
 	EntityId pointDrawableEntityId = 4;
 	int characterCounter = 0;
 
@@ -309,9 +310,8 @@ int main(int argc, char **argv) {
 		cubeEntity.Add<Metadata>({"cube"});
 		cubeEntity.Add<Persistence>({});
 		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
-		cubeEntity.Add<Drawable>({DrawableType::CUBE});
 		cubeEntity.Add<Material>({MaterialType::COLOR, cubeColor, {}, {}, {}});
-		cubeEntity.Add<Model>({0, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, false, true, PolygonMode::FILL});
+		cubeEntity.Add<Model>({cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, false, true, PolygonMode::FILL});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerRequirementSet clientRequirementSet({clientAttributeSet});
