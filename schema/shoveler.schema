@@ -35,6 +35,7 @@ type TilemapTilesTile {
 	int32 tileset_id = 3;
 }
 
+/** Layer type of this chunk layer. */
 enum ChunkLayerType {
 	CANVAS = 0;
 	TILEMAP = 1;
@@ -57,12 +58,14 @@ enum CoordinateMapping {
 	NEGATIVE_Z = 5;
 }
 
+/** Represents the type of geometry represented by a drawable. */
 enum DrawableType {
 	CUBE = 0;
 	QUAD = 1;
 	POINT = 2;
 }
 
+/** Represents the type of shader to use for a material. */
 enum MaterialType {
 	COLOR = 0;
 	TEXTURE = 1;
@@ -72,17 +75,20 @@ enum MaterialType {
 	CHUNK = 5;
 }
 
+/** Specifies an OpenGL polygon mode for rendering geometry. */
 enum PolygonMode {
 	FILL = 0;
 	LINE = 1;
 	POINT = 2;
 }
 
+/** Specifies the type of a light source. */
 enum LightType {
 	SPOT = 0;
 	POINT = 1;
 }
 
+/** Defines a perspective camera with a projection and a reference frame. */
 type PerspectiveCamera {
 	Vector3 direction = 1;
 	Vector3 up = 2;
@@ -118,26 +124,39 @@ type ClientSpawnCubeResponse {
 
 }
 
+/** Bootstrap component authoritative on the server worker that acts as client-facing server API. */
 component Bootstrap {
 	id = 1334;
+	/** Requests spawning of a client entity for the calling worker. */
 	command CreateClientEntityResponse create_client_entity(CreateClientEntityRequest);
+	/**
+	 * Notifies the server worker that the calling client worker is still alive.
+	 *
+	 * Every client needs to call this regularly, or the server worker will delete the client's entity.
+	 */
 	command ClientPingResponse client_ping(ClientPingRequest);
+	/** Requests spawning of a cube entity at the calling worker's current position. */
 	command ClientSpawnCubeResponse client_spawn_cube(ClientSpawnCubeRequest);
 }
 
+/** Marks an entity as the player entity of a client playing the game. */
 component Client {
 	id = 1335;
+	/** Worker ID of the client represented by this entity. */
 	string worker_id = 1;
 }
 
+/** Server-side metadata associated with each connected client. */
 component ClientInfo {
 	id = 133742;
 	float color_hue = 1;
 	float color_saturation = 2;
 }
 
+/** Component for the server worker to keep track of the last heartbeat sent by the client represented by this entity. */
 component ClientHeartbeat {
 	id = 1336;
+	/** Unix timestamp with the last heartbeat the client sent. */
 	int64 last_server_heartbeat = 1;
 }
 
@@ -153,11 +172,16 @@ component Resource {
 	bytes content = 2;
 }
 
+/** Represents a texture that can be used within a material. */
 component Texture {
 	id = 1338;
+	/** Dependency entity ID containing a Resource component with the image for the texture. */
 	EntityId image_resource_entity_id = 1;
+	/** If true, texture lookups use linear interpolation instead of nearest neighbor. */
 	bool interpolate = 2;
+	/** If true, auto-generates and mipmaps for the texture. */
 	bool use_mipmaps = 3;
+	/** If true, texture lookups are clamped on the texture boundaries. */
 	bool clamp = 4;
 }
 
@@ -274,14 +298,17 @@ component Chunk {
 	list<ChunkLayer> layers = 4;
 }
 
+/** Represents drawable geometry that can be rendered. */
 component Drawable {
 	id = 1346;
 	DrawableType type = 1;
 }
 
+/** Represents a material containing a shader that can be used to render geometry. */
 component Material {
 	id = 1347;
 	MaterialType type = 1;
+	/** If type is set to COLOR, specifies the color of the material. */
 	option<Color> color = 2;
 	/** If type is set to TEXTURE, TILEMAP, CANVAS or CHUNK, specifies a dependency entity ID containing a the respective component. */
 	option<EntityId> data_entity_id = 3;
@@ -291,28 +318,70 @@ component Material {
 	option<Vector2> canvas_region_size = 5;
 }
 
+/**
+ * Represents an instance of a drawable with a model transformation and a material that can be rendered in a scene.
+ *
+ * The model always declares a dependency on the Position component of the same entity, which places it in 3D space.
+ */
 component Model {
 	id = 1348;
+	/** Dependency entity ID containing a Drawable component referenced by this model which specifies the geometry. */
 	EntityId drawable_entity_id = 1;
+	/** Dependency entity ID containing a Material component referenced by this model which specifies the shader. */
 	EntityId material_entity_id = 2;
+	/** Rotation of the model in 3D space. */
 	Vector3 rotation = 3;
+	/** Scale of the model in 3D coordinate axes. */
 	Vector3 scale = 4;
+	/** If false, scene passes will skip this model. */
 	bool visible = 5;
+	/**
+	 * If true, marks this model as an emitter.
+	 *
+	 * Emitters are rendered in a special render pass after lights have illuminated the scene.
+	 * Their color is rendered additively to the scene.
+	 */
 	bool emitter = 6;
+	/**
+	 * If true, marks this model as a screenspace object.
+	 *
+	 * Screenspace models are rendered in a special render pass after lights have illuminated the scene and emitters have been rendered.
+	 * They always cover existing objects in the scene, and aren't affected by light sources in the scene.
+	 */
 	bool screenspace = 7;
+	/**
+	 * If true, marks this model as a shadow caster.
+	 *
+	 * Shadow casters are rendered into light cameras to determine a light's shadow volume.
+	 * Models that aren't shadow casters let light pass through them as if they were transparent (though they might not render their color with transparency).
+	 */
 	bool casts_shadow = 8;
+	/** OpenGL polygon mode to use when rendering the model's geometry. */
 	PolygonMode polygon_mode = 9;
 }
 
+/**
+ * Represents a light that can illuminate models in the scene and cast shadows onto models with applicable materials.
+ *
+ * The light always declares a dependency on the Position component of the same entity, which places it in 3D space.
+ */
 component Light {
 	id = 1349;
+	/** Type of this light source. */
 	LightType type = 1;
+	/** The width of the framebuffer to use for the light's shadow volume. */
 	uint32 width = 2;
+	/** The height of the framebuffer to use for the light's shadow volume. */
 	uint32 height = 3;
+	/** The number of samples per pixel to use when rendering the light's shadow volume. */
 	uint32 samples = 4;
+	/** Phong ambient factor to use for this light source. */
 	float ambient_factor = 5;
+	/** Exponential factor to use for exponential shadow mapping of this light source. */
 	float exponential_factor = 6;
+	/** Color of this light source. */
 	Color color = 7;
+	/** If this light is a spot light, specifies the perspective camera for placing it. */
 	option<PerspectiveCamera> spot_light_camera = 8;
 }
 
