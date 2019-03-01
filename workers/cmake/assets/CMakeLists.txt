@@ -1,0 +1,19 @@
+include(ExternalData)
+
+set(ExternalData_URL_TEMPLATES "https://raw.githubusercontent.com/FabianHahn/shoveler-spatialos-assets/master/%(hash).%(algo)")
+
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_tilesets_autumn DATA{tilesets/autumn.png})
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_tilesets_spring DATA{tilesets/spring.png})
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_characters_player1 DATA{characters/player1.png})
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_characters_player2 DATA{characters/player2.png})
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_characters_player3 DATA{characters/player3.png})
+ExternalData_Expand_Arguments(shoveler_spatialos_assets assets_characters_player4 DATA{characters/player4.png})
+
+set(shoveler_spatialos_assets_tilesets_autumn ${assets_tilesets_autumn} PARENT_SCOPE)
+set(shoveler_spatialos_assets_tilesets_spring ${assets_tilesets_spring} PARENT_SCOPE)
+set(shoveler_spatialos_assets_characters_player1 ${assets_characters_player1} PARENT_SCOPE)
+set(shoveler_spatialos_assets_characters_player2 ${assets_characters_player2} PARENT_SCOPE)
+set(shoveler_spatialos_assets_characters_player3 ${assets_characters_player3} PARENT_SCOPE)
+set(shoveler_spatialos_assets_characters_player4 ${assets_characters_player4} PARENT_SCOPE)
+
+ExternalData_Add_Target(shoveler_spatialos_assets)

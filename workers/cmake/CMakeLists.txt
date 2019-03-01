@@ -20,6 +20,7 @@ add_library(schema STATIC ${SCHEMA_SRC})
 target_include_directories(schema SYSTEM PUBLIC ${GENERATED_CODE_DIR})
 target_link_libraries(schema PRIVATE worker_sdk)
 
+add_subdirectory(assets)
 add_subdirectory(client)
 add_subdirectory(seeder)
 add_subdirectory(server)
