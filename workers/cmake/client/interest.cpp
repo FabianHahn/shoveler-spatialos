@@ -79,6 +79,19 @@ ComponentInterest computeViewInterest(ShovelerView *view)
 	GQueue *dependencySourceList;
 	g_hash_table_iter_init(&iter, view->reverseDependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
+		bool hasDependenciesFromOtherEntities = false;
+		for(GList *dependencySourceListIter = dependencySourceList->head; dependencySourceListIter != NULL; dependencySourceListIter = dependencySourceListIter->next) {
+			const ShovelerViewQualifiedComponent *dependencySource = (ShovelerViewQualifiedComponent *) dependencySourceListIter->data;
+			if(dependencySource->entityId != dependencyTarget->entityId) {
+				hasDependenciesFromOtherEntities = true;
+				break;
+			}
+		}
+
+		if(!hasDependenciesFromOtherEntities) {
+			continue;
+		}
+
 		QueryConstraint constraint;
 		constraint.set_entity_id_constraint({dependencyTarget->entityId});
 
@@ -104,6 +117,13 @@ ComponentInterest computeViewInterest(ShovelerView *view)
 
 		queries.emplace_back(query);
 	}
+
+	QueryConstraint relativeConstraint;
+	relativeConstraint.set_relative_box_constraint({{{20, 9999, 20}}});
+	Query relativeQuery;
+	relativeQuery.set_constraint(relativeConstraint);
+	relativeQuery.set_full_snapshot_result({true});
+	queries.emplace_back(relativeQuery);
 
 	ComponentInterest interest;
 	interest.set_queries(queries);

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -18,6 +19,7 @@ extern "C" {
 #include <shoveler/types.h>
 }
 
+using improbable::ComponentInterest;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
 using improbable::Interest;
@@ -28,6 +30,7 @@ using improbable::PositionData;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
+using shoveler::Canvas;
 using shoveler::Client;
 using shoveler::ClientHeartbeat;
 using shoveler::ClientInfo;
@@ -44,13 +47,21 @@ using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
+using shoveler::Resource;
+using shoveler::ResourceData;
+using shoveler::TilemapTiles;
+using shoveler::TilemapTilesData;
+using shoveler::TilemapTilesTile;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
 using worker::EntityId;
+using worker::List;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 using ClientSpawnCube = shoveler::Bootstrap::Commands::ClientSpawnCube;
+using Query = ComponentInterest::Query;
+using QueryConstraint = ComponentInterest::QueryConstraint;
 
 struct ClientCleanupTickContext {
 	worker::Connection *connection;
@@ -96,6 +107,7 @@ int main(int argc, char **argv) {
 
 	auto components = worker::Components<
 		Bootstrap,
+		Canvas,
 		Client,
 		ClientHeartbeat,
 		ClientInfo,
@@ -107,7 +119,11 @@ int main(int argc, char **argv) {
 		Metadata,
 		Model,
 		Persistence,
-		Position>{};
+		Position,
+		Resource,
+		TilemapTiles,
+		TileSprite,
+		TileSpriteAnimation>{};
 
 	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
 	bool disconnected = false;
@@ -198,11 +214,11 @@ int main(int argc, char **argv) {
 	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp& op) {
 		shovelerLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
 		if (op.Authority == worker::Authority::kAuthoritative) {
-			int64_t now = g_get_monotonic_time();
-			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", now);
+			int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
+			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", initialHeartbeat);
 
 			ClientHeartbeat::Update heartbeatUpdate;
-			heartbeatUpdate.set_last_server_heartbeat(now);
+			heartbeatUpdate.set_last_server_heartbeat(initialHeartbeat);
 			connection.SendComponentUpdate<ClientHeartbeat>(op.EntityId, heartbeatUpdate);
 		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
 			lastHeartbeatMicrosMap.erase(op.EntityId);
@@ -217,12 +233,19 @@ int main(int argc, char **argv) {
 		Color playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
 		Color playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
+		QueryConstraint relativeConstraint;
+		relativeConstraint.set_relative_box_constraint({{{20, 9999, 20}}});
+		Query relativeQuery;
+		relativeQuery.set_constraint(relativeConstraint);
+		relativeQuery.set_full_snapshot_result({true});
+		ComponentInterest interest{{relativeQuery}};
+
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({op.CallerWorkerId});
 		clientEntity.Add<ClientInfo>({hue, saturation});
 		clientEntity.Add<ClientHeartbeat>({0});
-		clientEntity.Add<Interest>({{}});
+		clientEntity.Add<Interest>({{{Client::ComponentId, interest}}});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({{0, 0, 0}});
 		clientEntity.Add<Material>({MaterialType::PARTICLE, playerParticleColor, {}, {}, {}});
