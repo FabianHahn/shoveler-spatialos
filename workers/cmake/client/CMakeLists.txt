@@ -6,6 +6,8 @@ set(SHOVELER_CLIENT_SRC
 	chunk.cpp
 	chunk.h
 	client.cpp
+	configuration.cpp
+	configuration.h
 	connect.cpp
 	connect.h
 	coordinate_mapping.h

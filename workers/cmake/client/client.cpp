@@ -7,6 +7,7 @@
 
 #include "canvas.h"
 #include "chunk.h"
+#include "configuration.h"
 #include "connect.h"
 #include "drawable.h"
 #include "interest.h"
@@ -103,22 +104,11 @@ int main(int argc, char **argv) {
 	windowSettings.windowedWidth = 640;
 	windowSettings.windowedHeight = 480;
 
-	ShovelerGameControllerSettings controllerSettings;
-	controllerSettings.frame.position = shovelerVector3(0, 0, -1);
-	controllerSettings.frame.direction = shovelerVector3(0, 0, 1);
-	controllerSettings.frame.up = shovelerVector3(0, 1, 0);
-	controllerSettings.moveFactor = 2.0f;
-	controllerSettings.tiltFactor = 0.0005f;
-
 	ShovelerProjectionPerspective projection;
 	projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
 	projection.aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
 	projection.nearClippingPlane = 0.01;
 	projection.farClippingPlane = 1000;
-
-	ShovelerCoordinateMapping positionMappingX = SHOVELER_COORDINATE_MAPPING_NEGATIVE_X;
-	ShovelerCoordinateMapping positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
-	ShovelerCoordinateMapping positionMappingZ = SHOVELER_COORDINATE_MAPPING_POSITIVE_Z;
 
 	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
@@ -127,14 +117,6 @@ int main(int argc, char **argv) {
 		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
-
-	ShovelerCamera *camera = shovelerCameraPerspectiveCreate(&controllerSettings.frame, &projection);
-
-	ShovelerGame *game = shovelerGameCreate(camera, updateGame, &windowSettings, &controllerSettings);
-	if(game == NULL) {
-		return EXIT_FAILURE;
-	}
-	ShovelerView *view = game->view;
 
 	const worker::ComponentRegistry& components = worker::Components<
 		Bootstrap,
@@ -168,6 +150,16 @@ int main(int argc, char **argv) {
 	}
 	Connection& connection = *connectionOption;
 	shovelerLogInfo("Connected to SpatialOS deployment!");
+
+	ClientConfiguration clientConfiguration = getClientConfiguration(connection);
+
+	ShovelerCamera *camera = shovelerCameraPerspectiveCreate(&clientConfiguration.controllerSettings.frame, &projection);
+
+	ShovelerGame *game = shovelerGameCreate(camera, updateGame, &windowSettings, &clientConfiguration.controllerSettings);
+	if(game == NULL) {
+		return EXIT_FAILURE;
+	}
+	ShovelerView *view = game->view;
 
 	worker::Dispatcher dispatcher{components};
 	bool disconnected = false;
@@ -236,11 +228,18 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Adding client to entity %lld.", op.EntityId);
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
-		ShovelerViewClientConfiguration clientConfiguration;
-		clientConfiguration.positionEntityId = op.EntityId;
-		clientConfiguration.modelEntityId = op.EntityId;
-		clientConfiguration.disableModelVisibility = true;
-		shovelerViewEntityAddClient(entity, &clientConfiguration);
+		ShovelerViewClientConfiguration clientComponentConfiguration;
+		clientComponentConfiguration.positionEntityId = op.EntityId;
+
+		if(clientConfiguration.hidePlayerClientEntityModel) {
+			clientComponentConfiguration.modelEntityId = op.EntityId;
+			clientComponentConfiguration.disableModelVisibility = true;
+		} else {
+			clientComponentConfiguration.modelEntityId = 0;
+			clientComponentConfiguration.disableModelVisibility = false;
+		}
+
+		shovelerViewEntityAddClient(entity, &clientComponentConfiguration);
 	});
 
 	dispatcher.OnAuthorityChange<Client>([&](const worker::AuthorityChangeOp& op) {
@@ -293,7 +292,7 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Received create client entity command response %u with status code %d.", op.RequestId.Id, op.StatusCode);
 	});
 
-	registerPositionCallbacks(connection, dispatcher, view, positionMappingX, positionMappingY, positionMappingZ);
+	registerPositionCallbacks(connection, dispatcher, view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ);
 	registerMetadataCallbacks(dispatcher, view);
 	registerResourceCallbacks(dispatcher, view);
 	registerTextureCallbacks(dispatcher, view);
