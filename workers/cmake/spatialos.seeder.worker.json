@@ -49,11 +49,19 @@
             ]
           },
           {
-            "name": "Build",
+            "name": "Build lights",
             "command": "bash",
             "arguments": [
               "cmake-build.sh",
-              "seeder"
+              "seeder_lights"
+            ]
+          },
+          {
+            "name": "Build tiles",
+            "command": "bash",
+            "arguments": [
+              "cmake-build.sh",
+              "seeder_tiles"
             ]
           },
           {
