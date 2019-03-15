@@ -56,10 +56,13 @@ using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
 using worker::EntityId;
 using worker::List;
+using worker::Option;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 using ClientSpawnCube = shoveler::Bootstrap::Commands::ClientSpawnCube;
+using DigHole = shoveler::Bootstrap::Commands::DigHole;
+using UpdateResource = shoveler::Bootstrap::Commands::UpdateResource;
 using Query = ComponentInterest::Query;
 using QueryConstraint = ComponentInterest::QueryConstraint;
 
@@ -94,6 +97,15 @@ int main(int argc, char **argv) {
 	const int64_t maxHeartbeatTimeoutMs = 5000;
 	EntityId cubeDrawableEntityId = 2;
 	EntityId pointDrawableEntityId = 4;
+	const EntityId characterAnimationTilesetEntityId = 5;
+	const EntityId character2AnimationTilesetEntityId = 6;
+	const EntityId canvasEntityId = 7;
+	const EntityId firstChunkEntityId = 8;
+	const int halfMapWidth = 100;
+	const int halfMapHeight = 100;
+	const int chunkSize = 10;
+	const int numChunkColumns = 2 * halfMapWidth / chunkSize;
+	const int numChunkRows = 2 * halfMapHeight / chunkSize;
 	int characterCounter = 0;
 
 	FILE *logFile = fopen(logFileLocation.c_str(), "w+");
@@ -228,10 +240,12 @@ int main(int argc, char **argv) {
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
-		float hue = (float) rand() / RAND_MAX;
-		float saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
-		Color playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
-		Color playerLightColor = colorFromHsv(hue, saturation, 0.1f);
+		worker::Entity clientEntity;
+		clientEntity.Add<Metadata>({"client"});
+		clientEntity.Add<Client>({op.CallerWorkerId});
+		clientEntity.Add<ClientHeartbeat>({0});
+		clientEntity.Add<Persistence>({});
+		clientEntity.Add<Position>({{0, 0, 0}});
 
 		QueryConstraint relativeConstraint;
 		relativeConstraint.set_relative_box_constraint({{{20, 9999, 20}}});
@@ -239,18 +253,7 @@ int main(int argc, char **argv) {
 		relativeQuery.set_constraint(relativeConstraint);
 		relativeQuery.set_full_snapshot_result({true});
 		ComponentInterest interest{{relativeQuery}};
-
-		worker::Entity clientEntity;
-		clientEntity.Add<Metadata>({"client"});
-		clientEntity.Add<Client>({op.CallerWorkerId});
-		clientEntity.Add<ClientInfo>({hue, saturation});
-		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Interest>({{{Client::ComponentId, interest}}});
-		clientEntity.Add<Persistence>({});
-		clientEntity.Add<Position>({{0, 0, 0}});
-		clientEntity.Add<Material>({MaterialType::PARTICLE, playerParticleColor, {}, {}, {}});
-		clientEntity.Add<Model>({pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
-		clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor, {}});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerAttributeSet serverAttributeSet({"server"});
@@ -264,6 +267,24 @@ int main(int argc, char **argv) {
 		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
+
+		const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
+		if (flagOption && *flagOption == "tiles") {
+			worker::EntityId tilesetEntityId = characterCounter++ % 2 == 0 ? characterAnimationTilesetEntityId : character2AnimationTilesetEntityId;
+
+			clientEntity.Add<TileSprite>({tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
+			clientEntity.Add<TileSpriteAnimation>({0, 0.5});
+		} else {
+			float hue = (float) rand() / RAND_MAX;
+			float saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
+			Color playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
+			Color playerLightColor = colorFromHsv(hue, saturation, 0.1f);
+
+			clientEntity.Add<ClientInfo>({hue, saturation});
+			clientEntity.Add<Material>({MaterialType::PARTICLE, playerParticleColor, {}, {}, {}});
+			clientEntity.Add<Model>({pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, false, PolygonMode::FILL});
+			clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor, {}});
+		}
 
 		worker::RequestId<worker::CreateEntityRequest> createEntityRequestId = connection.SendCreateEntityRequest(clientEntity, {}, {});
 		shovelerLogInfo("Sent create entity request %u.", createEntityRequestId.Id);
@@ -344,12 +365,154 @@ int main(int argc, char **argv) {
 		connection.SendCommandResponse<ClientSpawnCube>(op.RequestId, {});
 	});
 
+	dispatcher.OnCommandRequest<DigHole>([&](const worker::CommandRequestOp<DigHole>& op) {
+		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		shovelerLogInfo("Received dig hole request from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
+
+		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(clientEntityId);
+		if(entityQuery == view.Entities.end()) {
+			shovelerLogWarning("Received dig hole request from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "unknown client entity");
+			return;
+		}
+
+		const worker::Entity& clientEntity = entityQuery->second;
+		worker::Option<const PositionData&> positionComponent = clientEntity.Get<Position>();
+		if(!positionComponent) {
+			shovelerLogWarning("Received dig hole request from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "client entity without position");
+			return;
+		}
+
+		double x = positionComponent->coords().x();
+		double z = positionComponent->coords().z();
+
+		double diffX = x + halfMapWidth;
+		double diffZ = z + halfMapHeight;
+
+		int chunkX = (int) floor(diffX / chunkSize);
+		int chunkZ = (int) floor(diffZ / chunkSize);
+
+		int tileX = (int) floor(diffX - chunkX * chunkSize);
+		int tileZ = (int) floor(diffZ - chunkZ * chunkSize);
+
+		if(chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows || tileX < 0 || tileX >= chunkSize || tileZ < 0 || tileZ >= chunkSize) {
+			shovelerLogWarning("Received dig hole request from %s for client entity %lld which is out of range at (%f, %f), ignoring.", op.CallerWorkerId.c_str(), clientEntityId, x, z);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "out of range");
+			return;
+		}
+
+		worker::EntityId chunkBackgroundEntityId = firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
+		worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
+		if(chunkBackgroundEntityQuery == view.Entities.end()) {
+			shovelerLogError("Received dig hole request from %s for client entity %lld, but chunk background entity %lld is not in view.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "tiles not in view");
+			return;
+		}
+
+		const worker::Entity& chunkBackgroundEntity = chunkBackgroundEntityQuery->second;
+		worker::Option<const TilemapTilesData&> tilemapTilesComponent = chunkBackgroundEntity.Get<TilemapTiles>();
+		if(!tilemapTilesComponent) {
+			shovelerLogError("Received dig hole request from %s for client entity %lld, but chunk background entity %lld doesn't have a tilemap tiles component.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "tiles entity doesn't have tiles component");
+			return;
+		}
+
+		List<TilemapTilesTile> tiles = tilemapTilesComponent->tiles();
+		TilemapTilesTile& tile = tiles[tileZ * chunkSize + tileX];
+
+		if(tile.tileset_column() > 2) {
+			shovelerLogWarning("Received dig hole request from %s for client entity %lld, but its current tile is not grass.", op.CallerWorkerId.c_str(), clientEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "tile isn't grass");
+			return;
+		}
+
+		tile.set_tileset_column(6);
+		tile.set_tileset_row(1);
+		tile.set_tileset_id(2);
+
+		TilemapTiles::Update tilemapTilesUpdate;
+		tilemapTilesUpdate.set_tiles(tiles);
+		connection.SendComponentUpdate<TilemapTiles>(chunkBackgroundEntityId, tilemapTilesUpdate);
+		connection.SendCommandResponse<DigHole>(op.RequestId, {});
+	});
+
+	dispatcher.OnCommandRequest<UpdateResource>([&](const worker::CommandRequestOp<UpdateResource>& op) {
+		worker::EntityId resourceEntityId = op.Request.resource_entity_id();
+		shovelerLogInfo("Received update request from %s for resource entity %lld.", op.CallerWorkerId.c_str(), resourceEntityId);
+
+		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(resourceEntityId);
+		if(entityQuery == view.Entities.end()) {
+			shovelerLogWarning("Received update request from %s for unknown resource entity %lld, ignoring.", op.CallerWorkerId.c_str(), resourceEntityId);
+			connection.SendCommandFailure<UpdateResource>(op.RequestId, "unknown resource entity");
+			return;
+		}
+
+		const worker::Entity& resourceEntity = entityQuery->second;
+		worker::Option<const ResourceData&> resourceComponent = resourceEntity.Get<Resource>();
+		if(!resourceComponent) {
+			shovelerLogWarning("Received update request from %s for resource entity %lld without resource component, ignoring.", op.CallerWorkerId.c_str(), resourceEntityId);
+			connection.SendCommandFailure<UpdateResource>(op.RequestId, "client entity without position");
+			return;
+		}
+
+		Resource::Update resourceUpdate;
+		resourceUpdate.set_type_id(op.Request.type_id());
+		resourceUpdate.set_content(op.Request.content());
+		connection.SendComponentUpdate<Resource>(resourceEntityId, resourceUpdate);
+		connection.SendCommandResponse<UpdateResource>(op.RequestId, {});
+	});
+
 	dispatcher.OnCreateEntityResponse([&](const worker::CreateEntityResponseOp& op) {
 		shovelerLogInfo("Received create entity response for request %u with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
+
+		if(op.StatusCode == worker::StatusCode::kSuccess) {
+			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
+			if(query != view.Entities.end()) {
+				const worker::Entity& entity = query->second;
+				const worker::Map<worker::ComponentId, worker::Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+
+				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == worker::Authority::kAuthoritative) {
+					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
+					tileSpriteEntityIds.emplace_back(*op.EntityId);
+
+					Canvas::Update canvasUpdate;
+					canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
+					connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
+
+					shovelerLogInfo("Sent component update to add new client entity %lld to canvas entity's tile sprites list.", *op.EntityId);
+				}
+			}
+		}
 	});
 
 	dispatcher.OnDeleteEntityResponse([&](const worker::DeleteEntityResponseOp& op) {
 		shovelerLogInfo("Received delete entity response for request %u with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
+
+		if(op.StatusCode == worker::StatusCode::kSuccess) {
+			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
+			if(query != view.Entities.end()) {
+				const worker::Entity& entity = query->second;
+				const worker::Map<worker::ComponentId, worker::Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+
+				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == worker::Authority::kAuthoritative) {
+					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
+					for(worker::List<worker::EntityId>::iterator iter = tileSpriteEntityIds.begin(); iter != tileSpriteEntityIds.end();) {
+						if(*iter == op.EntityId) {
+							iter = tileSpriteEntityIds.erase(iter);
+						} else {
+							++iter;
+						}
+					}
+
+					Canvas::Update canvasUpdate;
+					canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
+					connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
+
+					shovelerLogInfo("Sent component update to remove deleted client entity %lld from canvas entity's tile sprites list.", op.EntityId);
+				}
+			}
+		}
 	});
 
 	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
