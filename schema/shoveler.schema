@@ -124,6 +124,24 @@ type ClientSpawnCubeResponse {
 
 }
 
+type DigHoleRequest {
+	EntityId client_entity_id = 1;
+}
+
+type DigHoleResponse {
+
+}
+
+type UpdateResourceRequest {
+	EntityId resource_entity_id = 1;
+	string type_id = 2;
+	bytes content = 3;
+}
+
+type UpdateResourceResponse {
+
+}
+
 /** Bootstrap component authoritative on the server worker that acts as client-facing server API. */
 component Bootstrap {
 	id = 1334;
@@ -137,6 +155,10 @@ component Bootstrap {
 	command ClientPingResponse client_ping(ClientPingRequest);
 	/** Requests spawning of a cube entity at the calling worker's current position. */
 	command ClientSpawnCubeResponse client_spawn_cube(ClientSpawnCubeRequest);
+	/** Requests digging a hole at the player's current position. */
+	command DigHoleResponse dig_hole(DigHoleRequest);
+	/** Requests updating a resource. */
+	command UpdateResourceResponse update_resource(UpdateResourceRequest);
 }
 
 /** Marks an entity as the player entity of a client playing the game. */
