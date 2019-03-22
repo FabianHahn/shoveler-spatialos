@@ -183,6 +183,38 @@ int main(int argc, char **argv) {
 	g_string_free(character2AnimationTilesetPngData, true);
 	entities[6] = character2AnimationTilesetEntity;
 
+	ShovelerImage *character3PngImage = shovelerImagePngReadFile(character3PngFilename.c_str());
+	ShovelerImage *character3AnimationTilesetImage = shovelerImageCreateAnimationTileset(character3PngImage, characterShiftAmount);
+	GString *character3AnimationTilesetPngData = getImageData(character3AnimationTilesetImage);
+	shovelerImageFree(character3PngImage);
+	shovelerImageFree(character3AnimationTilesetImage);
+	Entity character3AnimationTilesetEntity;
+	character3AnimationTilesetEntity.Add<Metadata>({"tileset"});
+	character3AnimationTilesetEntity.Add<Persistence>({});
+	character3AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character3AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
+	character3AnimationTilesetEntity.Add<Texture>({7, true, false, true});
+	character3AnimationTilesetEntity.Add<Tileset>({7, 4, 3, 1});
+	character3AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
+	g_string_free(character3AnimationTilesetPngData, true);
+	entities[7] = character3AnimationTilesetEntity;
+
+	ShovelerImage *character4PngImage = shovelerImagePngReadFile(character4PngFilename.c_str());
+	ShovelerImage *character4AnimationTilesetImage = shovelerImageCreateAnimationTileset(character4PngImage, characterShiftAmount);
+	GString *character4AnimationTilesetPngData = getImageData(character4AnimationTilesetImage);
+	shovelerImageFree(character4PngImage);
+	shovelerImageFree(character4AnimationTilesetImage);
+	Entity character4AnimationTilesetEntity;
+	character4AnimationTilesetEntity.Add<Metadata>({"tileset"});
+	character4AnimationTilesetEntity.Add<Persistence>({});
+	character4AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character4AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
+	character4AnimationTilesetEntity.Add<Texture>({8, true, false, true});
+	character4AnimationTilesetEntity.Add<Tileset>({8, 4, 3, 1});
+	character4AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
+	g_string_free(character4AnimationTilesetPngData, true);
+	entities[8] = character4AnimationTilesetEntity;
+
 	Entity canvasEntity;
 	canvasEntity.Add<Metadata>({"canvas"});
 	canvasEntity.Add<Persistence>({});
@@ -191,10 +223,10 @@ int main(int argc, char **argv) {
 	worker::Map<std::uint32_t, WorkerRequirementSet> canvasComponentAclMap;
 	canvasComponentAclMap.insert({{Canvas::ComponentId, serverRequirementSet}});
 	canvasEntity.Add<EntityAcl>({clientOrServerRequirementSet, canvasComponentAclMap});
-	EntityId canvasEntityId = 7;
+	EntityId canvasEntityId = 9;
 	entities[canvasEntityId] = canvasEntity;
 
-	EntityId nextEntityId = 8;
+	EntityId nextEntityId = 10;
 
 	List<ChunkData> chunks = generateMapChunks(10);
 	for(List<ChunkData>::const_iterator iter = chunks.begin(); iter != chunks.end(); ++iter) {

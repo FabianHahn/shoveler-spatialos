@@ -1,0 +1,108 @@
+{
+  "template": "small",
+  "world": {
+    "chunkEdgeLengthMeters": 10,
+    "snapshots": {
+      "snapshotWritePeriodSeconds": 0
+    },
+    "dimensions": {
+      "xMeters": 200,
+      "zMeters": 200
+    }
+  },
+  "load_balancing": {
+    "layer_configurations": [
+      {
+        "layer": "server",
+        "rectangle_grid": {
+          "cols": 1,
+          "rows": 1
+        }
+      }
+    ]
+  },
+  "workers": [
+    {
+      "worker_type": "ShovelerClient",
+      "permissions": [
+        {
+          "entity_creation": {
+            "allow": false
+          },
+          "entity_deletion": {
+            "allow": false
+          },
+          "entity_query": {
+            "allow": true,
+            "components": [
+              "*"
+            ]
+          }
+        }
+      ],
+      "flags": [
+        {
+          "name": "controller_frame_position",
+          "value": "0 0 5"
+        },
+        {
+          "name": "controller_frame_direction",
+          "value": "0 0 -1"
+        },
+        {
+          "name": "controller_frame_up",
+          "value": "0 1 0"
+        },
+        {
+          "name": "controller_move_factor",
+          "value": "2.0"
+        },
+        {
+          "name": "position_mapping_x",
+          "value": "+x"
+        },
+        {
+          "name": "position_mapping_y",
+          "value": "+z"
+        },
+        {
+          "name": "position_mapping_z",
+          "value": "+y"
+        },
+        {
+          "name": "hide_player_client_entity_model",
+          "value": "false"
+        },
+        {
+          "name": "game_type",
+          "value": "tiles"
+        }
+      ]
+    },
+    {
+      "worker_type": "ShovelerServer",
+      "permissions": [
+        {
+          "entity_creation": {
+            "allow": true
+          },
+          "entity_deletion": {
+            "allow": true
+          },
+          "entity_query": {
+            "allow": true,
+            "components": [
+              "*"
+            ]
+          }
+        }
+      ],
+      "flags": [
+        {
+          "name": "game_type",
+          "value": "tiles"
+        }
+      ]
+    }
+  ]
+}

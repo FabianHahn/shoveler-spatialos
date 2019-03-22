@@ -10,7 +10,7 @@ if [[ "$uname" == "Linux" ]]; then
     assets/characters/player2.png \
     assets/characters/player3.png \
     assets/characters/player4.png \
-    10 \
+    5 \
     ../../../../snapshots/tiles.snapshot
   popd
 else
@@ -22,7 +22,7 @@ else
       assets/characters/player2.png \
       assets/characters/player3.png \
       assets/characters/player4.png \
-      10 \
+      5 \
       ../../../../../snapshots/tiles.snapshot
   popd
 fi

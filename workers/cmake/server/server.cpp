@@ -99,8 +99,10 @@ int main(int argc, char **argv) {
 	EntityId pointDrawableEntityId = 4;
 	const EntityId characterAnimationTilesetEntityId = 5;
 	const EntityId character2AnimationTilesetEntityId = 6;
-	const EntityId canvasEntityId = 7;
-	const EntityId firstChunkEntityId = 8;
+	const EntityId character3AnimationTilesetEntityId = 7;
+	const EntityId character4AnimationTilesetEntityId = 8;
+	const EntityId canvasEntityId = 9;
+	const EntityId firstChunkEntityId = 10;
 	const int halfMapWidth = 100;
 	const int halfMapHeight = 100;
 	const int chunkSize = 10;
@@ -270,7 +272,15 @@ int main(int argc, char **argv) {
 
 		const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
 		if (flagOption && *flagOption == "tiles") {
-			worker::EntityId tilesetEntityId = characterCounter++ % 2 == 0 ? characterAnimationTilesetEntityId : character2AnimationTilesetEntityId;
+			int modulo = characterCounter++ % 4;
+			worker::EntityId tilesetEntityId = characterAnimationTilesetEntityId;
+			if(modulo == 1) {
+				tilesetEntityId = character2AnimationTilesetEntityId;
+			} else if(modulo == 2) {
+				tilesetEntityId = character3AnimationTilesetEntityId;
+			} else if(modulo == 3) {
+				tilesetEntityId = character4AnimationTilesetEntityId;
+			}
 
 			clientEntity.Add<TileSprite>({tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
 			clientEntity.Add<TileSpriteAnimation>({0, 0.5});

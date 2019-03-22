@@ -63,10 +63,12 @@ using shoveler::TileSpriteAnimation;
 using worker::Connection;
 using worker::ConnectionParameters;
 using worker::EntityId;
+using worker::Option;
 
 using CreateClientEntity = Bootstrap::Commands::CreateClientEntity;
 using ClientPing = Bootstrap::Commands::ClientPing;
 using ClientSpawnCube = Bootstrap::Commands::ClientSpawnCube;
+using DigHole = Bootstrap::Commands::DigHole;
 
 struct ClientPingTickContext {
 	Connection *connection;
@@ -138,7 +140,7 @@ int main(int argc, char **argv) {
 		TilemapTiles,
 		Tileset,
 		TileSprite,
-        TileSpriteAnimation>{};
+      TileSpriteAnimation>{};
 
 	ConnectionParameters connectionParameters;
 	connectionParameters.WorkerType = "ShovelerClient";
@@ -348,9 +350,15 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 	MouseButtonEventContext *context = (MouseButtonEventContext *) mouseButtonEventContextPointer;
 
 	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		shovelerLogInfo("Sending client cube spawn command...");
-		ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->camera->data;
-		context->connection->SendCommandRequest<ClientSpawnCube>(*context->bootstrapEntityId, {*context->clientEntityId, {-perspectiveCamera->direction.values[0], perspectiveCamera->direction.values[1], perspectiveCamera->direction.values[2]}, {0.0f, 0.0f, 0.0f}}, {});
+		const Option<std::string> &flagOption = context->connection->GetWorkerFlag("game_type");
+		if (flagOption && *flagOption == "tiles") {
+			shovelerLogInfo("Sending dig hole command...");
+			context->connection->SendCommandRequest<DigHole>(*context->bootstrapEntityId, {*context->clientEntityId}, {});
+		} else {
+			shovelerLogInfo("Sending client cube spawn command...");
+			ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->camera->data;
+			context->connection->SendCommandRequest<ClientSpawnCube>(*context->bootstrapEntityId, {*context->clientEntityId, {-perspectiveCamera->direction.values[0], perspectiveCamera->direction.values[1], perspectiveCamera->direction.values[2]}, {0.0f, 0.0f, 0.0f}}, {});
+		}
 	}
 }
 
