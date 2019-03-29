@@ -67,7 +67,7 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 		connectionParameters.Network.UseExternalIp = true;
 		return locator.ConnectAsync(components, deploymentName, connectionParameters, queueStatusCallback).Get();
 	} else {
-		GString *randomWorkerId = g_string_new("ShovelerClient");
+		GString *randomWorkerId = g_string_new(connectionParameters.WorkerType.c_str());
 		g_string_append_printf(randomWorkerId, "Local-%08x", rand());
 		std::string workerId{randomWorkerId->str, randomWorkerId->len};
 		g_string_free(randomWorkerId, true);

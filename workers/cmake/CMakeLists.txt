@@ -25,5 +25,6 @@ add_subdirectory(client)
 add_subdirectory(seeder)
 add_subdirectory(server)
 add_subdirectory(shoveler)
+add_subdirectory(updater)
 add_subdirectory(worker_sdk)
 
