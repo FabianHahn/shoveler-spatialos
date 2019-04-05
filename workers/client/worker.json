@@ -1,0 +1,105 @@
+{
+  "worker_type": "ShovelerClient",
+  "layer": "client",
+  "entity_interest": {
+    "range_entity_interest": {
+      "radius": 0
+    }
+  },
+  "component_delivery": {
+    "default": "RELIABLE_ORDERED",
+    "checkout_all_initially": false,
+    "override": {
+      "shoveler.Canvas": {
+        "checkout_initially": true
+      },
+      "shoveler.Chunk": {
+        "checkout_initially": true
+      },
+      "shoveler.Client": {
+        "checkout_initially": true
+      },
+      "shoveler.Drawable": {
+        "checkout_initially": true
+      },
+      "shoveler.Light": {
+        "checkout_initially": true
+      },
+      "shoveler.Material": {
+        "checkout_initially": true
+      },
+      "shoveler.Model": {
+        "checkout_initially": true
+      },
+      "shoveler.Resource": {
+        "checkout_initially": true
+      },
+      "shoveler.Texture": {
+        "checkout_initially": true
+      },
+      "shoveler.Tilemap": {
+        "checkout_initially": true
+      },
+      "shoveler.TilemapTiles": {
+        "checkout_initially": true
+      },
+      "shoveler.Tileset": {
+        "checkout_initially": true
+      },
+      "shoveler.TileSprite": {
+        "checkout_initially": true
+      },
+      "shoveler.TileSpriteAnimation": {
+        "checkout_initially": true
+      },
+      "improbable.EntityAcl": {
+        "checkout_initially": true
+      },
+      "improbable.Interest": {
+        "checkout_initially": true
+      },
+      "improbable.Metadata": {
+        "checkout_initially": true
+      },
+      "improbable.Position": {
+        "checkout_initially": true
+      }
+    }
+  },
+  "permissions": {
+    "entity_creation": {
+      "allow": false
+    },
+    "entity_deletion": {
+      "allow": false
+    },
+    "entity_query": {
+      "allow": true,
+      "components": [
+        "*"
+      ]
+    }
+  },
+  "flags": [
+    {
+      "name": "controller_frame_position",
+      "value": "0 0 -1"
+    },
+    {
+      "name": "controller_frame_direction",
+      "value": "0 0 1"
+    },
+    {
+      "name": "controller_frame_up",
+      "value": "0 1 0"
+    },
+    {
+      "name": "position_mapping_x",
+      "value": "-x"
+    },
+    {
+      "name": "hide_player_client_entity_model",
+      "value": "true"
+    }
+  ]
+}

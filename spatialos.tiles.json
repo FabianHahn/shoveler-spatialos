@@ -2,12 +2,12 @@
   "configurationVersion": "0.1",
   "projectName": "shoveler_spatialos",
   "schemaDescriptor": "build/schema/schema.descriptor",
-  "launchConfiguration": "lights.json",
+  "launchConfiguration": "tiles.json",
   "clientWorkers": [
-    "workers/client/worker.json",
+    "workers/client/worker.tiles.json",
     "workers/updater/worker.json"
   ],
   "serverWorkers": [
-    "workers/server/worker.json"
+    "workers/server/worker.tiles.json"
   ]
 }

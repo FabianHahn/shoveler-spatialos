@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.1)
+include(ExternalProject)
+
+project(external)
+
+ExternalProject_Add(spatialos_worker_sdk_linux
+	PREFIX worker_sdk/linux
+	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk cpp-static-x86_64-gcc_libstdcpp_pic-linux ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR worker_sdk/linux
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
+ExternalProject_Add(spatialos_standard_library
+	PREFIX schema
+	DOWNLOAD_COMMAND spatial package get --force --unzip schema standard_library ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR schema
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
+ExternalProject_Add(spatialos_schema_compiler
+	PREFIX schema_compiler
+	DOWNLOAD_COMMAND spatial package get --force --unzip tools schema_compiler-x86_64-linux ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR schema_compiler
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)

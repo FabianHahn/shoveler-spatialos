@@ -1,6 +1,6 @@
 if(MSVC)
-  set(WORKER_SDK_DIR_RELEASE "${CMAKE_SOURCE_DIR}/worker_sdk/windows/release")
-  set(WORKER_SDK_DIR_DEBUG "${CMAKE_SOURCE_DIR}/worker_sdk/windows/debug")
+  set(WORKER_SDK_DIR_RELEASE "${CMAKE_BINARY_DIR}/external/worker_sdk/windows/release")
+  set(WORKER_SDK_DIR_DEBUG "${CMAKE_BINARY_DIR}/external/worker_sdk/windows/debug")
 
   # Find all the worker SDK libraries.
   find_package(Threads)
@@ -41,7 +41,7 @@ if(MSVC)
     ${CMAKE_DL_LIBS})
 
 else()
-  set(WORKER_SDK_DIR "${CMAKE_SOURCE_DIR}/worker_sdk/linux")
+  set(WORKER_SDK_DIR "${CMAKE_BINARY_DIR}/external/worker_sdk/linux")
 
   # Find all the worker SDK libraries.
   find_package(Threads)

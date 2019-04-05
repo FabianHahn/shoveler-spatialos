@@ -16,6 +16,6 @@
     ]
   },
   "snapshot": {
-    "start_deployment_from_snapshot_file": "build/seeders/tiles.snapshot"
+    "start_deployment_from_snapshot_file": "build/seeders/lights.snapshot"
   }
 }
