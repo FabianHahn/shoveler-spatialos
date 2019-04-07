@@ -47,6 +47,7 @@ set(SHOVELER_OPENGL_SRC
 	src/sampler.c
 	src/scene.c
 	src/shader.c
+	src/shader_cache.c
 	src/shader_program.c
 	src/texture.c
 	src/tile_sprite_animation.c
@@ -84,6 +85,7 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/view/material.h
 	include/shoveler/view/model.h
 	include/shoveler/view/scene.h
+	include/shoveler/view/shader_cache.h
 	include/shoveler/view/texture.h
 	include/shoveler/view/tile_sprite.h
 	include/shoveler/view/tile_sprite_animation.h
@@ -108,6 +110,7 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/sampler.h
 	include/shoveler/scene.h
 	include/shoveler/shader.h
+	include/shoveler/shader_cache.h
 	include/shoveler/shader_program.h
 	include/shoveler/texture.h
 	include/shoveler/tile_sprite_animation.h
@@ -116,6 +119,11 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/uniform_attachment.h
 	include/shoveler/uniform.h
 	include/shoveler/uniform_map.h
+)
+
+set(SHOVELER_OPENGL_TEST_SRC
+	src/shader_cache_test.cpp
+	src/test.cpp
 )
 
 add_library(shoveler_opengl ${SHOVELER_OPENGL_SRC})
@@ -127,3 +135,14 @@ target_include_directories(shoveler_opengl
     PRIVATE src)
 
 target_link_libraries(shoveler_opengl shoveler_base glad glfw)
+
+if(SHOVELER_BUILD_TESTS)
+	add_executable(shoveler_opengl_test ${SHOVELER_OPENGL_TEST_SRC})
+
+	target_include_directories(shoveler_opengl_test
+		PRIVATE src)
+
+	target_link_libraries(shoveler_opengl_test shoveler_opengl gtest)
+	set_property(TARGET shoveler_opengl_test PROPERTY CXX_STANDARD 11)
+	add_test(shoveler_opengl shoveler_opengl_test)
+endif()
