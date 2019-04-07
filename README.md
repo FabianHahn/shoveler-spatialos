@@ -8,6 +8,15 @@ The client worker can render a 3D world with moving light sources and simple geo
 
 Though I work at Improbable, this is a personal project built in my free time using publicly available resources. It is not an Improbable product.
 
+## Versions
+
+If you've just navigated to this repository on GitHub for the first time and are looking to get started, I recommend you select one of the **stable version tags** from the table below instead of using the [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) branch. While I try to keep [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) as stable as possible, most active development happens there and I do accidentally break things from time to time.
+
+| Version | SpatialOS SDK | Project Structure | Release Notes |
+| --- | --- | --- | --- |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 13.5.1) | SPL | n/a (active development) |
+| [`0.1`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.1) | C++ (version 13.5.1) | SPL | Initial release, working lights demo |
+
 ## Repository structure
 
 The overall directory structure of this repository was chosen to comply with the [SpatialOS project structure](https://docs.improbable.io/reference/13.5/shared/reference/project-structure#structure-of-a-spatialos-project) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
@@ -45,6 +54,11 @@ Clone the repository and switch into it:
 ```
 git clone https://github.com/FabianHahn/shoveler-spatialos
 cd shoveler-spatialos
+```
+
+Optionally, you might want to check out the latest stable tag:
+```
+git checkout v0.1
 ```
 
 The following command will build a complete project assembly by downloading the correct version of the SpatialOS C++ SDK, generating C++ code for the included [schema](schema/shoveler.schema), compiling shoveler and its dependencies, compiling the [seeder](workers/cmake/seeder/seeder.cpp) and running it to generate a snapshot, and building executables for both the included [client](workers/cmake/client/client.cpp) and [server](workers/cmake/server/server.cpp) workers:
