@@ -54,6 +54,7 @@ using shoveler::TilemapTilesData;
 using shoveler::TilemapTilesTile;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
+using worker::Authority;
 using worker::EntityId;
 using worker::List;
 using worker::Option;
@@ -204,21 +205,26 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat>& op) {
-		lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_server_heartbeat());
 		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat>& op) {
-		if (lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
-			std::string clientWorkerId = "(unknown)";
-			const auto &clientComponentOption = view.Entities[op.EntityId].Get<Client>();
-			if (clientComponentOption) {
-				clientWorkerId = clientComponentOption->worker_id();
-			}
+		const auto& authorityQuery = view.ComponentAuthority.find(op.EntityId);
+		if (authorityQuery != view.ComponentAuthority.end()) {
+			const auto& componentAuthorityQuery = authorityQuery->second.find(ClientHeartbeat::ComponentId);
+			if (componentAuthorityQuery != authorityQuery->second.end() && componentAuthorityQuery->second == Authority::kAuthoritative) {
+				if (lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
+					std::string clientWorkerId = "(unknown)";
+					const auto &clientComponentOption = view.Entities[op.EntityId].Get<Client>();
+					if (clientComponentOption) {
+						clientWorkerId = clientComponentOption->worker_id();
+					}
 
-			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_server_heartbeat());
+					lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_server_heartbeat());
+					shovelerLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
+				}
+			}
 		}
-		shovelerLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
 	});
 
 	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp& op) {
@@ -227,14 +233,14 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp& op) {
 		shovelerLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
-		if (op.Authority == worker::Authority::kAuthoritative) {
+		if (op.Authority == Authority::kAuthoritative) {
 			int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
 			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", initialHeartbeat);
 
 			ClientHeartbeat::Update heartbeatUpdate;
 			heartbeatUpdate.set_last_server_heartbeat(initialHeartbeat);
 			connection.SendComponentUpdate<ClientHeartbeat>(op.EntityId, heartbeatUpdate);
-		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
+		} else if (op.Authority == Authority::kNotAuthoritative) {
 			lastHeartbeatMicrosMap.erase(op.EntityId);
 		}
 	});
@@ -304,21 +310,21 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing>& op) {
 		worker::EntityId clientEntityId = op.Request.client_entity_id();
-		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, worker::Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
+		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
 		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
 			shovelerLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		const worker::Map<worker::ComponentId, worker::Authority>& componentAuthorityMap = entityAuthorityQuery->second;
+		const worker::Map<worker::ComponentId, Authority>& componentAuthorityMap = entityAuthorityQuery->second;
 
-		worker::Map<worker::ComponentId, worker::Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
+		worker::Map<worker::ComponentId, Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
 		if(componentAuthorityQuery == componentAuthorityMap.end()) {
 			shovelerLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		const worker::Authority& HeartbeatAuthority = componentAuthorityQuery->second;
+		const Authority& HeartbeatAuthority = componentAuthorityQuery->second;
 
-		if(HeartbeatAuthority != worker::Authority::kAuthoritative) {
+		if(HeartbeatAuthority != Authority::kAuthoritative) {
 			shovelerLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
@@ -480,9 +486,9 @@ int main(int argc, char **argv) {
 			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
 			if(query != view.Entities.end()) {
 				const worker::Entity& entity = query->second;
-				const worker::Map<worker::ComponentId, worker::Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+				const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
 
-				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == worker::Authority::kAuthoritative) {
+				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
 					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
 					tileSpriteEntityIds.emplace_back(*op.EntityId);
 
@@ -503,9 +509,9 @@ int main(int argc, char **argv) {
 			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
 			if(query != view.Entities.end()) {
 				const worker::Entity& entity = query->second;
-				const worker::Map<worker::ComponentId, worker::Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+				const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
 
-				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == worker::Authority::kAuthoritative) {
+				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
 					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
 					for(worker::List<worker::EntityId>::iterator iter = tileSpriteEntityIds.begin(); iter != tileSpriteEntityIds.end();) {
 						if(*iter == op.EntityId) {
