@@ -14,22 +14,23 @@ If you've just navigated to this repository on GitHub for the first time and are
 
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
-| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 13.5.1) | SPL | n/a (active development) |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 13.5.1) | [FPL beta](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/introduction) | n/a (active development) |
 | [`0.1`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.1) | C++ (version 13.5.1) | SPL | Initial release, working lights demo |
 
 ## Repository structure
 
-The overall directory structure of this repository was chosen to comply with the [SpatialOS project structure](https://docs.improbable.io/reference/13.5/shared/reference/project-structure#structure-of-a-spatialos-project) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
+The overall directory structure of this repository was chosen to comply with the [SpatialOS beta flexible project structure](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/introduction) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
  * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/13.5/shared/schema/introduction#schema-introduction) for the project
- * [`workers/cmake/client/`](workers/cmake/client/): Complete source code for client worker
- * [`workers/cmake/client/client.cpp`](workers/cmake/client/client.cpp): Source file containing main function for client worker
- * [`workers/cmake/server/server.cpp`](workers/cmake/server/server.cpp): Complete source code for server worker
- * [`workers/cmake/seeder/seeder.cpp`](workers/cmake/seeder/seeder.cpp): Complete source code for seeder tool used to generate the initial snapshot
- * [`workers/cmake/shoveler`](workers/cmake/shoveler): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository
- * [`workers/cmake/CMakeLists.txt`](workers/cmake/CMakeLists.txt): Root CMake project definition file
- * [`workers/cmake/spatialos.*.worker.json`](workers/cmake): [SpatialOS worker configuration files](https://docs.improbable.io/reference/13.5/shared/worker-configuration/worker-configuration#configuration-file) for the defined worker types
- * [`default_launch.json`](default_launch.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/13.5/shared/reference/file-formats/launch-config#launch-configuration-file) containing the project name and the SpatialOS SDK version used
- * [`spatialos.json`](spatialos.json): [SpatialOS project definition file](https://docs.improbable.io/reference/13.5/shared/reference/file-formats/spatialos-json) containing the project name and the SpatialOS SDK version used
+ * [`seeders/`](seeders/): Complete source code for seeder tools used to generate the initial snapshots
+ * [`shoveler/`](shoveler/): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository
+ * [`workers/client/`](workers/client/): Complete source code for client worker
+ * [`workers/client/client.cpp`](workers/client/client.cpp): Source file containing main function for client worker
+ * [`workers/client/worker.json`](workers/client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/reference/client-worker-configuration)
+ * [`workers/server/server.cpp`](workers/server/server.cpp): Complete source code for server worker
+ * [`workers/server/worker.json`](workers/server/worker.json): [SpatialOS server worker configuration file](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/reference/server-worker-configuration)
+ * [`CMakeLists.txt`](CMakeLists.txt): Root CMake project definition file
+ * [`lights.json`](lights.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/reference/launch-configuration) for the lights demo
+ * [`spatialos.json`](spatialos.json): [SpatialOS project configuration file](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/reference/project-configuration) containing the project name and referencing the other configuration files
 
 ## Usage
 
@@ -58,19 +59,39 @@ cd shoveler-spatialos
 
 Optionally, you might want to check out the latest stable tag:
 ```
-git checkout v0.1
+git checkout v0.2
 ```
 
-The following command will build a complete project assembly by downloading the correct version of the SpatialOS C++ SDK, generating C++ code for the included [schema](schema/shoveler.schema), compiling shoveler and its dependencies, compiling the [seeder](workers/cmake/seeder/seeder.cpp) and running it to generate a snapshot, and building executables for both the included [client](workers/cmake/client/client.cpp) and [server](workers/cmake/server/server.cpp) workers:
+Create a CMake build directory and switch into it:
 ```
-spatial build
+mkdir build
+cd build
+```
+
+Run CMake to configure the project, which includes downloading the correct version of the SpatialOS C++ SDK, the schema compiler, and the standard library schema:
+```
+# Linux:
+cmake ..
+
+# Windows:
+cmake -G "Visual Studio 14 2015 Win64" ..
+```
+
+The following command will build a complete project assembly by generating C++ code for the included [schema](schema/shoveler.schema), compiling shoveler and its dependencies, compiling the [seeders](workers/seeders) and running them to generate initial snapshots, and building executables for both the included [client](workers/client/client.cpp) and [server](workers/server/server.cpp) workers:
+```
+# Linux (change N to the number of threads you want to compile with):
+make -jN
+
+# Windows:
+cmake --build . --target release
+
 ```
 
 ### Local deployment
 
 To run a local deployment, simply run the following command:
 ```
-spatial local launch
+spatial alpha local launch
 ```
 
 Once the SpatialOS Runtime has started up, you should be able to open the [Inspector](http://localhost:21000/inspector) in your browser and see the entities present in the seed snapshot, as well as a connected managed server worker.
@@ -78,12 +99,12 @@ Once the SpatialOS Runtime has started up, you should be able to open the [Inspe
 To connect a client, switch to the right directory and simply run it with the correct arguments pointing to your local deployment:
 ```
 # Linux:
-cd workers/cmake/build/client
+cd build/workers/client
 ./ShovelerClient # launch with random worker ID
 ./ShovelerClient ShovelerClient1 localhost 7777 # launch with specific worker ID
 
 # Windows:
-cd workers/cmake/build/client/Release
+cd build/workers/client/Release
 ShovelerClient.exe # launch with random worker ID
 ShovelerClient.exe ShovelerClient1 localhost 7777 # launch with specific worker ID
 ```
@@ -96,26 +117,26 @@ You can connect multiple clients to the same local deployment as long as you cho
 
 While it is perfectly fine to connect to cloud deployments from Windows, SpatialOS currently only runs server workers built for Linux. If you start a cloud deployment from a Windows assembly, it will report errors trying to start server workers, and clients won't be able to complete their login.
 
-Start by editing the [`spatialos.json`](spatialos.json) configuration file and replace the value of the `"name"` entry with your SpatialOS project name in quotes. You can see your project name by visiting the [SpatialOS console](https://console.improbable.io/projects) page.
+Start by editing the [`spatialos.json`](spatialos.json) configuration file and replace the value of the `"projectName"` entry with your SpatialOS project name in quotes. You can see your project name by visiting the [SpatialOS console](https://console.improbable.io/projects) page.
 
 Next, you need to upload your built assembly. You can choose any assembly name you like, the following is just an example:
 ```
-spatial upload spatialos-shoveler-assembly
+spatial alpha cloud upload -a spatialos-shoveler-assembly
 ```
 
 To launch a cloud deployment, run the following command from the root directory of the project. You have to specify the same assembly name as before, and further an arbitrary deployment name, which in this example is simply `shoveler_spatialos`:
 ```
-spatial cloud launch spatialos-shoveler-assembly default_launch.json shoveler_spatialos --snapshot=snapshots/default.snapshot
+spatial alpha cloud launch -a spatialos-shoveler-assembly -d shoveler_spatialos
 ```
 
 It will take a few minutes for your deployment to start up, which you can also monitor in the [SpatialOS console](https://console.improbable.io/projects). As soon as it is running, open the deployment overview page in the console and click on the "LAUNCH" button on the left side. This will open a dialog instructing you to install the SpatialOS Launcher. The Launcher currently only supports clients built with _Unity_ or _Unreal Engine_ and thus won't work to start client workers for this project, so ignore Step 1 and instead copy the link that the blue "Launch" button in Step 2 points to (e.g. in Chrome: right click, select "copy link address"). Then connect a client by simply passing this link as its only command line argument in quotes:
 ```
 # Linux:
-cd workers/cmake/build/client
+cd build/workers/client
 ./ShovelerClient "spatialos.launch:project_name-shoveler_spatialos?token=ey..."
 
 # Windows:
-cd workers/cmake/build/client/Release
+cd build/workers/client/Release
 ShovelerClient.exe "spatialos.launch:project_name-shoveler_spatialos?token=ey..."
 ```
 
