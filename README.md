@@ -83,7 +83,7 @@ The following command will build a complete project assembly by generating C++ c
 make -jN
 
 # Windows:
-cmake --build . --target release
+cmake --build . --config release
 
 ```
 
