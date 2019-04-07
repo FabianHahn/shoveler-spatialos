@@ -1,4 +1,9 @@
-set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/schema_compiler)
+if(MSVC)
+	set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/windows/schema_compiler.exe)
+else()
+	set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/linux/schema_compiler)
+endif()
+
 set(STANDARD_LIBRARY_SCHEMA_DIR ${CMAKE_BINARY_DIR}/external/schema)
 set(GENERATED_CODE_DIR ${CMAKE_BINARY_DIR}/generated)
 

@@ -32,11 +32,11 @@ add_custom_command(TARGET seeder_tiles POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player3} $<TARGET_FILE_DIR:seeder_tiles>/assets/characters/
 	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player4} $<TARGET_FILE_DIR:seeder_tiles>/assets/characters/
 	COMMAND seeder_tiles
-		assets/tilesets/spring.png 7 2
-		assets/characters/player1.png
-		assets/characters/player2.png
-		assets/characters/player3.png
-		assets/characters/player4.png
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/tilesets/spring.png 7 2
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player1.png
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player2.png
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player3.png
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player4.png
 		5
 		${CMAKE_CURRENT_BINARY_DIR}/tiles.snapshot
 )

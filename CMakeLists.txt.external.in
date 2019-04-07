@@ -12,6 +12,24 @@ ExternalProject_Add(spatialos_worker_sdk_linux
 	INSTALL_COMMAND ""
 )
 
+ExternalProject_Add(spatialos_worker_sdk_windows_debug
+	PREFIX worker_sdk/windows/debug
+	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk cpp-static-x86_64-msvc_mdd-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR worker_sdk/windows/debug
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
+ExternalProject_Add(spatialos_worker_sdk_windows_release
+	PREFIX worker_sdk/windows/release
+	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk cpp-static-x86_64-msvc_md-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR worker_sdk/windows/release
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
 ExternalProject_Add(spatialos_standard_library
 	PREFIX schema
 	DOWNLOAD_COMMAND spatial package get --force --unzip schema standard_library ${SPATIALOS_SDK_VERSION} .
@@ -21,11 +39,21 @@ ExternalProject_Add(spatialos_standard_library
 	INSTALL_COMMAND ""
 )
 
-ExternalProject_Add(spatialos_schema_compiler
-	PREFIX schema_compiler
+ExternalProject_Add(spatialos_schema_compiler_linux
+	PREFIX schema_compiler/linux
 	DOWNLOAD_COMMAND spatial package get --force --unzip tools schema_compiler-x86_64-linux ${SPATIALOS_SDK_VERSION} .
-	DOWNLOAD_DIR schema_compiler
+	DOWNLOAD_DIR schema_compiler/linux
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 )
+
+ExternalProject_Add(spatialos_schema_compiler_windows
+	PREFIX schema_compiler/windows
+	DOWNLOAD_COMMAND spatial package get --force --unzip tools schema_compiler-x86_64-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR schema_compiler/windows
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
