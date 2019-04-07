@@ -106,13 +106,7 @@ int main(int argc, char **argv) {
 	windowSettings.windowedWidth = 640;
 	windowSettings.windowedHeight = 480;
 
-	ShovelerProjectionPerspective projection;
-	projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
-	projection.aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
-	projection.nearClippingPlane = 0.01;
-	projection.farClippingPlane = 1000;
-
-	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
+	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
 	if (argc != 1 && argc != 2 && argc != 4) {
@@ -155,9 +149,14 @@ int main(int argc, char **argv) {
 
 	ClientConfiguration clientConfiguration = getClientConfiguration(connection);
 
-	ShovelerCamera *camera = shovelerCameraPerspectiveCreate(&clientConfiguration.controllerSettings.frame, &projection);
+	ShovelerGameCameraSettings cameraSettings;
+	cameraSettings.frame = clientConfiguration.controllerSettings.frame;
+	cameraSettings.projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
+	cameraSettings.projection.aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
+	cameraSettings.projection.nearClippingPlane = 0.01;
+	cameraSettings.projection.farClippingPlane = 1000;
 
-	ShovelerGame *game = shovelerGameCreate(camera, updateGame, &windowSettings, &clientConfiguration.controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(updateGame, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -174,8 +173,6 @@ int main(int argc, char **argv) {
 
 	MouseButtonEventContext mouseButtonEventContext{&connection, game->camera, &bootstrapEntityId, &clientEntityId};
 	ShovelerInputMouseButtonCallback *mouseButtonCallback = shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &mouseButtonEventContext);
-
-	shovelerCameraPerspectiveAttachController(camera, game->controller);
 
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
@@ -324,10 +321,8 @@ int main(int argc, char **argv) {
 
 	shovelerInputRemoveMouseButtonCallback(game->input, mouseButtonCallback);
 
-	shovelerCameraPerspectiveDetachController(camera);
 	shovelerGameFree(game);
 	shovelerResourcesFree(resources);
-	shovelerCameraFree(camera);
 	shovelerGlobalUninit();
 	shovelerLogTerminate();
 

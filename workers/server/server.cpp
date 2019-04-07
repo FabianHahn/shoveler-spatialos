@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, logFile);
+	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, logFile);
 	shovelerLogInfo("Connecting as worker %s to %s:%d.", workerId.c_str(), hostname.c_str(), port);
 
 	auto components = worker::Components<
