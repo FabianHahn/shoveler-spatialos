@@ -30,6 +30,7 @@ void registerChunkCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		configuration.positionMappingY = convertCoordinateMapping(op.Data.position_mapping_y());
 		const Vector2& size = op.Data.size();
 		configuration.size = shovelerVector2(size.x(), size.y());
+		configuration.collider = op.Data.collider();
 		const List<ChunkLayer>& layers = op.Data.layers();
 		configuration.numLayers = layers.size();
 		configuration.layers = new ShovelerViewChunkLayerConfiguration[configuration.numLayers];
@@ -60,6 +61,10 @@ void registerChunkCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		if(op.Update.size()) {
 			const Vector2& size = *op.Update.size();
 			configuration.size = shovelerVector2(size.x(), size.y());
+		}
+
+		if(op.Update.collider()) {
+			configuration.collider = *op.Update.collider();
 		}
 
 		if(op.Update.layers()) {

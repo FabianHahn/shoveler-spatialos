@@ -33,6 +33,8 @@ type TilemapTilesTile {
 	 * Value must be in [0, 255].
 	 */
 	int32 tileset_id = 3;
+	/** If true, this tile can collide with 2D objects. */
+	bool colliding = 4;
 }
 
 /** Layer type of this chunk layer. */
@@ -240,9 +242,9 @@ component TilemapTiles {
 	 */
 	EntityId image_resource_entity_id = 2;
 	/** Number of tile columns in the tilemap tiles, must be in [0, 255]. */
-	int32 num_columns = 3;
+	uint32 num_columns = 3;
 	/** Number of tile rows in the tilemap tiles, must be in [0, 255]. */
-	int32 num_rows = 4;
+	uint32 num_rows = 4;
 	/** Array of tiles, where tile (column, row) is at position [row * numColumns + column]. */
 	list<TilemapTilesTile> tiles = 5;
 }
@@ -313,11 +315,13 @@ component Chunk {
 	 * For each canvas layer in the chunk, only this chunk's region will be rendered.
 	 */
 	Vector2 size = 3;
+	/** If true, registers the chunk as a 2D collider, which will check for collisions with tiles on tilemap layers. */
+    bool collider = 4;
 	/**
 	 * List of chunk layers to be rendered.
 	 * Layers will be rendered in the order they appear in the list, later ones drawing over earlier ones.
 	 */
-	list<ChunkLayer> layers = 4;
+	list<ChunkLayer> layers = 5;
 }
 
 /** Represents drawable geometry that can be rendered. */

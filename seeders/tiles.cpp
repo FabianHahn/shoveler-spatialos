@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
 		chunkEntity.Add<Metadata>({"chunk"});
 		chunkEntity.Add<Persistence>({});
 		chunkEntity.Add<Position>({chunk.position});
-		chunkEntity.Add<Chunk>({CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {(float) chunkSize, (float) chunkSize}, {
+		chunkEntity.Add<Chunk>({CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {(float) chunkSize, (float) chunkSize}, /* collider */ true, {
 			{ChunkLayerType::TILEMAP, backgroundEntityId},
 			{ChunkLayerType::CANVAS, canvasEntityId},
 			{ChunkLayerType::TILEMAP, foregroundEntityId},

@@ -41,6 +41,7 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 			foregroundTile.set_tileset_column(0);
 			foregroundTile.set_tileset_row(0);
 			foregroundTile.set_tileset_id(0);
+			foregroundTile.set_colliding(false);
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
@@ -48,12 +49,14 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 			backgroundTile.set_tileset_column(grassColumn);
 			backgroundTile.set_tileset_row(grassRow);
 			backgroundTile.set_tileset_id(2);
+			foregroundTile.set_colliding(false);
 
 			// place rocks
 			int rockSeed = rand() % rockSeedModulo;
 			if(rockSeed == 0) {
 				backgroundTile.set_tileset_column(5);
 				backgroundTile.set_tileset_row(0);
+				backgroundTile.set_colliding(true);
 			}
 
 			// place bushes
@@ -61,6 +64,7 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 			if(bushSeed == 0) {
 				backgroundTile.set_tileset_column(5);
 				backgroundTile.set_tileset_row(1);
+				backgroundTile.set_colliding(true);
 			}
 
 			// place trees
@@ -92,6 +96,7 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 					if (previousTile.tileset_column() == 3 && previousTile.tileset_row() == 0) {
 						backgroundTile.set_tileset_column(4);
 						backgroundTile.set_tileset_row(0);
+						backgroundTile.set_colliding(true);
 						break;
 					}
 				}
@@ -109,10 +114,12 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 					break;
 				}
 
+				// start new tree
 				int treeSeed = rand() % treeSeedModulo;
 				if(treeSeed == 0) {
 					backgroundTile.set_tileset_column(3);
 					backgroundTile.set_tileset_row(0);
+					backgroundTile.set_colliding(true);
 				}
 			} while (false);
 

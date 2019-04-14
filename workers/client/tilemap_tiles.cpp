@@ -33,6 +33,7 @@ void registerTilemapTilesCallbacks(worker::Dispatcher& dispatcher, ShovelerView 
 				configuration.tiles[tileIndex].tilesetColumn = tiles[tileIndex].tileset_column();
 				configuration.tiles[tileIndex].tilesetRow = tiles[tileIndex].tileset_row();
 				configuration.tiles[tileIndex].tilesetId = tiles[tileIndex].tileset_id();
+				configuration.tiles[tileIndex].colliding = tiles[tileIndex].colliding();
 			}
 		}
 
