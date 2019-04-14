@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
 	controllerSettings.frame = cameraSettings.frame;
 	controllerSettings.moveFactor = 0.5f;
 	controllerSettings.tiltFactor = 0.0005f;
+	controllerSettings.boundingBoxSize2 = 0.0f;
+	controllerSettings.boundingBoxSize3 = 0.0f;
 
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
 	ShovelerTexture *tiles = shovelerTextureCreate2d(tilesImage, true);
 	shovelerTextureUpdate(tiles);
 
-	ShovelerTilemap *tilemap = shovelerTilemapCreate(tiles);
+	ShovelerTilemap *tilemap = shovelerTilemapCreate(tiles, NULL);
 	ShovelerTileset *tileset = shovelerTilesetCreate(tilesetImage, 2, 2, 1);
 	shovelerTilemapAddTileset(tilemap, tileset);
 	ShovelerTileset *tileset2 = shovelerTilesetCreate(tilesetImage, 1, 1, 1);
