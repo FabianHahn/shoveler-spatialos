@@ -64,6 +64,8 @@ int main(int argc, char *argv[])
 	controllerSettings.frame = cameraSettings.frame;
 	controllerSettings.moveFactor = 2.0f;
 	controllerSettings.tiltFactor = 0.0005f;
+	controllerSettings.boundingBoxSize2 = 0.0f;
+	controllerSettings.boundingBoxSize3 = 0.0f;
 
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
@@ -186,15 +188,19 @@ int main(int argc, char *argv[])
 	layerTiles[0].tilesetColumn = 0;
 	layerTiles[0].tilesetRow = 0;
 	layerTiles[0].tilesetId = 1; // red
+	layerTiles[0].colliding = false;
 	layerTiles[1].tilesetColumn = 0;
 	layerTiles[1].tilesetRow = 1;
 	layerTiles[1].tilesetId = 1; // green
+	layerTiles[1].colliding = false;
 	layerTiles[2].tilesetColumn = 0;
 	layerTiles[2].tilesetRow = 0;
 	layerTiles[2].tilesetId = 1; // red
+	layerTiles[2].colliding = false;
 	layerTiles[3].tilesetColumn = 0;
 	layerTiles[3].tilesetRow = 0;
 	layerTiles[3].tilesetId = 2; // full tileset
+	layerTiles[3].colliding = false;
 	ShovelerViewTilemapTilesConfiguration layerConfiguration;
 	layerConfiguration.isImageResourceEntityDefinition = false;
 	layerConfiguration.imageResourceEntityId = 0;
@@ -295,6 +301,7 @@ int main(int argc, char *argv[])
 	chunkConfiguration.positionMappingX = SHOVELER_COORDINATE_MAPPING_POSITIVE_X;
 	chunkConfiguration.positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
 	chunkConfiguration.size = shovelerVector2(10.0f, 10.0f);
+	chunkConfiguration.collider = false;
 	chunkConfiguration.numLayers = 3;
 	chunkConfiguration.layers = (ShovelerViewChunkLayerConfiguration[]){
 		{SHOVELER_CHUNK_LAYER_TYPE_TILEMAP, 12},
