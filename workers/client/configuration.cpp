@@ -1,5 +1,6 @@
 #include <sstream>
 #include <string>
+#include <shoveler/game.h>
 
 #include "configuration.h"
 
@@ -23,6 +24,8 @@ ClientConfiguration getClientConfiguration(Connection& connection)
 	clientConfiguration.controllerSettings.frame.up = shovelerVector3(0, 1, 0);
 	clientConfiguration.controllerSettings.moveFactor = 2.0f;
 	clientConfiguration.controllerSettings.tiltFactor = 0.0005f;
+	clientConfiguration.controllerSettings.boundingBoxSize2 = 0.0f;
+	clientConfiguration.controllerSettings.boundingBoxSize3 = 0.0f;
 	clientConfiguration.positionMappingX = SHOVELER_COORDINATE_MAPPING_POSITIVE_X;
 	clientConfiguration.positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
 	clientConfiguration.positionMappingZ = SHOVELER_COORDINATE_MAPPING_POSITIVE_Z;
@@ -33,6 +36,8 @@ ClientConfiguration getClientConfiguration(Connection& connection)
 	parseVector3Flag(connection, "controller_frame_up", clientConfiguration.controllerSettings.frame.up);
 	parseFloatFlag(connection, "controller_move_factor", clientConfiguration.controllerSettings.moveFactor);
 	parseFloatFlag(connection, "controller_tilt_factor", clientConfiguration.controllerSettings.tiltFactor);
+	parseFloatFlag(connection, "controller_bounding_box_2d_size", clientConfiguration.controllerSettings.boundingBoxSize2);
+	parseFloatFlag(connection, "controller_bounding_box_3d_size", clientConfiguration.controllerSettings.boundingBoxSize3);
 	parseCoordinateMappingFlag(connection, "position_mapping_x", clientConfiguration.positionMappingX);
 	parseCoordinateMappingFlag(connection, "position_mapping_y", clientConfiguration.positionMappingY);
 	parseCoordinateMappingFlag(connection, "position_mapping_z", clientConfiguration.positionMappingZ);

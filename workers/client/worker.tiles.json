@@ -98,6 +98,10 @@
       "value": "2.0"
     },
     {
+      "name": "controller_bounding_box_2d_size",
+      "value": "0.9"
+    },
+    {
       "name": "position_mapping_x",
       "value": "+x"
     },

@@ -214,17 +214,17 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
-		shovelerLogInfo("Adding entity %lld.", op.EntityId);
+		shovelerLogTrace("Adding entity %lld.", op.EntityId);
 		shovelerViewAddEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
-		shovelerLogInfo("Removing entity %lld.", op.EntityId);
+		shovelerLogTrace("Removing entity %lld.", op.EntityId);
 		shovelerViewRemoveEntity(view, op.EntityId);
 	});
 
 	dispatcher.OnAddComponent<Client>([&](const worker::AddComponentOp<Client>& op) {
-		shovelerLogInfo("Adding client to entity %lld.", op.EntityId);
+		shovelerLogTrace("Adding client to entity %lld.", op.EntityId);
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewClientConfiguration clientComponentConfiguration;
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnRemoveComponent<Client>([&](const worker::RemoveComponentOp& op) {
-		shovelerLogInfo("Removing client from entity %lld.", op.EntityId);
+		shovelerLogTrace("Removing client from entity %lld.", op.EntityId);
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 		shovelerViewEntityRemoveClient(entity);
 	});
