@@ -52,7 +52,7 @@ using worker::Option;
 
 static GString *getImageData(ShovelerImage *image);
 
-static const int chunkSize = 10;
+static const unsigned int chunkSize = 10;
 
 int main(int argc, char **argv) {
 	shovelerLogInit("ShovelCrest/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
