@@ -14,7 +14,7 @@ If you've just navigated to this repository on GitHub for the first time and are
 
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
-| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 13.5.1) | [FPL beta](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/introduction) | n/a (active development) |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 13.7.1) | [FPL beta](https://docs.improbable.io/reference/13.6/shared/flexible-project-layout/introduction) | n/a (active development) |
 | [`0.1`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.1) | C++ (version 13.5.1) | SPL | Initial release, working lights demo |
 
 ## Repository structure
