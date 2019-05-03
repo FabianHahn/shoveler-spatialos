@@ -10,6 +10,11 @@ extern "C" {
 
 struct ClientConfiguration {
 	ShovelerGameControllerSettings controllerSettings;
+	bool controllerLockMoveX;
+	bool controllerLockMoveY;
+	bool controllerLockMoveZ;
+	bool controllerLockTiltX;
+	bool controllerLockTiltY;
 	ShovelerCoordinateMapping positionMappingX;
 	ShovelerCoordinateMapping positionMappingY;
 	ShovelerCoordinateMapping positionMappingZ;

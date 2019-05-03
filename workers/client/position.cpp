@@ -60,6 +60,21 @@ void registerPositionCallbacks(worker::Connection& connection, worker::Dispatche
 	});
 }
 
+ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, worker::EntityId entityId)
+{
+	ShovelerVector3 spatialOsPosition = shovelerVector3(0.0f, 0.0f, 0.0f);
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, entityId);
+	if(entity != NULL) {
+		ShovelerViewPosition *position = shovelerViewEntityGetPosition(entity);
+		if(position != NULL) {
+			spatialOsPosition = mapPositionCoordinates({position->x, position->y, position->z}, updateContext.mappingX, updateContext.mappingY, updateContext.mappingZ);
+		}
+	}
+
+	return spatialOsPosition;
+}
+
 static ShovelerVector3 mapPositionCoordinates(const Coordinates& coordinates, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
 	ShovelerVector3 coordinatesVector = shovelerVector3((float) coordinates.x(), (float) coordinates.y(), (float) coordinates.z());

@@ -9,5 +9,6 @@ extern "C" {
 }
 
 void registerPositionCallbacks(worker::Connection& connection, worker::Dispatcher& dispatcher, ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ);
+ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, worker::EntityId entityId);
 
 #endif

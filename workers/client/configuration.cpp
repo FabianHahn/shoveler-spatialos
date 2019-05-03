@@ -34,6 +34,11 @@ ClientConfiguration getClientConfiguration(Connection& connection)
 	parseVector3Flag(connection, "controller_frame_position", clientConfiguration.controllerSettings.frame.position);
 	parseVector3Flag(connection, "controller_frame_direction", clientConfiguration.controllerSettings.frame.direction);
 	parseVector3Flag(connection, "controller_frame_up", clientConfiguration.controllerSettings.frame.up);
+	parseBoolFlag(connection, "controller_lock_move_x", clientConfiguration.controllerLockMoveX);
+	parseBoolFlag(connection, "controller_lock_move_y", clientConfiguration.controllerLockMoveY);
+	parseBoolFlag(connection, "controller_lock_move_z", clientConfiguration.controllerLockMoveZ);
+	parseBoolFlag(connection, "controller_lock_tilt_x", clientConfiguration.controllerLockTiltX);
+	parseBoolFlag(connection, "controller_lock_tilt_y", clientConfiguration.controllerLockTiltY);
 	parseFloatFlag(connection, "controller_move_factor", clientConfiguration.controllerSettings.moveFactor);
 	parseFloatFlag(connection, "controller_tilt_factor", clientConfiguration.controllerSettings.tiltFactor);
 	parseFloatFlag(connection, "controller_bounding_box_2d_size", clientConfiguration.controllerSettings.boundingBoxSize2);

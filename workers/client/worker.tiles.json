@@ -97,6 +97,18 @@
       "value": "0.9"
     },
     {
+      "name": "controller_lock_move_z",
+      "value": "true"
+    },
+    {
+      "name": "controller_lock_tilt_x",
+      "value": "true"
+    },
+    {
+      "name": "controller_lock_tilt_y",
+      "value": "true"
+    },
+    {
       "name": "position_mapping_x",
       "value": "+x"
     },

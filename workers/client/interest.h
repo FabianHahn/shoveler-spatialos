@@ -5,8 +5,9 @@
 
 extern "C" {
 #include <shoveler/view.h>
+#include <shoveler/types.h>
 }
 
-improbable::ComponentInterest computeViewInterest(ShovelerView *view);
+improbable::ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition);
 
 #endif

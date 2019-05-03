@@ -32,6 +32,7 @@ extern "C" {
 #include <shoveler/constants.h>
 #include <shoveler/game.h>
 #include <shoveler/global.h>
+#include <shoveler/input.h>
 #include <shoveler/log.h>
 #include <shoveler/resources.h>
 #include <shoveler/scene.h>
@@ -70,17 +71,14 @@ using ClientPing = Bootstrap::Commands::ClientPing;
 using ClientSpawnCube = Bootstrap::Commands::ClientSpawnCube;
 using DigHole = Bootstrap::Commands::DigHole;
 
-struct ClientPingTickContext {
+struct ClientContext {
 	Connection *connection;
+	ShovelerGame *game;
+	ClientConfiguration *clientConfiguration;
 	EntityId bootstrapEntityId;
 	EntityId clientEntityId;
-};
-
-struct MouseButtonEventContext {
-	Connection *connection;
-	ShovelerCamera *camera;
-	EntityId *bootstrapEntityId;
-	EntityId *clientEntityId;
+	bool absoluteInterest;
+	bool restrictController;
 };
 
 struct ViewDependencyCallbackContext {
@@ -90,10 +88,11 @@ struct ViewDependencyCallbackContext {
 static const int64_t clientPingTimeoutMs = 1000;
 
 static void updateGame(ShovelerGame *game, double dt);
-static void clientPingTick(void *clientPingTickContextPointer);
-static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *mouseButtonEventContextPointer);
+static void clientPingTick(void *clientContextPointer);
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
-static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view);
+static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest);
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer);
 
 int main(int argc, char **argv) {
 	srand(time(NULL));
@@ -162,17 +161,30 @@ int main(int argc, char **argv) {
 	}
 	ShovelerView *view = game->view;
 
+	ClientContext context;
+	context.connection = &connection;
+	context.game = game;
+	context.clientConfiguration = &clientConfiguration;
+	context.bootstrapEntityId = 0;
+	context.clientEntityId = 0;
+	context.absoluteInterest = false;
+	context.restrictController = true;
+
+	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
+
+	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
+	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
+	game->controller->lockMoveZ = clientConfiguration.controllerLockMoveZ;
+	game->controller->lockTiltX = clientConfiguration.controllerLockTiltX;
+	game->controller->lockTiltY = clientConfiguration.controllerLockTiltY;
+
 	worker::Dispatcher dispatcher{components};
 	bool disconnected = false;
-	EntityId bootstrapEntityId = 0;
-	EntityId clientEntityId = 0;
-	ClientPingTickContext clientPingTickContext;
 	ViewDependencyCallbackContext viewDependencyCallbackContext{false};
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	bool clientInterestAuthoritative = false;
 
-	MouseButtonEventContext mouseButtonEventContext{&connection, game->camera, &bootstrapEntityId, &clientEntityId};
-	ShovelerInputMouseButtonCallback *mouseButtonCallback = shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &mouseButtonEventContext);
+	ShovelerInputMouseButtonCallback *mouseButtonCallback = shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &context);
 
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
@@ -246,13 +258,12 @@ int main(int argc, char **argv) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 		if (op.Authority == worker::Authority::kAuthoritative) {
 			shovelerViewEntityDelegateClient(entity);
-			clientPingTickContext = ClientPingTickContext{&connection, bootstrapEntityId, op.EntityId};
-			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &clientPingTickContext);
-			clientEntityId = op.EntityId;
+			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
+			context.clientEntityId = op.EntityId;
 		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
 			shovelerViewEntityUndelegateClient(entity);
 			shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
-			clientEntityId = 0;
+			context.clientEntityId = 0;
 		}
 	});
 
@@ -263,7 +274,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnAuthorityChange<Interest>([&](const worker::AuthorityChangeOp& op) {
-		if(op.EntityId == clientEntityId) {
+		if(op.EntityId == context.clientEntityId) {
 			if(op.Authority == worker::Authority::kAuthoritative) {
 				shovelerLogInfo("Received authority over interest component of client entity %lld.", op.EntityId);
 				clientInterestAuthoritative = true;
@@ -280,9 +291,9 @@ int main(int argc, char **argv) {
 	dispatcher.OnEntityQueryResponse([&](const worker::EntityQueryResponseOp& op) {
 		shovelerLogInfo("Received entity query response for request %u with status code %d.", op.RequestId.Id, op.StatusCode);
 		if(op.RequestId == bootstrapQueryRequestId && op.Result.size() > 0) {
-			bootstrapEntityId = op.Result.begin()->first;
-			shovelerLogInfo("Received bootstrap query response containing entity %lld.", bootstrapEntityId);
-			worker::RequestId<worker::OutgoingCommandRequest<CreateClientEntity>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {}, {});
+			context.bootstrapEntityId = op.Result.begin()->first;
+			shovelerLogInfo("Received bootstrap query response containing entity %lld.", context.bootstrapEntityId);
+			worker::RequestId<worker::OutgoingCommandRequest<CreateClientEntity>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(context.bootstrapEntityId, {}, {});
 			shovelerLogInfo("Sent create client entity request with id %u.", createClientEntityRequestId.Id);
 		}
 	});
@@ -314,7 +325,7 @@ int main(int argc, char **argv) {
 		shovelerGameRenderFrame(game);
 
 		if(clientInterestAuthoritative && viewDependencyCallbackContext.viewDependenciesUpdated) {
-			updateInterest(connection, clientEntityId, view);
+			updateInterest(connection, context.clientEntityId, view, context.absoluteInterest);
 		}
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
@@ -334,25 +345,25 @@ static void updateGame(ShovelerGame *game, double dt)
 	shovelerCameraUpdateView(game->camera);
 }
 
-static void clientPingTick(void *clientPingTickContextPointer)
+static void clientPingTick(void *clientContextPointer)
 {
-	ClientPingTickContext *context = (ClientPingTickContext *) clientPingTickContextPointer;
+	ClientContext *context = (ClientContext *) clientContextPointer;
 	context->connection->SendCommandRequest<ClientPing>(context->bootstrapEntityId, {context->clientEntityId}, {});
 }
 
-static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *mouseButtonEventContextPointer)
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer)
 {
-	MouseButtonEventContext *context = (MouseButtonEventContext *) mouseButtonEventContextPointer;
+	ClientContext *context = (ClientContext *) clientContextPointer;
 
 	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 		const Option<std::string> &flagOption = context->connection->GetWorkerFlag("game_type");
 		if (flagOption && *flagOption == "tiles") {
 			shovelerLogInfo("Sending dig hole command...");
-			context->connection->SendCommandRequest<DigHole>(*context->bootstrapEntityId, {*context->clientEntityId}, {});
+			context->connection->SendCommandRequest<DigHole>(context->bootstrapEntityId, {context->clientEntityId}, {});
 		} else {
 			shovelerLogInfo("Sending client cube spawn command...");
-			ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->camera->data;
-			context->connection->SendCommandRequest<ClientSpawnCube>(*context->bootstrapEntityId, {*context->clientEntityId, {-perspectiveCamera->direction.values[0], perspectiveCamera->direction.values[1], perspectiveCamera->direction.values[2]}, {0.0f, 0.0f, 0.0f}}, {});
+			ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->game->camera->data;
+			context->connection->SendCommandRequest<ClientSpawnCube>(context->bootstrapEntityId, {context->clientEntityId, {-perspectiveCamera->direction.values[0], perspectiveCamera->direction.values[1], perspectiveCamera->direction.values[2]}, {0.0f, 0.0f, 0.0f}}, {});
 		}
 	}
 }
@@ -363,13 +374,43 @@ static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerVie
 	context->viewDependenciesUpdated = true;
 }
 
-static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view)
+static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absolute)
 {
-	ComponentInterest interest = computeViewInterest(view);
+	ShovelerVector3 position = getEntitySpatialOsPosition(view, clientEntityId);
+	ComponentInterest interest = computeViewInterest(view, absolute, position);
 
 	Interest::Update interestUpdate;
 	interestUpdate.set_component_interest({{Client::ComponentId, interest}});
 	connection.SendComponentUpdate<Interest>(clientEntityId, interestUpdate);
 
 	shovelerLogInfo("Sent interest update with %zu queries.", interest.queries().size());
+}
+
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer)
+{
+	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	if(key == GLFW_KEY_F7 && action == GLFW_PRESS) {
+		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
+		context->absoluteInterest = !context->absoluteInterest;
+		updateInterest(*context->connection, context->clientEntityId, context->game->view, context->absoluteInterest);
+	}
+
+	if(key == GLFW_KEY_F8 && action == GLFW_PRESS) {
+		shovelerLogInfo("F8 key pressed, %s controller.", context->restrictController ? "unrestricting" : "restricting");
+		context->restrictController = !context->restrictController;
+		if(context->restrictController) {
+			context->game->controller->lockMoveX = context->clientConfiguration->controllerLockMoveX;
+			context->game->controller->lockMoveY = context->clientConfiguration->controllerLockMoveY;
+			context->game->controller->lockMoveZ = context->clientConfiguration->controllerLockMoveZ;
+			context->game->controller->lockTiltX = context->clientConfiguration->controllerLockTiltX;
+			context->game->controller->lockTiltY = context->clientConfiguration->controllerLockTiltY;
+		} else {
+			context->game->controller->lockMoveX = false;
+			context->game->controller->lockMoveY = false;
+			context->game->controller->lockMoveZ = false;
+			context->game->controller->lockTiltX = false;
+			context->game->controller->lockTiltY = false;
+		}
+	}
 }
