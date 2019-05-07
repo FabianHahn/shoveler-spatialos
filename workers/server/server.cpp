@@ -253,10 +253,10 @@ int main(int argc, char **argv) {
 		clientEntity.Add<Client>({op.CallerWorkerId});
 		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Persistence>({});
-		clientEntity.Add<Position>({{0, 0, 0}});
+		clientEntity.Add<Position>({{0, 5, 0}});
 
 		QueryConstraint relativeConstraint;
-		relativeConstraint.set_relative_box_constraint({{{20, 9999, 20}}});
+		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
 		Query relativeQuery;
 		relativeQuery.set_constraint(relativeConstraint);
 		relativeQuery.set_full_snapshot_result({true});

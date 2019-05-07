@@ -79,10 +79,9 @@ struct ClientContext {
 	EntityId clientEntityId;
 	bool absoluteInterest;
 	bool restrictController;
-};
-
-struct ViewDependencyCallbackContext {
 	bool viewDependenciesUpdated;
+	double lastInterestUpdatePositionY;
+	double edgeLength;
 };
 
 static const int64_t clientPingTimeoutMs = 1000;
@@ -91,7 +90,8 @@ static void updateGame(ShovelerGame *game, double dt);
 static void clientPingTick(void *clientContextPointer);
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
-static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest);
+static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest, ShovelerVector3 position, double edgeLength);
+static void updateEdgeLength(ClientContext *context, ShovelerVector3 position);
 static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer);
 
 int main(int argc, char **argv) {
@@ -169,6 +169,9 @@ int main(int argc, char **argv) {
 	context.clientEntityId = 0;
 	context.absoluteInterest = false;
 	context.restrictController = true;
+	context.viewDependenciesUpdated = false;
+	context.lastInterestUpdatePositionY = 0.0f;
+	context.edgeLength = 20.5f;
 
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 
@@ -180,7 +183,6 @@ int main(int argc, char **argv) {
 
 	worker::Dispatcher dispatcher{components};
 	bool disconnected = false;
-	ViewDependencyCallbackContext viewDependencyCallbackContext{false};
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	bool clientInterestAuthoritative = false;
 
@@ -189,7 +191,7 @@ int main(int argc, char **argv) {
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
 
-	shovelerViewAddDependencyCallback(view, viewDependencyCallbackFunction, &viewDependencyCallbackContext);
+	shovelerViewAddDependencyCallback(view, viewDependencyCallbackFunction, &context);
 	shovelerViewSetTarget(view, shovelerViewResourcesTargetName, resources);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
@@ -278,7 +280,7 @@ int main(int argc, char **argv) {
 			if(op.Authority == worker::Authority::kAuthoritative) {
 				shovelerLogInfo("Received authority over interest component of client entity %lld.", op.EntityId);
 				clientInterestAuthoritative = true;
-				viewDependencyCallbackContext.viewDependenciesUpdated = true;
+				context.viewDependenciesUpdated = true;
 			} else {
 				clientInterestAuthoritative = false;
 			}
@@ -319,13 +321,16 @@ int main(int argc, char **argv) {
 	registerLightCallbacks(dispatcher, view);
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
-		viewDependencyCallbackContext.viewDependenciesUpdated = false;
+		context.viewDependenciesUpdated = false;
 
 		dispatcher.Process(connection.GetOpList(0));
 		shovelerGameRenderFrame(game);
 
-		if(clientInterestAuthoritative && viewDependencyCallbackContext.viewDependenciesUpdated) {
-			updateInterest(connection, context.clientEntityId, view, context.absoluteInterest);
+		ShovelerVector3 position = getEntitySpatialOsPosition(view, context.clientEntityId);
+		updateEdgeLength(&context, position);
+
+		if(clientInterestAuthoritative && context.viewDependenciesUpdated) {
+			updateInterest(connection, context.clientEntityId, view, context.absoluteInterest, position, context.edgeLength);
 		}
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
@@ -370,20 +375,39 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer)
 {
-	ViewDependencyCallbackContext *context = (ViewDependencyCallbackContext *) contextPointer;
+	ClientContext *context = (ClientContext *) contextPointer;
 	context->viewDependenciesUpdated = true;
 }
 
-static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absolute)
+static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest, ShovelerVector3 position, double edgeLength)
 {
-	ShovelerVector3 position = getEntitySpatialOsPosition(view, clientEntityId);
-	ComponentInterest interest = computeViewInterest(view, absolute, position);
+	ComponentInterest interest = computeViewInterest(view, absoluteInterest, position, edgeLength);
 
 	Interest::Update interestUpdate;
 	interestUpdate.set_component_interest({{Client::ComponentId, interest}});
 	connection.SendComponentUpdate<Interest>(clientEntityId, interestUpdate);
 
 	shovelerLogInfo("Sent interest update with %zu queries.", interest.queries().size());
+}
+
+static void updateEdgeLength(ClientContext *context, ShovelerVector3 position)
+{
+	if(context->absoluteInterest) {
+		return;
+	}
+
+	double positionChangeY = fabs(position.values[1] - context->lastInterestUpdatePositionY);
+	if(fabs(positionChangeY) < 0.5f) {
+		return;
+	}
+
+	context->edgeLength = 20.5f * position.values[1] / 5.0f;
+	if(context->edgeLength < 20.5f) {
+		context->edgeLength = 20.5f;
+	}
+
+	context->lastInterestUpdatePositionY = position.values[1];
+	context->viewDependenciesUpdated = true;
 }
 
 static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer)
@@ -393,7 +417,10 @@ static void keyHandler(ShovelerInput *input, int key, int scancode, int action, 
 	if(key == GLFW_KEY_F7 && action == GLFW_PRESS) {
 		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
 		context->absoluteInterest = !context->absoluteInterest;
-		updateInterest(*context->connection, context->clientEntityId, context->game->view, context->absoluteInterest);
+
+		ShovelerVector3 position = getEntitySpatialOsPosition(context->game->view, context->clientEntityId);
+		updateEdgeLength(context, position);
+		updateInterest(*context->connection, context->clientEntityId, context->game->view, context->absoluteInterest, position, context->edgeLength);
 	}
 
 	if(key == GLFW_KEY_F8 && action == GLFW_PRESS) {

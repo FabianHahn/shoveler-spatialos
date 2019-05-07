@@ -70,7 +70,7 @@ static const unordered_map<string, ComponentId> COMPONENT_IDS = {
 	{shovelerViewTilesetComponentName,				Tileset::ComponentId},
 };
 
-ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition)
+ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double edgeLength)
 {
 	List<Query> queries;
 
@@ -120,14 +120,14 @@ ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 
 	if(useAbsoluteConstraint) {
 		QueryConstraint absoluteConstraint;
-		absoluteConstraint.set_box_constraint({{{absolutePosition.values[0], absolutePosition.values[1], absolutePosition.values[2]}, {20, 9999, 20}}});
+		absoluteConstraint.set_box_constraint({{{absolutePosition.values[0], absolutePosition.values[1], absolutePosition.values[2]}, {edgeLength, 9999, edgeLength}}});
 		Query absoluteQuery;
 		absoluteQuery.set_constraint(absoluteConstraint);
 		absoluteQuery.set_full_snapshot_result({true});
 		queries.emplace_back(absoluteQuery);
 	} else {
 		QueryConstraint relativeConstraint;
-		relativeConstraint.set_relative_box_constraint({{{20, 9999, 20}}});
+		relativeConstraint.set_relative_box_constraint({{{edgeLength, 9999, edgeLength}}});
 		Query relativeQuery;
 		relativeQuery.set_constraint(relativeConstraint);
 		relativeQuery.set_full_snapshot_result({true});
