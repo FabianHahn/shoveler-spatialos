@@ -22,6 +22,11 @@ ClientConfiguration getClientConfiguration(Connection& connection)
 	clientConfiguration.controllerSettings.frame.position = shovelerVector3(0, 0, 0);
 	clientConfiguration.controllerSettings.frame.direction = shovelerVector3(0, 0, 1);
 	clientConfiguration.controllerSettings.frame.up = shovelerVector3(0, 1, 0);
+	clientConfiguration.controllerLockMoveX = false;
+	clientConfiguration.controllerLockMoveY = false;
+	clientConfiguration.controllerLockMoveZ = false;
+	clientConfiguration.controllerLockTiltX = false;
+	clientConfiguration.controllerLockTiltY = false;
 	clientConfiguration.controllerSettings.moveFactor = 2.0f;
 	clientConfiguration.controllerSettings.tiltFactor = 0.0005f;
 	clientConfiguration.controllerSettings.boundingBoxSize2 = 0.0f;
