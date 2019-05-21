@@ -1,11 +1,6 @@
 {
   "worker_type": "ShovelerClient",
   "layer": "client",
-  "entity_interest": {
-    "range_entity_interest": {
-      "radius": 0
-    }
-  },
   "component_delivery": {
     "default": "RELIABLE_ORDERED",
     "checkout_all_initially": false,
@@ -79,27 +74,5 @@
         "*"
       ]
     }
-  },
-  "flags": [
-    {
-      "name": "controller_frame_position",
-      "value": "0 0 -1"
-    },
-    {
-      "name": "controller_frame_direction",
-      "value": "0 0 1"
-    },
-    {
-      "name": "controller_frame_up",
-      "value": "0 1 0"
-    },
-    {
-      "name": "position_mapping_x",
-      "value": "-x"
-    },
-    {
-      "name": "hide_player_client_entity_model",
-      "value": "true"
-    }
-  ]
+  }
 }
