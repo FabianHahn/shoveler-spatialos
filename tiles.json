@@ -44,7 +44,7 @@
         },
         {
           "name": "controller_lock_move_z",
-          "value": "true"
+          "value": "false"
         },
         {
           "name": "controller_lock_tilt_x",
