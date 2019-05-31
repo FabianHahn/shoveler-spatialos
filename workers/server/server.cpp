@@ -20,6 +20,7 @@ extern "C" {
 }
 
 using improbable::ComponentInterest;
+using improbable::Coordinates;
 using improbable::EntityAcl;
 using improbable::EntityAclData;
 using improbable::Interest;
@@ -73,8 +74,21 @@ struct ClientCleanupTickContext {
 	std::map<worker::EntityId, std::pair<std::string, int64_t>> *lastHeartbeatMicrosMap;
 };
 
+const int halfMapWidth = 100;
+const int halfMapHeight = 100;
+const int chunkSize = 10;
+const EntityId firstChunkEntityId = 10;
+const int numChunkColumns = 2 * halfMapWidth / chunkSize;
+const int numChunkRows = 2 * halfMapHeight / chunkSize;
+const int numPlayerPositionAttempts = 10;
+
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
 static Color colorFromHsv(float h, float s, float v);
+static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
+static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ);
+static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
+static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId);
+static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::View& view);
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet);
 
 int main(int argc, char **argv) {
@@ -82,7 +96,7 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	srand(0);
+	srand(time(NULL));
 
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerServer";
@@ -103,12 +117,6 @@ int main(int argc, char **argv) {
 	const EntityId character3AnimationTilesetEntityId = 7;
 	const EntityId character4AnimationTilesetEntityId = 8;
 	const EntityId canvasEntityId = 9;
-	const EntityId firstChunkEntityId = 10;
-	const int halfMapWidth = 100;
-	const int halfMapHeight = 100;
-	const int chunkSize = 10;
-	const int numChunkColumns = 2 * halfMapWidth / chunkSize;
-	const int numChunkRows = 2 * halfMapHeight / chunkSize;
 	int characterCounter = 0;
 
 	FILE *logFile = fopen(logFileLocation.c_str(), "w+");
@@ -248,12 +256,14 @@ int main(int argc, char **argv) {
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
+		Coordinates playerPosition = getNewPlayerPosition(connection, view);
+
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({op.CallerWorkerId});
 		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Persistence>({});
-		clientEntity.Add<Position>({{0, 5, 0}});
+		clientEntity.Add<Position>({playerPosition});
 
 		QueryConstraint relativeConstraint;
 		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
@@ -402,15 +412,8 @@ int main(int argc, char **argv) {
 
 		double x = positionComponent->coords().x();
 		double z = positionComponent->coords().z();
-
-		double diffX = x + halfMapWidth;
-		double diffZ = z + halfMapHeight;
-
-		int chunkX = (int) floor(diffX / chunkSize);
-		int chunkZ = (int) floor(diffZ / chunkSize);
-
-		int tileX = (int) floor(diffX - chunkX * chunkSize);
-		int tileZ = (int) floor(diffZ - chunkZ * chunkSize);
+		int chunkX, chunkZ, tileX, tileZ;
+		worldToTile(x, z, chunkX, chunkZ, tileX, tileZ);
 
 		if(chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows || tileX < 0 || tileX >= chunkSize || tileZ < 0 || tileZ >= chunkSize) {
 			shovelerLogWarning("Received dig hole request from %s for client entity %lld which is out of range at (%f, %f), ignoring.", op.CallerWorkerId.c_str(), clientEntityId, x, z);
@@ -418,25 +421,15 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		worker::EntityId chunkBackgroundEntityId = firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
-		worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
-		if(chunkBackgroundEntityQuery == view.Entities.end()) {
-			shovelerLogError("Received dig hole request from %s for client entity %lld, but chunk background entity %lld is not in view.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
-			connection.SendCommandFailure<DigHole>(op.RequestId, "tiles not in view");
+		worker::EntityId chunkBackgroundEntityId = getChunkBackgroundEntityId(chunkX, chunkZ);
+		List<TilemapTilesTile> tiles = getChunkBackgroundTiles(connection, view, chunkBackgroundEntityId);
+		if(tiles.empty()) {
+			shovelerLogError("Received dig hole request from %s for client entity %lld, but failed to resolve chunk background entity %lld tilemap tiles.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
+			connection.SendCommandFailure<DigHole>(op.RequestId, "failed to resolve chunk background entity tilemap tiles");
 			return;
 		}
 
-		const worker::Entity& chunkBackgroundEntity = chunkBackgroundEntityQuery->second;
-		worker::Option<const TilemapTilesData&> tilemapTilesComponent = chunkBackgroundEntity.Get<TilemapTiles>();
-		if(!tilemapTilesComponent) {
-			shovelerLogError("Received dig hole request from %s for client entity %lld, but chunk background entity %lld doesn't have a tilemap tiles component.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
-			connection.SendCommandFailure<DigHole>(op.RequestId, "tiles entity doesn't have tiles component");
-			return;
-		}
-
-		List<TilemapTilesTile> tiles = tilemapTilesComponent->tiles();
 		TilemapTilesTile& tile = tiles[tileZ * chunkSize + tileX];
-
 		if(tile.tileset_column() > 2) {
 			shovelerLogWarning("Received dig hole request from %s for client entity %lld, but its current tile is not grass.", op.CallerWorkerId.c_str(), clientEntityId);
 			connection.SendCommandFailure<DigHole>(op.RequestId, "tile isn't grass");
@@ -567,6 +560,89 @@ static Color colorFromHsv(float h, float s, float v)
 	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
 
 	return Color{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
+}
+
+static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ)
+{
+	return shovelerVector2(-halfMapWidth + chunkX * chunkSize + tileX, -halfMapHeight + chunkZ * chunkSize + tileZ);
+}
+
+static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ)
+{
+	double diffX = x + halfMapWidth;
+	double diffZ = z + halfMapHeight;
+
+	chunkX = (int) floor(diffX / chunkSize);
+	chunkZ = (int) floor(diffZ / chunkSize);
+
+	tileX = (int) floor(diffX - chunkX * chunkSize);
+	tileZ = (int) floor(diffZ - chunkZ * chunkSize);
+}
+
+static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ)
+{
+	if (chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows) {
+		shovelerLogWarning("Cannot resolve chunk background entity id for out of range chunk at (%d, %d).", chunkX, chunkZ);
+		return 0;
+	}
+
+	return firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
+}
+
+static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId)
+{
+	worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
+	if(chunkBackgroundEntityQuery == view.Entities.end()) {
+		shovelerLogWarning("Chunk background entity %lld is not in view.", chunkBackgroundEntityId);
+		return {};
+	}
+
+	const worker::Entity& chunkBackgroundEntity = chunkBackgroundEntityQuery->second;
+	worker::Option<const TilemapTilesData&> tilemapTilesComponent = chunkBackgroundEntity.Get<TilemapTiles>();
+	if(!tilemapTilesComponent) {
+		shovelerLogWarning("Supposed chunk background entity %lld doesn't have a tilemap tiles component.", chunkBackgroundEntityId);
+		return {};
+	}
+
+	return tilemapTilesComponent->tiles();
+}
+
+static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::View& view)
+{
+	const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
+	if (!(flagOption && *flagOption == "tiles")) {
+		return {0, 5, 0};
+	}
+
+	for(int i = 0; i < numPlayerPositionAttempts; i++) {
+		int startingChunkX = 9 + (rand() % 2);
+		int startingChunkZ = 9 + (rand() % 2);
+
+		EntityId backgroundChunkEntityId = getChunkBackgroundEntityId(startingChunkX, startingChunkZ);
+		const List<TilemapTilesTile> &tiles = getChunkBackgroundTiles(connection, view, backgroundChunkEntityId);
+		if (tiles.empty()) {
+			continue;
+		}
+
+		int startingTileX = rand() % 10;
+		int startingTileZ = rand() % 10;
+		const TilemapTilesTile& tile = tiles[startingTileZ * chunkSize + startingTileX];
+		if(tile.tileset_column() > 2) { // not grass
+			continue;
+		}
+
+		ShovelerVector2 worldPosition2 = tileToWorld(startingChunkX, startingChunkZ, startingTileX, startingTileZ);
+		shovelerLogInfo("Rolled new player position in tile (%d, %d) of chunk (%d, %d) after %d iterations: (%.2f, %.2f)", startingTileX, startingTileZ, startingChunkX, startingChunkZ, i + 1, worldPosition2.values[0], worldPosition2.values[1]);
+
+		int chunkX, chunkZ, tileX, tileZ;
+		worldToTile(worldPosition2.values[0] + 0.5, worldPosition2.values[1] + 0.5, chunkX, chunkZ, tileX, tileZ);
+		shovelerLogInfo("Back translation: tile (%d, %d) chunk (%d, %d)", tileX, tileZ, chunkX, chunkZ);
+
+		return {worldPosition2.values[0] + 0.5, 5, worldPosition2.values[1] + 0.5};
+	}
+
+	shovelerLogInfo("Using default position after %d failed attempts to roll new player position.", numPlayerPositionAttempts);
+	return {0.5, 5, 0.5};
 }
 
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet)
