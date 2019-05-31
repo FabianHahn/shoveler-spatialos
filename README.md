@@ -70,7 +70,7 @@ You need to have [CMake](https://cmake.org/), the [`spatial` CLI](https://docs.i
 
 On Linux, you further need headers for the [X Window System](http://www.opengroup.org/tech/desktop/x-window-system/). If you are using a Linux distribution based on the [APT](https://wiki.debian.org/Apt) package manager such as _Debian_ or _Ubuntu_, you can install them with the following command:
 ```
-sudo apt-get install xorg-dev
+sudo apt-get install xorg-dev libxi-dev
 ```
 
 You also need a SpatialOS account that you can create for free [here](https://improbable.io/get-spatialos).
