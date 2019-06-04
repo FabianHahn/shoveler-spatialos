@@ -9,6 +9,10 @@ using shoveler::TilemapTilesTile;
 static const int halfMapWidth = 100;
 static const int halfMapHeight = 100;
 
+static ChunkData createStartingAreaBottomLeft(int chunkSize);
+static ChunkData createStartingAreaBottomRight(int chunkSize);
+static ChunkData createStartingAreaTopLeft(int chunkSize);
+static ChunkData createStartingAreaTopRight(int chunkSize);
 static ChunkData createChunk(int x, int y, int chunkSize);
 
 List<ChunkData> generateMapChunks(int chunkSize)
@@ -17,11 +21,173 @@ List<ChunkData> generateMapChunks(int chunkSize)
 
 	for(int x = -halfMapWidth; x < halfMapWidth; x += chunkSize) {
 		for(int z = -halfMapHeight; z < halfMapHeight; z += chunkSize) {
-			chunks.emplace_back(createChunk(x, z, chunkSize));
+			if(x == -chunkSize && z == -chunkSize) {
+				chunks.emplace_back(createStartingAreaBottomLeft(chunkSize));
+			} else if(x == 0 && z == -chunkSize) {
+				chunks.emplace_back(createStartingAreaBottomRight(chunkSize));
+			} else if(x == -chunkSize && z == 0) {
+				chunks.emplace_back(createStartingAreaTopLeft(chunkSize));
+			} else if(x == 0 && z == 0) {
+				chunks.emplace_back(createStartingAreaTopRight(chunkSize));
+			} else {
+				chunks.emplace_back(createChunk(x, z, chunkSize));
+			}
 		}
 	}
 
 	return chunks;
+}
+
+static ChunkData createStartingAreaBottomLeft(int chunkSize)
+{
+	ChunkData chunk;
+	chunk.position = {-chunkSize / 2.0, 0.0, -chunkSize / 2.0};
+
+	for(int i = 0; i < chunkSize; i++) {
+		for(int j = 0; j < chunkSize; j++) {
+			TilemapTilesTile backgroundTile;
+			TilemapTilesTile foregroundTile;
+
+			foregroundTile.set_tileset_column(0);
+			foregroundTile.set_tileset_row(0);
+			foregroundTile.set_tileset_id(0);
+			foregroundTile.set_colliding(false);
+
+			// fill background with grass
+			int grassColumn = rand() % 3;
+			int grassRow = rand() % 2;
+			backgroundTile.set_tileset_column(grassColumn);
+			backgroundTile.set_tileset_row(grassRow);
+			backgroundTile.set_tileset_id(2);
+			foregroundTile.set_colliding(false);
+
+			// place boundary rocks
+			if((i == 0 || j == 0) && i != chunkSize - 1 && j != chunkSize - 1) {
+				backgroundTile.set_tileset_column(5);
+				backgroundTile.set_tileset_row(0);
+				backgroundTile.set_colliding(true);
+			}
+
+			chunk.backgroundTiles.emplace_back(backgroundTile);
+			chunk.foregroundTiles.emplace_back(foregroundTile);
+		}
+	}
+
+	return chunk;
+}
+
+static ChunkData createStartingAreaBottomRight(int chunkSize)
+{
+	ChunkData chunk;
+	chunk.position = {chunkSize / 2.0, 0.0, -chunkSize / 2.0};
+
+	for(int i = 0; i < chunkSize; i++) {
+		for(int j = 0; j < chunkSize; j++) {
+			TilemapTilesTile backgroundTile;
+			TilemapTilesTile foregroundTile;
+
+			foregroundTile.set_tileset_column(0);
+			foregroundTile.set_tileset_row(0);
+			foregroundTile.set_tileset_id(0);
+			foregroundTile.set_colliding(false);
+
+			// fill background with grass
+			int grassColumn = rand() % 3;
+			int grassRow = rand() % 2;
+			backgroundTile.set_tileset_column(grassColumn);
+			backgroundTile.set_tileset_row(grassRow);
+			backgroundTile.set_tileset_id(2);
+			foregroundTile.set_colliding(false);
+
+			// place boundary rocks
+			if((i == 0 || j == chunkSize - 1) && i != chunkSize - 1 && j != 0) {
+				backgroundTile.set_tileset_column(5);
+				backgroundTile.set_tileset_row(0);
+				backgroundTile.set_colliding(true);
+			}
+
+			chunk.backgroundTiles.emplace_back(backgroundTile);
+			chunk.foregroundTiles.emplace_back(foregroundTile);
+		}
+	}
+
+	return chunk;
+}
+
+static ChunkData createStartingAreaTopLeft(int chunkSize)
+{
+	ChunkData chunk;
+	chunk.position = {-chunkSize / 2.0, 0.0, chunkSize / 2.0};
+
+	for(int i = 0; i < chunkSize; i++) {
+		for(int j = 0; j < chunkSize; j++) {
+			TilemapTilesTile backgroundTile;
+			TilemapTilesTile foregroundTile;
+
+			foregroundTile.set_tileset_column(0);
+			foregroundTile.set_tileset_row(0);
+			foregroundTile.set_tileset_id(0);
+			foregroundTile.set_colliding(false);
+
+			// fill background with grass
+			int grassColumn = rand() % 3;
+			int grassRow = rand() % 2;
+			backgroundTile.set_tileset_column(grassColumn);
+			backgroundTile.set_tileset_row(grassRow);
+			backgroundTile.set_tileset_id(2);
+			foregroundTile.set_colliding(false);
+
+			// place boundary rocks
+			if((i == chunkSize - 1 || j == 0) && i != 0 && j != chunkSize - 1) {
+				backgroundTile.set_tileset_column(5);
+				backgroundTile.set_tileset_row(0);
+				backgroundTile.set_colliding(true);
+			}
+
+			chunk.backgroundTiles.emplace_back(backgroundTile);
+			chunk.foregroundTiles.emplace_back(foregroundTile);
+		}
+	}
+
+	return chunk;
+}
+
+static ChunkData createStartingAreaTopRight(int chunkSize)
+{
+	ChunkData chunk;
+	chunk.position = {chunkSize / 2.0, 0.0, chunkSize / 2.0};
+
+	for(int i = 0; i < chunkSize; i++) {
+		for(int j = 0; j < chunkSize; j++) {
+			TilemapTilesTile backgroundTile;
+			TilemapTilesTile foregroundTile;
+
+			foregroundTile.set_tileset_column(0);
+			foregroundTile.set_tileset_row(0);
+			foregroundTile.set_tileset_id(0);
+			foregroundTile.set_colliding(false);
+
+			// fill background with grass
+			int grassColumn = rand() % 3;
+			int grassRow = rand() % 2;
+			backgroundTile.set_tileset_column(grassColumn);
+			backgroundTile.set_tileset_row(grassRow);
+			backgroundTile.set_tileset_id(2);
+			foregroundTile.set_colliding(false);
+
+			// place boundary rocks
+			if((i == chunkSize - 1 || j == chunkSize - 1) && i != 0 && j != 0) {
+				backgroundTile.set_tileset_column(5);
+				backgroundTile.set_tileset_row(0);
+				backgroundTile.set_colliding(true);
+			}
+
+			chunk.backgroundTiles.emplace_back(backgroundTile);
+			chunk.foregroundTiles.emplace_back(foregroundTile);
+		}
+	}
+
+	return chunk;
 }
 
 static ChunkData createChunk(int x, int z, int chunkSize)
