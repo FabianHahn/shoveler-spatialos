@@ -108,8 +108,8 @@ int main(int argc, char **argv) {
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	if (argc != 1 && argc != 2 && argc != 4) {
-		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0]);
+	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
+		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>\n\t%s <locator hostname> <project name> <deployment name> <login token>", argv[0], argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
 

@@ -5,6 +5,7 @@
   "launchConfiguration": "lights.json",
   "clientWorkers": [
     "workers/client/worker.json",
+    "workers/client/worker.LauncherClient.json",
     "workers/updater/worker.json"
   ],
   "serverWorkers": [

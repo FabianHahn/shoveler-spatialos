@@ -1,0 +1,100 @@
+{
+  "worker_type": "LauncherClient",
+  "layer": "client",
+  "component_delivery": {
+    "default": "RELIABLE_ORDERED",
+    "checkout_all_initially": false,
+    "override": {
+      "shoveler.Canvas": {
+        "checkout_initially": true
+      },
+      "shoveler.Chunk": {
+        "checkout_initially": true
+      },
+      "shoveler.Client": {
+        "checkout_initially": true
+      },
+      "shoveler.Drawable": {
+        "checkout_initially": true
+      },
+      "shoveler.Light": {
+        "checkout_initially": true
+      },
+      "shoveler.Material": {
+        "checkout_initially": true
+      },
+      "shoveler.Model": {
+        "checkout_initially": true
+      },
+      "shoveler.Resource": {
+        "checkout_initially": true
+      },
+      "shoveler.Texture": {
+        "checkout_initially": true
+      },
+      "shoveler.Tilemap": {
+        "checkout_initially": true
+      },
+      "shoveler.TilemapTiles": {
+        "checkout_initially": true
+      },
+      "shoveler.Tileset": {
+        "checkout_initially": true
+      },
+      "shoveler.TileSprite": {
+        "checkout_initially": true
+      },
+      "shoveler.TileSpriteAnimation": {
+        "checkout_initially": true
+      },
+      "improbable.EntityAcl": {
+        "checkout_initially": true
+      },
+      "improbable.Interest": {
+        "checkout_initially": true
+      },
+      "improbable.Metadata": {
+        "checkout_initially": true
+      },
+      "improbable.Position": {
+        "checkout_initially": true
+      }
+    }
+  },
+  "permissions": {
+    "entity_creation": {
+      "allow": false
+    },
+    "entity_deletion": {
+      "allow": false
+    },
+    "entity_query": {
+      "allow": true,
+      "components": [
+        "*"
+      ]
+    }
+  },
+  "upload_configuration": {
+    "windows": {
+      "localBuildDirectory": "../../build/workers/client/Release",
+      "launcherCommand": "ShovelerClient.exe",
+      "launcherArguments": [
+        "${IMPROBABLE_LOCATOR_HOSTNAME}",
+        "${IMPROBABLE_PROJECT_NAME}",
+        "${IMPROBABLE_DEPLOYMENT_NAME}",
+        "${IMPROBABLE_LOGIN_TOKEN}"
+      ]
+    },
+    "linux": {
+      "localBuildDirectory": "../../build/workers/client",
+      "launcherCommand": "./ShovelerClient",
+      "launcherArguments": [
+        "${IMPROBABLE_LOCATOR_HOSTNAME}",
+        "${IMPROBABLE_PROJECT_NAME}",
+        "${IMPROBABLE_DEPLOYMENT_NAME}",
+        "${IMPROBABLE_LOGIN_TOKEN}"
+      ]
+    }
+  }
+}

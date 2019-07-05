@@ -11,7 +11,32 @@ extern "C" {
 worker::Option<worker::Connection> connect(int argc, char **argv, worker::ConnectionParameters connectionParameters, const worker::ComponentRegistry& components)
 {
 	std::string launcherPrefix = "spatialos.launch:";
-	if(argc > 1 && g_str_has_prefix(argv[1], launcherPrefix.c_str())) {
+	if(argc == 5) {
+		std::string locatorHostname{argv[1]};
+		std::string projectName{argv[2]};
+		std::string deploymentName{argv[3]};
+		std::string loginToken{argv[4]};
+
+		shovelerLogInfo("Connecting to cloud deployment...\n\tLocator hostname: %s\n\tProject name: %s\n\tDeployment name: %s\n\tLogin token: %s", locatorHostname.c_str(), projectName.c_str(), deploymentName.c_str(), loginToken.c_str());
+
+		worker::LocatorParameters locatorParameters;
+		locatorParameters.ProjectName = projectName;
+		locatorParameters.CredentialsType = worker::LocatorCredentialsType::kLoginToken;
+		locatorParameters.LoginToken = worker::LoginTokenCredentials{loginToken};
+		worker::Locator locator{locatorHostname, locatorParameters};
+
+		auto queueStatusCallback = [&](const worker::QueueStatus& queueStatus) {
+			if (!queueStatus.Error.empty()) {
+				shovelerLogError("Error while queueing: %s", queueStatus.Error->c_str());
+				return false;
+			}
+			shovelerLogInfo("Current position in login queue: %d", queueStatus.PositionInQueue);
+			return true;
+		};
+
+		connectionParameters.Network.UseExternalIp = true;
+		return locator.ConnectAsync(components, deploymentName, connectionParameters, queueStatusCallback).Get();
+	} else if(argc == 4 && g_str_has_prefix(argv[1], launcherPrefix.c_str())) {
 		const char *launcherString = argv[1] + launcherPrefix.size();
 		gchar **projectNameSplit = g_strsplit(launcherString, "-", 2);
 		if(projectNameSplit[0] == NULL || projectNameSplit[1] == NULL) {
