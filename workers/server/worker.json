@@ -27,7 +27,7 @@
   "launch_configuration": {
     "local_deployment": {
       "windows": {
-        "local_build_directory": "../../build/workers/server/Release",
+        "local_build_directory": "../../build/workers/server/Release/assembly",
         "command": "ShovelerServer.exe",
         "arguments": [
           "${IMPROBABLE_WORKER_ID}",
@@ -37,7 +37,7 @@
         ]
       },
       "linux": {
-        "local_build_directory": "../../build/workers/server",
+        "local_build_directory": "../../build/workers/server/assembly",
         "command": "ShovelerServer",
         "arguments": [
           "${IMPROBABLE_WORKER_ID}",
@@ -49,7 +49,7 @@
     },
     "cloud_deployment": {
       "linux": {
-        "local_build_directory": "../../build/workers/server",
+        "local_build_directory": "../../build/workers/server/assembly",
         "command": "ShovelerServer",
         "arguments": [
           "${IMPROBABLE_WORKER_ID}",

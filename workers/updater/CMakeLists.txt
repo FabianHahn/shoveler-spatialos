@@ -8,3 +8,20 @@ set(SHOVELER_UPDATER_SRC
 
 add_executable(ShovelerAssetUpdater ${SHOVELER_UPDATER_SRC})
 target_link_libraries(ShovelerAssetUpdater schema worker_sdk shoveler_base)
+
+if(WIN32)
+	add_custom_command(
+		TARGET ShovelerAssetUpdater
+		POST_BUILD
+		COMMENT "Creating updater release archive."
+		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "updater-x86_64-win32.zip" --format=zip "$<TARGET_FILE_NAME:ShovelerAssetUpdater>"
+		WORKING_DIRECTORY "$<TARGET_FILE_DIR:ShovelerAssetUpdater>"
+	)
+elseif(UNIX AND NOT APPLE)
+	add_custom_command(
+			TARGET ShovelerAssetUpdater
+			POST_BUILD
+			COMMENT "Creating updater release archive."
+			COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "updater-x86_64-linux.tar.gz" "$<TARGET_FILE:ShovelerAssetUpdater>"
+	)
+endif()

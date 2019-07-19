@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.13)
 
 project(shoveler-spatialos)
 
@@ -30,4 +30,3 @@ add_subdirectory(seeders)
 add_subdirectory(shoveler)
 add_subdirectory(worker_sdk)
 add_subdirectory(workers)
-
