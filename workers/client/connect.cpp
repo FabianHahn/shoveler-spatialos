@@ -36,7 +36,7 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 
 		connectionParameters.Network.UseExternalIp = true;
 		return locator.ConnectAsync(components, deploymentName, connectionParameters, queueStatusCallback).Get();
-	} else if(argc == 4 && g_str_has_prefix(argv[1], launcherPrefix.c_str())) {
+	} else if(argc == 2 && g_str_has_prefix(argv[1], launcherPrefix.c_str())) {
 		const char *launcherString = argv[1] + launcherPrefix.size();
 		gchar **projectNameSplit = g_strsplit(launcherString, "-", 2);
 		if(projectNameSplit[0] == NULL || projectNameSplit[1] == NULL) {
@@ -105,7 +105,7 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 			hostname = argv[2];
 			port = static_cast<std::uint16_t>(std::stoi(argv[3]));
 		} else if(argc != 1) {
-			shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0]);
+			shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0], argv[0]);
 			return {};
 		}
 
