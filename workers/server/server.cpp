@@ -57,9 +57,13 @@ using shoveler::TilemapTilesTile;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
 using worker::Authority;
+using worker::CreateEntityRequest;
 using worker::EntityId;
 using worker::List;
+using worker::None;
 using worker::Option;
+using worker::RequestId;
+using worker::Result;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
 using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
@@ -313,10 +317,18 @@ int main(int argc, char **argv) {
 			clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor, {}});
 		}
 
-		worker::RequestId<worker::CreateEntityRequest> createEntityRequestId = connection.SendCreateEntityRequest(clientEntity, {}, {});
-		shovelerLogInfo("Sent create entity request %u.", createEntityRequestId.Id);
+		Result<RequestId<CreateEntityRequest>> createEntityRequestId = connection.SendCreateEntityRequest(clientEntity, {}, {});
+		if(!createEntityRequestId) {
+			shovelerLogError("Failed to send create entity request: %s", createEntityRequestId.GetErrorMessage().c_str());
+			return;
+		}
 
-		connection.SendCommandResponse<CreateClientEntity>(op.RequestId, {});
+		shovelerLogInfo("Sent create entity request %lld.", createEntityRequestId->Id);
+
+		Result<None> commandResponseSent = connection.SendCommandResponse<CreateClientEntity>(op.RequestId, {});
+		if(!commandResponseSent) {
+			shovelerLogError("Failed to send create client entity command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
+		}
 	});
 
 	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing>& op) {
@@ -345,7 +357,12 @@ int main(int argc, char **argv) {
 		ClientHeartbeat::Update heartbeatUpdate;
 		heartbeatUpdate.set_last_server_heartbeat(now);
 		connection.SendComponentUpdate<ClientHeartbeat>(clientEntityId, heartbeatUpdate);
-		connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
+
+		Result<None> commandResponseSent = connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
+		if(!commandResponseSent) {
+			shovelerLogError("Failed to send client ping command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
+			return;
+		}
 
 		shovelerLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 	});
@@ -388,8 +405,17 @@ int main(int argc, char **argv) {
 		WorkerRequirementSet clientRequirementSet({clientAttributeSet});
 		cubeEntity.Add<EntityAcl>({clientRequirementSet, {}});
 
-		connection.SendCreateEntityRequest(cubeEntity, {}, {});
-		connection.SendCommandResponse<ClientSpawnCube>(op.RequestId, {});
+		Result<RequestId<CreateEntityRequest>> createEntityRequestId = connection.SendCreateEntityRequest(cubeEntity, {}, {});
+		if(!createEntityRequestId) {
+			shovelerLogError("Failed to send create entity request: %s", createEntityRequestId.GetErrorMessage().c_str());
+			return;
+		}
+
+		Result<None> commandResponseSent = connection.SendCommandResponse<ClientSpawnCube>(op.RequestId, {});
+		if(!commandResponseSent) {
+			shovelerLogError("Failed to send client spawn cube command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
+			return;
+		}
 	});
 
 	dispatcher.OnCommandRequest<DigHole>([&](const worker::CommandRequestOp<DigHole>& op) {
@@ -444,7 +470,12 @@ int main(int argc, char **argv) {
 		TilemapTiles::Update tilemapTilesUpdate;
 		tilemapTilesUpdate.set_tiles(tiles);
 		connection.SendComponentUpdate<TilemapTiles>(chunkBackgroundEntityId, tilemapTilesUpdate);
-		connection.SendCommandResponse<DigHole>(op.RequestId, {});
+
+		Result<None> commandResponseSent = connection.SendCommandResponse<DigHole>(op.RequestId, {});
+		if(!commandResponseSent) {
+			shovelerLogError("Failed to send dig hole command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
+			return;
+		}
 	});
 
 	dispatcher.OnCommandRequest<UpdateResource>([&](const worker::CommandRequestOp<UpdateResource>& op) {
@@ -470,11 +501,16 @@ int main(int argc, char **argv) {
 		resourceUpdate.set_type_id(op.Request.type_id());
 		resourceUpdate.set_content(op.Request.content());
 		connection.SendComponentUpdate<Resource>(resourceEntityId, resourceUpdate);
-		connection.SendCommandResponse<UpdateResource>(op.RequestId, {});
+
+		Result<None> commandResponseSent = connection.SendCommandResponse<UpdateResource>(op.RequestId, {});
+		if(!commandResponseSent) {
+			shovelerLogError("Failed to send update resource command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
+			return;
+		}
 	});
 
 	dispatcher.OnCreateEntityResponse([&](const worker::CreateEntityResponseOp& op) {
-		shovelerLogInfo("Received create entity response for request %u with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
+		shovelerLogInfo("Received create entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
 
 		if(op.StatusCode == worker::StatusCode::kSuccess) {
 			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
@@ -497,7 +533,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnDeleteEntityResponse([&](const worker::DeleteEntityResponseOp& op) {
-		shovelerLogInfo("Received delete entity response for request %u with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
+		shovelerLogInfo("Received delete entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
 
 		if(op.StatusCode == worker::StatusCode::kSuccess) {
 			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
@@ -550,7 +586,7 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer)
 		int64_t diff = now - last;
 		if (diff > 1000 * context->maxHeartbeatTimeoutMs) {
 			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
-			shovelerLogWarning("Sent remove client entity %lld request %u of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
+			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
 		}
 	}
 }

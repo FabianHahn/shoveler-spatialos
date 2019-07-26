@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(shoveler-spatialos)
 
-set(SPATIALOS_SDK_VERSION "13.7.1")
+set(SPATIALOS_SDK_VERSION "14.0.0")
 
 # download external dependencies at configuration time
 configure_file(CMakeLists.txt.external.in external/CMakeLists.txt)
@@ -23,10 +23,9 @@ set(CMAKE_CXX_STANDARD 11)
 set(SHOVELER_BUILD_TESTS OFF CACHE BOOL "Disable building shoveler tests")
 set(SHOVELER_BUILD_EXAMPLES OFF CACHE BOOL "Disable building shoveler examples")
 
-
 add_subdirectory(assets)
 add_subdirectory(schema)
 add_subdirectory(seeders)
 add_subdirectory(shoveler)
-add_subdirectory(worker_sdk)
+add_subdirectory(thirdparty)
 add_subdirectory(workers)

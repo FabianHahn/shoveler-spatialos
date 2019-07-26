@@ -5,7 +5,7 @@ set(SHOVELER_SERVER_SRC
 )
 
 add_executable(ShovelerServer ${SHOVELER_SERVER_SRC})
-target_link_libraries(ShovelerServer schema worker_sdk shoveler_base)
+target_link_libraries(ShovelerServer shoveler_base schema worker_sdk::worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerServer

@@ -36,6 +36,9 @@ using worker::EntityId;
 using worker::List;
 using worker::Map;
 using worker::Option;
+using worker::Result;
+using worker::SnapshotOutputStream;
+using worker::StreamErrorCode;
 
 int main(int argc, char **argv) {
 	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
@@ -150,10 +153,18 @@ int main(int argc, char **argv) {
 	lightEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[9] = lightEntity;
 
-	Option<std::string> optionalError = SaveSnapshot(components, filename, entities);
-	if (optionalError) {
-		shovelerLogError("Failed to write snapshot: %s", optionalError->c_str());
+	Result<SnapshotOutputStream, StreamErrorCode> outputStream = SnapshotOutputStream::Create(components, filename);
+	if(!outputStream) {
+		shovelerLogError("Failed to open snapshot stream: %s", outputStream.GetErrorMessage().c_str());
 		return EXIT_FAILURE;
+	}
+
+	for(std::unordered_map<EntityId, Entity>::const_iterator iter = entities.begin(); iter != entities.end(); ++iter) {
+		Result<worker::None, StreamErrorCode> entityWritten = outputStream->WriteEntity(iter->first, iter->second);
+		if(!entityWritten) {
+			shovelerLogError("Failed to write entity %lld to snapshot: %s", entityWritten.GetErrorMessage().c_str());
+			return EXIT_FAILURE;
+		}
 	}
 
 	shovelerLogInfo("Successfully wrote snapshot with %zu entities.", entities.size());

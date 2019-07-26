@@ -65,6 +65,9 @@ using worker::Connection;
 using worker::ConnectionParameters;
 using worker::EntityId;
 using worker::Option;
+using worker::OutgoingCommandRequest;
+using worker::RequestId;
+using worker::Result;
 
 using CreateClientEntity = Bootstrap::Commands::CreateClientEntity;
 using ClientPing = Bootstrap::Commands::ClientPing;
@@ -292,17 +295,23 @@ int main(int argc, char **argv) {
 	worker::RequestId<worker::EntityQueryRequest> bootstrapQueryRequestId = connection.SendEntityQueryRequest(bootstrapEntityQuery, {});
 
 	dispatcher.OnEntityQueryResponse([&](const worker::EntityQueryResponseOp& op) {
-		shovelerLogInfo("Received entity query response for request %u with status code %d.", op.RequestId.Id, op.StatusCode);
-		if(op.RequestId == bootstrapQueryRequestId && op.Result.size() > 0) {
+		shovelerLogInfo("Received entity query response for request %lld with status code %d.", op.RequestId.Id, op.StatusCode);
+		if(op.RequestId == bootstrapQueryRequestId && !op.Result.empty()) {
 			context.bootstrapEntityId = op.Result.begin()->first;
 			shovelerLogInfo("Received bootstrap query response containing entity %lld.", context.bootstrapEntityId);
-			worker::RequestId<worker::OutgoingCommandRequest<CreateClientEntity>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(context.bootstrapEntityId, {}, {});
-			shovelerLogInfo("Sent create client entity request with id %u.", createClientEntityRequestId.Id);
+
+			Result<RequestId<OutgoingCommandRequest<CreateClientEntity>>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(context.bootstrapEntityId, {}, {});
+			if(!createClientEntityRequestId) {
+				shovelerLogError("Failed to send create client entity request: %s", createClientEntityRequestId.GetErrorMessage().c_str());
+				return;
+			}
+
+			shovelerLogInfo("Sent create client entity request with id %lld.", createClientEntityRequestId->Id);
 		}
 	});
 
 	dispatcher.OnCommandResponse<CreateClientEntity>([&](const worker::CommandResponseOp<CreateClientEntity>& op) {
-		shovelerLogInfo("Received create client entity command response %u with status code %d.", op.RequestId.Id, op.StatusCode);
+		shovelerLogInfo("Received create client entity command response %lld with status code %d.", op.RequestId.Id, op.StatusCode);
 	});
 
 	registerPositionCallbacks(connection, dispatcher, view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ);

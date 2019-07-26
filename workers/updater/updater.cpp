@@ -29,6 +29,7 @@ using worker::ConnectionParameters;
 using worker::EntityId;
 using worker::OutgoingCommandRequest;
 using worker::RequestId;
+using worker::Result;
 
 using UpdateResource = Bootstrap::Commands::UpdateResource;
 
@@ -135,7 +136,14 @@ int main(int argc, char **argv) {
 					std::string contentsString{(char *) contents, contentsSize};
 					free(contents);
 
-					updateRequests.insert(connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {}));
+					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {});
+					if(!updateRequest) {
+						shovelerLogError("Failed to send resource update request for entity %lld (%zu bytes): %s", resourceEntityId, contentsString.size(), updateRequest.GetErrorMessage().c_str());
+						disconnected = true;
+						break;
+					}
+
+					updateRequests.insert(*updateRequest);
 					shovelerLogInfo("Sent resource update request for entity %lld (%zu bytes).", resourceEntityId, contentsString.size());
 				} else if(operation == "resource_animation") {
 					EntityId resourceEntityId;
@@ -173,7 +181,14 @@ int main(int argc, char **argv) {
 					shovelerImageFree(characterPngImage);
 					shovelerImageFree(characterAnimationTilesetImage);
 
-					updateRequests.insert(connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {}));
+					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {});
+					if(!updateRequest) {
+						shovelerLogError("Failed to send resource animation update request for entity %lld (%zu bytes): %s", resourceEntityId, contentsString.size(), updateRequest.GetErrorMessage().c_str());
+						disconnected = true;
+						break;
+					}
+
+					updateRequests.insert(*updateRequest);
 					shovelerLogInfo("Sent resource animation update request for entity %lld (%zu bytes).", resourceEntityId, contentsString.size());
 				} else {
 					shovelerLogError("Unsupported update operation '%s'.", operation.c_str());
