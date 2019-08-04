@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
 	nearestNeighborSampler = shovelerSamplerCreate(false, true, true);
 	interpolatingSampler = shovelerSamplerCreate(true, true, true);
 
-	colorMaterial = shovelerMaterialColorCreate(game->shaderCache, shovelerVector3(0.7, 0.7, 0.7));
+	colorMaterial = shovelerMaterialColorCreate(game->shaderCache, /* screenspace */ false, shovelerVector3(0.7, 0.7, 0.7));
 
 	ShovelerImage *image = shovelerImageCreate(2, 2, 3);
 	shovelerImageClear(image);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 	shovelerImageGet(image, 1, 1, 2) = 255;
 	ShovelerTexture *texture = shovelerTextureCreate2d(image, true);
 	shovelerTextureUpdate(texture);
-	textureMaterial = shovelerMaterialTextureCreate(game->shaderCache, texture, true, nearestNeighborSampler, false);
+	textureMaterial = shovelerMaterialTextureCreate(game->shaderCache, /* screenspace */ false, texture, true, nearestNeighborSampler, false);
 
 	shovelerOpenGLCheckSuccess();
 
@@ -192,7 +192,6 @@ int main(int argc, char *argv[])
 
 	screenspaceTextureMaterial = shovelerMaterialScreenspaceTextureCreate(game->shaderCache, shovelerLightPointGetShared(pointlight)->depthFramebuffer->depthTarget, false, true, nearestNeighborSampler, false);
 	ShovelerModel *screenQuadModel = shovelerModelCreate(quad, screenspaceTextureMaterial);
-	screenQuadModel->screenspace = true;
 	screenQuadModel->translation.values[0] = -1.0;
 	screenQuadModel->translation.values[1] = -1.0;
 	screenQuadModel->scale.values[0] = 0.5;

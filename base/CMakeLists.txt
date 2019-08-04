@@ -6,9 +6,12 @@ set(SHOVELER_BASE_SRC
 	src/view/resources.c
 	src/colliders.c
 	src/color.c
+	src/component.c
 	src/compression.c
 	src/executor.c
 	src/file.c
+	src/font.c
+	src/font_atlas.c
 	src/frustum.c
 	src/image.c
 	src/log.c
@@ -25,10 +28,13 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/collider.h
 	include/shoveler/colliders.h
 	include/shoveler/color.h
+	include/shoveler/component.h
 	include/shoveler/compression.h
 	include/shoveler/constants.h
 	include/shoveler/executor.h
 	include/shoveler/file.h
+	include/shoveler/font.h
+	include/shoveler/font_atlas.h
 	include/shoveler/frustum.h
 	include/shoveler/hash.h
 	include/shoveler/image.h
@@ -45,6 +51,7 @@ set(SHOVELER_BASE_TEST_SRC
 	src/view/resources_test.cpp
 	src/colliders_test.cpp
 	src/color_test.cpp
+	src/component_test.cpp
 	src/compression_test.cpp
 	src/executor_test.cpp
 	src/frustum_test.cpp
@@ -56,25 +63,37 @@ set(SHOVELER_BASE_TEST_SRC
 	src/view_test.cpp
 )
 
-include_directories(${ZLIB_INCLUDE_DIR})
 add_library(shoveler_base ${SHOVELER_BASE_SRC})
+add_library(shoveler::shoveler_base ALIAS shoveler_base)
 set_property(TARGET shoveler_base PROPERTY C_STANDARD 99)
 
 target_include_directories(shoveler_base
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    PUBLIC $<INSTALL_INTERFACE:include>
-    PRIVATE src)
+	PUBLIC $<INSTALL_INTERFACE:include>
+	PRIVATE src)
 
-target_link_libraries(shoveler_base png_static zlibstatic)
+target_link_libraries(shoveler_base PUBLIC Freetype::Freetype PRIVATE PNG::PNG ZLIB::ZLIB)
 
 if(SHOVELER_USE_GLIB)
-	target_link_libraries(shoveler_base glib)
+	target_link_libraries(shoveler_base PUBLIC glib::glib)
 else()
-	target_link_libraries(shoveler_base fakeglibstatic)
+	target_link_libraries(shoveler_base PUBLIC fakeglib::fakeglibstatic)
 endif()
 
 if(UNIX)
-	target_link_libraries(shoveler_base m)
+	target_link_libraries(shoveler_base PRIVATE m)
+endif()
+
+if(SHOVELER_INSTALL)
+	install(TARGETS shoveler_base
+		EXPORT shoveler-targets
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		RUNTIME DESTINATION bin
+		INCLUDES DESTINATION include)
+
+	install(DIRECTORY include/
+		DESTINATION include)
 endif()
 
 if(SHOVELER_BUILD_TESTS)
@@ -83,7 +102,7 @@ if(SHOVELER_BUILD_TESTS)
 	target_include_directories(shoveler_base_test
 		PRIVATE src)
 
-	target_link_libraries(shoveler_base_test shoveler_base gtest)
+	target_link_libraries(shoveler_base_test shoveler::shoveler_base GTest::gtest)
 	set_property(TARGET shoveler_base_test PROPERTY CXX_STANDARD 11)
 	add_test(shoveler_base shoveler_base_test)
 endif()

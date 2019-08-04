@@ -9,6 +9,7 @@
 #include "shoveler/model.h"
 #include "shoveler/render_state.h"
 #include "shoveler/scene.h"
+#include "shoveler/shader.h"
 #include "shoveler/texture.h"
 #include "shoveler/tilemap.h"
 #include "shoveler/tileset.h"
@@ -36,8 +37,8 @@ bool shovelerTilemapIntersect(ShovelerTilemap *tilemap, const ShovelerBoundingBo
 
 	ShovelerVector2 size = shovelerVector2LinearCombination(1.0f, boundingBox->max, -1.0f, boundingBox->min);
 
-	unsigned int numColumns = tilemap->tiles->image->width;
-	unsigned int numRows = tilemap->tiles->image->height;
+	unsigned int numColumns = tilemap->tiles->width;
+	unsigned int numRows = tilemap->tiles->height;
 
 	float columnStride = size.values[0] / numColumns;
 	float rowStride = size.values[1] / numRows;
@@ -90,7 +91,9 @@ bool shovelerTilemapRender(ShovelerTilemap *tilemap, ShovelerMaterial *material,
 			return false;
 		}
 
-		shovelerRenderStateEnableDepthTest(renderState, GL_EQUAL);
+		if(!material->screenspace) {
+			shovelerRenderStateEnableDepthTest(renderState, GL_EQUAL);
+		}
 	}
 
 	return true;
