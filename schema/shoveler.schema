@@ -369,13 +369,6 @@ component Model {
 	 */
 	bool emitter = 6;
 	/**
-	 * If true, marks this model as a screenspace object.
-	 *
-	 * Screenspace models are rendered in a special render pass after lights have illuminated the scene and emitters have been rendered.
-	 * They always cover existing objects in the scene, and aren't affected by light sources in the scene.
-	 */
-	bool screenspace = 7;
-	/**
 	 * If true, marks this model as a shadow caster.
 	 *
 	 * Shadow casters are rendered into light cameras to determine a light's shadow volume.

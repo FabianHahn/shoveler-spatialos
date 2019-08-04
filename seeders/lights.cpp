@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<Position>({{0, -2, 0}});
-	planeEntity.Add<Model>({quadDrawableEntityId, grayColorMaterialEntityId, {SHOVELER_PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
+	planeEntity.Add<Model>({quadDrawableEntityId, grayColorMaterialEntityId, {SHOVELER_PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, true, PolygonMode::FILL});
 	planeEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[7] = planeEntity;
 
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 	cubeEntity.Add<Metadata>({"cube"});
 	cubeEntity.Add<Persistence>({});
 	cubeEntity.Add<Position>({{0, 0, 5}});
-	cubeEntity.Add<Model>({cubeDrawableEntityId, grayColorMaterialEntityId, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, false, true, PolygonMode::FILL});
+	cubeEntity.Add<Model>({cubeDrawableEntityId, grayColorMaterialEntityId, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, true, PolygonMode::FILL});
 	cubeEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[8] = cubeEntity;
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 	lightEntity.Add<Metadata>({"light"});
 	lightEntity.Add<Persistence>({});
 	lightEntity.Add<Position>({{-1, 5, -1}});
-	lightEntity.Add<Model>({pointDrawableEntityId, whiteParticleMaterialEntityId, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, false, PolygonMode::FILL});
+	lightEntity.Add<Model>({pointDrawableEntityId, whiteParticleMaterialEntityId, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, PolygonMode::FILL});
 	lightEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}, {}});
 	lightEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[9] = lightEntity;

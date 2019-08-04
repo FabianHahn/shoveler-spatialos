@@ -25,7 +25,6 @@ void registerModelCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		modelConfiguration.scale = ShovelerVector3{op.Data.scale().x(), op.Data.scale().y(), op.Data.scale().z()};
 		modelConfiguration.visible = op.Data.visible();
 		modelConfiguration.emitter = op.Data.emitter();
-		modelConfiguration.screenspace = op.Data.screenspace();
 		modelConfiguration.castsShadow = op.Data.casts_shadow();
 		modelConfiguration.polygonMode = getPolygonMode(op.Data.polygon_mode());
 		shovelerViewEntityAddModel(entity, modelConfiguration);
@@ -58,10 +57,6 @@ void registerModelCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 
 		if(op.Update.emitter()) {
 			shovelerViewEntityUpdateModelEmitter(entity, *op.Update.emitter());
-		}
-
-		if(op.Update.screenspace()) {
-			shovelerViewEntityUpdateModelScreenspace(entity, *op.Update.screenspace());
 		}
 
 		if(op.Update.polygon_mode()) {

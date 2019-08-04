@@ -269,7 +269,7 @@ int main(int argc, char **argv) {
 			{ChunkLayerType::TILEMAP, foregroundEntityId},
 		}});
 		chunkEntity.Add<Material>({MaterialType::CHUNK, {}, {nextEntityId}, {}, {}});
-		chunkEntity.Add<Model>({2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, false, true, false, PolygonMode::FILL});
+		chunkEntity.Add<Model>({2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		entities[nextEntityId] = chunkEntity;
 		nextEntityId++;
