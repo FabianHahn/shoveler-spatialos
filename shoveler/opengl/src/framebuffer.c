@@ -12,7 +12,7 @@ ShovelerFramebuffer *shovelerFramebufferCreate(GLsizei width, GLsizei height, GL
 	glGenFramebuffers(1, &framebuffer->framebuffer);
 	framebuffer->width = width;
 	framebuffer->height = height;
-	framebuffer->renderTarget = shovelerTextureCreateRenderTarget(width, height, samples, channels, bitsPerChannel);
+	framebuffer->renderTarget = shovelerTextureCreateRenderTarget(width, height, channels, samples, bitsPerChannel);
 	framebuffer->depthTarget = shovelerTextureCreateDepthTarget(width, height, samples);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
@@ -33,7 +33,7 @@ ShovelerFramebuffer *shovelerFramebufferCreateColorOnly(GLsizei width, GLsizei h
 	glGenFramebuffers(1, &framebuffer->framebuffer);
 	framebuffer->width = width;
 	framebuffer->height = height;
-	framebuffer->renderTarget = shovelerTextureCreateRenderTarget(width, height, samples, channels, bitsPerChannel);
+	framebuffer->renderTarget = shovelerTextureCreateRenderTarget(width, height, channels, samples, bitsPerChannel);
 	framebuffer->depthTarget = NULL;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->framebuffer);
@@ -90,14 +90,17 @@ bool shovelerFramebufferBlitToDefault(ShovelerFramebuffer *framebuffer)
 	return shovelerOpenGLCheckSuccess();
 }
 
-void shovelerFramebufferFree(ShovelerFramebuffer *framebuffer)
+void shovelerFramebufferFree(ShovelerFramebuffer *framebuffer, bool keepTargets)
 {
 	if(framebuffer == NULL) {
 		return;
 	}
 
-	shovelerTextureFree(framebuffer->depthTarget);
-	shovelerTextureFree(framebuffer->renderTarget);
+	if(!keepTargets) {
+		shovelerTextureFree(framebuffer->depthTarget);
+		shovelerTextureFree(framebuffer->renderTarget);
+	}
+
 	glDeleteFramebuffers(1, &framebuffer->framebuffer);
 	free(framebuffer);
 }

@@ -16,10 +16,13 @@ set(SHOVELER_OPENGL_SRC
 	src/material/depth_texture_gaussian_filter.c
 	src/material/particle.c
 	src/material/screenspace_texture.c
+	src/material/text.c
 	src/material/texture.c
 	src/material/tile_sprite.c
 	src/material/tilemap.c
 	src/material/variation.c
+	src/shader_program/model_vertex_projected.c
+	src/shader_program/model_vertex_screenspace.c
 	src/view/canvas.c
 	src/view/chunk.c
 	src/view/client.c
@@ -37,6 +40,7 @@ set(SHOVELER_OPENGL_SRC
 	src/canvas.c
 	src/chunk.c
 	src/controller.c
+	src/font_atlas_texture.c
 	src/framebuffer.c
 	src/game.c
 	src/global.c
@@ -50,6 +54,7 @@ set(SHOVELER_OPENGL_SRC
 	src/shader.c
 	src/shader_cache.c
 	src/shader_program.c
+	src/text_texture_renderer.c
 	src/texture.c
 	src/tile_sprite_animation.c
 	src/tilemap.c
@@ -74,10 +79,14 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/material/depth_texture_gaussian_filter.h
 	include/shoveler/material/particle.h
 	include/shoveler/material/screenspace_texture.h
+	include/shoveler/material/text.h
 	include/shoveler/material/texture.h
 	include/shoveler/material/tile_sprite.h
 	include/shoveler/material/tilemap.h
 	include/shoveler/material/variation.h
+	include/shoveler/shader_program/model_vertex.h
+	include/shoveler/shader_program/model_vertex_projected.h
+	include/shoveler/shader_program/model_vertex_screenspace.h
 	include/shoveler/view/canvas.h
 	include/shoveler/view/chunk.h
 	include/shoveler/view/client.h
@@ -100,6 +109,7 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/controller.h
 	include/shoveler/drawable.h
 	include/shoveler/filter.h
+	include/shoveler/font_atlas_texture.h
 	include/shoveler/framebuffer.h
 	include/shoveler/game.h
 	include/shoveler/global.h
@@ -114,6 +124,7 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/shader.h
 	include/shoveler/shader_cache.h
 	include/shoveler/shader_program.h
+	include/shoveler/text_texture_renderer.h
 	include/shoveler/texture.h
 	include/shoveler/tile_sprite_animation.h
 	include/shoveler/tilemap.h
@@ -130,14 +141,27 @@ set(SHOVELER_OPENGL_TEST_SRC
 )
 
 add_library(shoveler_opengl ${SHOVELER_OPENGL_SRC})
+add_library(shoveler::shoveler_opengl ALIAS shoveler_opengl)
 set_property(TARGET shoveler_opengl PROPERTY C_STANDARD 99)
 
 target_include_directories(shoveler_opengl
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    PUBLIC $<INSTALL_INTERFACE:include>
-    PRIVATE src)
+	PUBLIC $<INSTALL_INTERFACE:include>
+	PRIVATE src)
 
-target_link_libraries(shoveler_opengl shoveler_base glad glfw)
+target_link_libraries(shoveler_opengl PUBLIC shoveler_base glad::glad glfw)
+
+if(SHOVELER_INSTALL)
+	install(TARGETS shoveler_opengl
+		EXPORT shoveler-targets
+		LIBRARY DESTINATION lib
+		ARCHIVE DESTINATION lib
+		RUNTIME DESTINATION bin
+		INCLUDES DESTINATION include)
+
+	install(DIRECTORY include/
+		DESTINATION include)
+endif()
 
 if(SHOVELER_BUILD_TESTS)
 	add_executable(shoveler_opengl_test ${SHOVELER_OPENGL_TEST_SRC})
@@ -145,7 +169,7 @@ if(SHOVELER_BUILD_TESTS)
 	target_include_directories(shoveler_opengl_test
 		PRIVATE src)
 
-	target_link_libraries(shoveler_opengl_test shoveler_opengl gtest)
+	target_link_libraries(shoveler_opengl_test shoveler::shoveler_opengl GTest::gtest)
 	set_property(TARGET shoveler_opengl_test PROPERTY CXX_STANDARD 11)
 	add_test(shoveler_opengl shoveler_opengl_test)
 endif()

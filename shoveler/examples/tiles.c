@@ -93,13 +93,13 @@ int main(int argc, char *argv[])
 	shovelerTilemapAddTileset(tilemap, tileset2);
 	shovelerImageFree(tilesetImage);
 
-	ShovelerMaterial *tilemapMaterial = shovelerMaterialTilemapCreate(game->shaderCache);
+	ShovelerMaterial *tilemapMaterial = shovelerMaterialTilemapCreate(game->shaderCache, /* screenspace */ false);
 	shovelerMaterialTilemapSetActive(tilemapMaterial, tilemap);
 
 	ShovelerDrawable *quad = shovelerDrawableQuadCreate();
 	ShovelerModel *tilesModel = shovelerModelCreate(quad, tilemapMaterial);
 	tilesModel->scale = shovelerVector3(0.5, 0.5, 1.0);
-	tilesModel->screenspace = true;
+	tilesModel->emitter = true;
 	shovelerModelUpdateTransformation(tilesModel);
 	shovelerSceneAddModel(game->scene, tilesModel);
 

@@ -153,12 +153,12 @@ int main(int argc, char *argv[])
 	animation = shovelerTileSpriteAnimationCreate(&characterSprite, 0.1f);
 	animation->moveAmountThreshold = 0.25f;
 
-	ShovelerMaterial *chunkMaterial = shovelerMaterialChunkCreate(game->shaderCache);
+	ShovelerMaterial *chunkMaterial = shovelerMaterialChunkCreate(game->shaderCache, /* screenspace */ false);
 	shovelerMaterialChunkSetActive(chunkMaterial, chunk);
 	ShovelerDrawable *quad = shovelerDrawableQuadCreate();
 	ShovelerModel *chunkModel = shovelerModelCreate(quad, chunkMaterial);
 	chunkModel->scale = shovelerVector3(5.0, 5.0, 1.0);
-	chunkModel->screenspace = true;
+	chunkModel->emitter = true;
 	shovelerModelUpdateTransformation(chunkModel);
 	shovelerSceneAddModel(game->scene, chunkModel);
 

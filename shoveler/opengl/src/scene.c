@@ -25,23 +25,21 @@ ShovelerScene *shovelerSceneCreate(ShovelerShaderCache *shaderCache)
 	ShovelerScene *scene = malloc(sizeof(ShovelerScene));
 	scene->shaderCache = shaderCache;
 	scene->uniforms = shovelerUniformMapCreate();
-	scene->depthMaterial = shovelerMaterialDepthCreate(shaderCache);
-	scene->debugMode = 0;
+	scene->depthMaterial = shovelerMaterialDepthCreate(shaderCache, /* screenspace */ false);
+	scene->debugMode = false;
+	scene->activeFramebufferSize = shovelerVector2(0.0f, 0.0f);
 	scene->lights = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeLight, NULL);
 	scene->models = g_hash_table_new_full(g_direct_hash, g_direct_equal, freeModel, NULL);
 
-	shovelerUniformMapInsert(scene->uniforms, "sceneDebugMode", shovelerUniformCreateIntPointer(&scene->debugMode));
+	shovelerUniformMapInsert(scene->uniforms, "sceneDebugMode", shovelerUniformCreateBoolPointer(&scene->debugMode));
+	shovelerUniformMapInsert(scene->uniforms, "framebufferSize", shovelerUniformCreateVector2Pointer(&scene->activeFramebufferSize));
 
 	return scene;
 }
 
 void shovelerSceneToggleDebugMode(ShovelerScene *scene)
 {
-	if(scene->debugMode > 0) {
-		scene->debugMode = 0;
-	} else {
-		scene->debugMode = 1;
-	}
+	scene->debugMode = !scene->debugMode;
 }
 
 bool shovelerSceneAddLight(ShovelerScene *scene, ShovelerLight *light)
@@ -80,11 +78,11 @@ int shovelerSceneRenderPass(ShovelerScene *scene, ShovelerCamera *camera, Shovel
 			continue;
 		}
 
-		if(model->screenspace != options.screenspace) {
+		if(model->material->screenspace != options.screenspace) {
 			continue;
 		}
 
-		if(options.onlyShadowCasters && !model->screenspace && !model->castsShadow) {
+		if(options.onlyShadowCasters && !model->material->screenspace && !model->castsShadow) {
 			continue;
 		}
 
@@ -106,6 +104,7 @@ int shovelerSceneRenderFrame(ShovelerScene *scene, ShovelerCamera *camera, Shove
 	int rendered = 0;
 
 	shovelerFramebufferUse(framebuffer);
+	scene->activeFramebufferSize = shovelerVector2(framebuffer->width, framebuffer->height);
 
 	shovelerRenderStateSetDepthMask(renderState, GL_TRUE);
 	glClearDepth(1.0f);
@@ -202,14 +201,13 @@ ShovelerSceneRenderPassOptions createRenderPassOptions(ShovelerScene *scene, Ren
 			options.renderState.blendSourceFactor = GL_ONE;
 			options.renderState.blendDestinationFactor = GL_ONE;
 			options.renderState.depthFunction = GL_LESS;
-			options.renderState.depthMask = GL_FALSE;
+			options.renderState.depthMask = GL_TRUE;
 		break;
 		case RENDER_MODE_SCREENSPACE:
 			options.screenspace = true;
 			options.renderState.blendSourceFactor = GL_ONE;
 			options.renderState.blendDestinationFactor = GL_ZERO;
-			options.renderState.depthFunction = GL_ALWAYS;
-			options.renderState.depthMask = GL_TRUE;
+			options.renderState.depthTest = false;
 		break;
 		case RENDER_MODE_ADDITIVE_LIGHT:
 			options.renderState.blendSourceFactor = GL_ONE;

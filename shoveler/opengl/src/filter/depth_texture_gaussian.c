@@ -54,8 +54,7 @@ ShovelerFilter *shovelerFilterDepthTextureGaussianCreate(ShovelerShaderCache *sh
 
 	depthTextureGaussianFilter->filterQuad = shovelerDrawableQuadCreate();
 	depthTextureGaussianFilter->filterScene = shovelerSceneCreate(shaderCache);
-	depthTextureGaussianFilter->filterModel = shovelerModelCreate(depthTextureGaussianFilter->filterQuad, depthTextureGaussianFilter->filterScene->depthMaterial);
-	depthTextureGaussianFilter->filterModel->screenspace = true;
+	depthTextureGaussianFilter->filterModel = shovelerModelCreate(depthTextureGaussianFilter->filterQuad, depthTextureGaussianFilter->filterXMaterial);
 	depthTextureGaussianFilter->filterModel->translation.values[0] = -1.0f;
 	depthTextureGaussianFilter->filterModel->translation.values[1] = -1.0f;
 	depthTextureGaussianFilter->filterModel->scale.values[0] = 2.0f;
@@ -83,8 +82,8 @@ static int filterDepthTextureGaussian(ShovelerFilter *filter, ShovelerRenderStat
 
 	int rendered = 0;
 
-	glDisable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
+	shovelerRenderStateDisableBlend(renderState);
+	shovelerRenderStateDisableDepthTest(renderState);
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// filter depth map in X direction and lift exponentially
@@ -114,8 +113,8 @@ static void freeDepthTextureGaussian(void *data)
 	shovelerDrawableFree(depthTextureGaussianFilter->filterQuad);
 	shovelerMaterialFree(depthTextureGaussianFilter->filterYMaterial);
 	shovelerMaterialFree(depthTextureGaussianFilter->filterXMaterial);
-	shovelerFramebufferFree(depthTextureGaussianFilter->filterYFramebuffer);
-	shovelerFramebufferFree(depthTextureGaussianFilter->filterXFramebuffer);
+	shovelerFramebufferFree(depthTextureGaussianFilter->filterYFramebuffer, /* keepTargets */ false);
+	shovelerFramebufferFree(depthTextureGaussianFilter->filterXFramebuffer, /* keepTargets */ false);
 	shovelerCameraFree(depthTextureGaussianFilter->filterCamera);
 	shovelerSamplerFree(depthTextureGaussianFilter->filterSampler);
 	free(depthTextureGaussianFilter);

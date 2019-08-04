@@ -4,7 +4,9 @@
 #include <string.h> // memcpy
 
 #include "shoveler/material/tilemap.h"
+#include "shoveler/shader_program/model_vertex.h"
 #include "shoveler/camera.h"
+#include "shoveler/image.h"
 #include "shoveler/light.h"
 #include "shoveler/log.h"
 #include "shoveler/material.h"
@@ -136,14 +138,14 @@ typedef struct {
 static bool render(ShovelerMaterial *material, ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerRenderState *renderState);
 static void freeTilemap(ShovelerMaterial *material);
 
-ShovelerMaterial *shovelerMaterialTilemapCreate(ShovelerShaderCache *shaderCache)
+ShovelerMaterial *shovelerMaterialTilemapCreate(ShovelerShaderCache *shaderCache, bool screenspace)
 {
-	GLuint vertexShaderObject = shovelerShaderProgramCompileFromString(vertexShaderSource, GL_VERTEX_SHADER);
+	GLuint vertexShaderObject = shovelerShaderProgramModelVertexCreate(screenspace);
 	GLuint fragmentShaderObject = shovelerShaderProgramCompileFromString(fragmentShaderSource, GL_FRAGMENT_SHADER);
 	GLuint program = shovelerShaderProgramLink(vertexShaderObject, 0, fragmentShaderObject, true);
 
 	MaterialData *materialData = malloc(sizeof(MaterialData));
-	materialData->material = shovelerMaterialCreate(shaderCache, program);
+	materialData->material = shovelerMaterialCreate(shaderCache, screenspace, program);
 	materialData->material->data = materialData;
 	materialData->material->render = render;
 	materialData->material->freeData = freeTilemap;
