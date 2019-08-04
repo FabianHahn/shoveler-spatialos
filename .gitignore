@@ -6,3 +6,4 @@
 build
 logs
 cmake-*
+CMakeLists.txt.user*
