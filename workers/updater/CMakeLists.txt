@@ -7,7 +7,7 @@ set(SHOVELER_UPDATER_SRC
 )
 
 add_executable(ShovelerAssetUpdater ${SHOVELER_UPDATER_SRC})
-target_link_libraries(ShovelerAssetUpdater shoveler_base schema worker_sdk::worker_sdk)
+target_link_libraries(ShovelerAssetUpdater shoveler_base schema worker_sdk::cpp_worker_sdk)
 
 if(WIN32)
 	add_custom_command(

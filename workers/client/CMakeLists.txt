@@ -41,7 +41,7 @@ set(SHOVELER_CLIENT_SRC
 	tileset.h)
 
 add_executable(ShovelerClient ${SHOVELER_CLIENT_SRC})
-target_link_libraries(ShovelerClient shoveler_opengl schema worker_sdk::worker_sdk)
+target_link_libraries(ShovelerClient shoveler_opengl schema worker_sdk::cpp_worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerClient

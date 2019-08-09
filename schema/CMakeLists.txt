@@ -30,7 +30,7 @@ add_custom_command(OUTPUT ${SCHEMA_GENERATED_SRC}
 
 add_library(schema STATIC ${SCHEMA_GENERATED_SRC})
 target_include_directories(schema SYSTEM PUBLIC ${GENERATED_CODE_DIR})
-target_link_libraries(schema PUBLIC worker_sdk::worker_sdk)
+target_link_libraries(schema PUBLIC worker_sdk::cpp_worker_sdk)
 
 add_custom_command(TARGET schema POST_BUILD
 	COMMAND ${SCHEMA_COMPILER}
