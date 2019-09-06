@@ -2,6 +2,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_C_CLIENT_SRC
 	client.c
+	configuration.c
+	configuration.h
 	connect.c
 	connect.h
 )

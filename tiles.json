@@ -77,6 +77,63 @@
       ]
     },
     {
+      "workerType": "ShovelerCClient",
+      "flags": [
+        {
+          "name": "controller_frame_position",
+          "value": "0 0 5"
+        },
+        {
+          "name": "controller_frame_direction",
+          "value": "0 0 -1"
+        },
+        {
+          "name": "controller_frame_up",
+          "value": "0 1 0"
+        },
+        {
+          "name": "controller_move_factor",
+          "value": "2.0"
+        },
+        {
+          "name": "controller_bounding_box_2d_size",
+          "value": "0.9"
+        },
+        {
+          "name": "controller_lock_move_z",
+          "value": "false"
+        },
+        {
+          "name": "controller_lock_tilt_x",
+          "value": "true"
+        },
+        {
+          "name": "controller_lock_tilt_y",
+          "value": "true"
+        },
+        {
+          "name": "position_mapping_x",
+          "value": "+x"
+        },
+        {
+          "name": "position_mapping_y",
+          "value": "+z"
+        },
+        {
+          "name": "position_mapping_z",
+          "value": "+y"
+        },
+        {
+          "name": "hide_player_client_entity_model",
+          "value": "false"
+        },
+        {
+          "name": "game_type",
+          "value": "tiles"
+        }
+      ]
+    },
+    {
       "workerType": "ShovelerServer",
       "flags": [
         {

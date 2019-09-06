@@ -12,25 +12,13 @@
 #include <shoveler/resources.h>
 #include <shoveler/types.h>
 
+#include "configuration.h"
 #include "connect.h"
-
-typedef struct {
-	ShovelerGameControllerSettings controllerSettings;
-	bool controllerLockMoveX;
-	bool controllerLockMoveY;
-	bool controllerLockMoveZ;
-	bool controllerLockTiltX;
-	bool controllerLockTiltY;
-	ShovelerCoordinateMapping positionMappingX;
-	ShovelerCoordinateMapping positionMappingY;
-	ShovelerCoordinateMapping positionMappingZ;
-	bool hidePlayerClientEntityModel;
-} ClientConfiguration;
 
 typedef struct {
 	Worker_Connection *connection;
 	ShovelerGame *game;
-	ClientConfiguration *clientConfiguration;
+	ShovelerClientConfiguration *clientConfiguration;
 	long long int clientEntityId;
 } ClientContext;
 
@@ -96,7 +84,13 @@ int main(int argc, char **argv) {
 	}
 	shovelerLogInfo("Sent create entity command request %lld.", createClientEntityCommandRequestId);
 
-	ClientConfiguration clientConfiguration;
+	ShovelerClientConfiguration clientConfiguration;
+	if(!shovelerClientGetWorkerConfiguration(connection, &clientConfiguration)) {
+		shovelerLogError("Failed to retreive client configuration.");
+		Worker_Connection_Destroy(connection);
+		return EXIT_FAILURE;
+	}
+
 	clientConfiguration.controllerSettings.frame.position = shovelerVector3(0, 0, 0);
 	clientConfiguration.controllerSettings.frame.direction = shovelerVector3(0, 0, 1);
 	clientConfiguration.controllerSettings.frame.up = shovelerVector3(0, 1, 0);
