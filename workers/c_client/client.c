@@ -1,4 +1,5 @@
 #include <stdlib.h> // srand
+#include <string.h> // memset
 #include <time.h> // time
 
 #include <improbable/c_schema.h>
@@ -62,6 +63,28 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	shovelerLogInfo("Connected to SpatialOS deployment!");
+
+	long long int bootstrapEntityId = 1;
+	long long int bootstrapComponentId = 1334;
+
+	Worker_CommandRequest createClientEntityCommandRequest;
+	memset(&createClientEntityCommandRequest, 0, sizeof(Worker_CommandRequest));
+	createClientEntityCommandRequest.component_id = bootstrapComponentId;
+	createClientEntityCommandRequest.command_index = 1;
+	createClientEntityCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+	Worker_RequestId createClientEntityCommandRequestId = Worker_Connection_SendCommandRequest(
+		connection,
+		bootstrapEntityId,
+		&createClientEntityCommandRequest,
+		/* timeout_millis */ NULL,
+		/* command_parameters */ NULL);
+	if(createClientEntityCommandRequestId < 0) {
+		shovelerLogError("Failed to send create entity command.");
+		Worker_Connection_Destroy(connection);
+		return EXIT_FAILURE;
+	}
+	shovelerLogInfo("Sent create entity command request %lld.", createClientEntityCommandRequestId);
 
 	ClientConfiguration clientConfiguration;
 	clientConfiguration.controllerSettings.frame.position = shovelerVector3(0, 0, 0);
@@ -160,7 +183,20 @@ int main(int argc, char **argv) {
 					shovelerLogInfo("WORKER_OP_TYPE_COMMAND_REQUEST");
 					break;
 				case WORKER_OP_TYPE_COMMAND_RESPONSE:
-					shovelerLogInfo("WORKER_OP_TYPE_COMMAND_RESPONSE");
+					if (op->op.command_response.request_id == createClientEntityCommandRequestId) {
+						shovelerLogInfo(
+							"Create client entity command request %lld completed with code %u: %s",
+							op->op.command_response.request_id,
+							op->op.command_response.status_code,
+							op->op.command_response.message);
+					} else {
+						shovelerLogInfo(
+							"Entity command %lld to %lld completed with code %u: %s",
+							op->op.command_response.request_id,
+							op->op.command_response.request_id,
+							op->op.command_response.status_code,
+							op->op.command_response.message);
+					}
 					break;
 			}
 		}
