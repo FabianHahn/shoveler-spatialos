@@ -27,8 +27,21 @@ typedef struct {
 	bool hidePlayerClientEntityModel;
 } ClientConfiguration;
 
+typedef struct {
+	Worker_Connection *connection;
+	ShovelerGame *game;
+	ClientConfiguration *clientConfiguration;
+	long long int clientEntityId;
+} ClientContext;
+
+static const long long int bootstrapEntityId = 1;
+static const long long int bootstrapComponentId = 1334;
+static const long long int clientComponentId = 1335;
+static const int64_t clientPingTimeoutMs = 1000;
+
 static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected);
 static void updateGame(ShovelerGame *game, double dt);
+static void clientPingTick(void *clientContextPointer);
 
 int main(int argc, char **argv) {
 	srand(time(NULL));
@@ -63,9 +76,6 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	shovelerLogInfo("Connected to SpatialOS deployment!");
-
-	long long int bootstrapEntityId = 1;
-	long long int bootstrapComponentId = 1334;
 
 	Worker_CommandRequest createClientEntityCommandRequest;
 	memset(&createClientEntityCommandRequest, 0, sizeof(Worker_CommandRequest));
@@ -117,6 +127,11 @@ int main(int argc, char **argv) {
 	}
 	ShovelerView *view = game->view;
 
+	ClientContext context;
+	context.connection = connection;
+	context.game = game;
+	context.clientConfiguration = &clientConfiguration;
+
 	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
 	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
 	game->controller->lockMoveZ = clientConfiguration.controllerLockMoveZ;
@@ -124,6 +139,7 @@ int main(int argc, char **argv) {
 	game->controller->lockTiltY = clientConfiguration.controllerLockTiltY;
 
 	bool disconnected = false;
+	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
@@ -173,9 +189,22 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
 					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_COMPONENT");
 					break;
-				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
-					shovelerLogInfo("WORKER_OP_TYPE_AUTHORITY_CHANGE");
-					break;
+				case WORKER_OP_TYPE_AUTHORITY_CHANGE: {
+					Worker_AuthorityChangeOp *authorityChangeOp = &op->op.authority_change;
+					if(authorityChangeOp->component_id == clientComponentId) {
+						if(authorityChangeOp->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+							shovelerLogInfo("Gained client authority over entity %lld.", authorityChangeOp->entity_id);
+							context.clientEntityId = authorityChangeOp->entity_id;
+							clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
+						} else if(authorityChangeOp->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
+							shovelerLogWarning("Lost client authority over entity %lld.", authorityChangeOp->entity_id);
+							context.clientEntityId = 0;
+							shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
+						}
+					} else {
+						shovelerLogInfo("Authority over component %u of entity %lld changed to %u.", authorityChangeOp->component_id, authorityChangeOp->entity_id, authorityChangeOp->authority);
+					}
+				} break;
 				case WORKER_OP_TYPE_COMPONENT_UPDATE:
 					shovelerLogInfo("WORKER_OP_TYPE_COMPONENT_UPDATE");
 					break;
@@ -190,10 +219,10 @@ int main(int argc, char **argv) {
 							op->op.command_response.status_code,
 							op->op.command_response.message);
 					} else {
-						shovelerLogInfo(
+						shovelerLogTrace(
 							"Entity command %lld to %lld completed with code %u: %s",
 							op->op.command_response.request_id,
-							op->op.command_response.request_id,
+							op->op.command_response.entity_id,
 							op->op.command_response.status_code,
 							op->op.command_response.message);
 					}
@@ -241,4 +270,28 @@ static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected
 static void updateGame(ShovelerGame *game, double dt)
 {
 	shovelerCameraUpdateView(game->camera);
+}
+
+static void clientPingTick(void *clientContextPointer)
+{
+	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	Worker_CommandRequest clientPingCommandRequest;
+	memset(&clientPingCommandRequest, 0, sizeof(Worker_CommandRequest));
+	clientPingCommandRequest.component_id = bootstrapComponentId;
+	clientPingCommandRequest.command_index = 2;
+	clientPingCommandRequest.schema_type = Schema_CreateCommandRequest();
+	Schema_Object *clientPingCommandRequestObject = Schema_GetCommandRequestObject(clientPingCommandRequest.schema_type);
+	Schema_AddEntityId(clientPingCommandRequestObject, 1, context->clientEntityId);
+
+	Worker_RequestId clientPingCommandRequestId = Worker_Connection_SendCommandRequest(
+		context->connection,
+		bootstrapEntityId,
+		&clientPingCommandRequest,
+		/* timeout_millis */ NULL,
+		/* command_parameters */ NULL);
+	if(clientPingCommandRequestId < 0) {
+		shovelerLogWarning("Failed to send client ping command.");
+	}
+	shovelerLogTrace("Sent client ping command request %lld.", clientPingCommandRequestId);
 }
