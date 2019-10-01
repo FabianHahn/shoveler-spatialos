@@ -15,9 +15,6 @@
       }
     ]
   },
-  "snapshot": {
-    "start_deployment_from_snapshot_file": "build/seeders/tiles.snapshot"
-  },
   "workerFlags": [
     {
       "workerType": "ShovelerClient",

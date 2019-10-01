@@ -15,9 +15,6 @@
       }
     ]
   },
-  "snapshot": {
-    "start_deployment_from_snapshot_file": "build/seeders/lights.snapshot"
-  },
   "workerFlags": [
     {
       "workerType": "ShovelerClient",
