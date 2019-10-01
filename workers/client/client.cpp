@@ -280,14 +280,12 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnAuthorityChange<Interest>([&](const worker::AuthorityChangeOp& op) {
-		if(op.EntityId == context.clientEntityId) {
-			if(op.Authority == worker::Authority::kAuthoritative) {
-				shovelerLogInfo("Received authority over interest component of client entity %lld.", op.EntityId);
-				clientInterestAuthoritative = true;
-				context.viewDependenciesUpdated = true;
-			} else {
-				clientInterestAuthoritative = false;
-			}
+		if(op.Authority == worker::Authority::kAuthoritative) {
+			shovelerLogInfo("Received authority over interest component of client entity %lld.", op.EntityId);
+			clientInterestAuthoritative = true;
+			context.viewDependenciesUpdated = true;
+		} else {
+			clientInterestAuthoritative = false;
 		}
 	});
 

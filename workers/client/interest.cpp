@@ -1,6 +1,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -9,6 +11,8 @@
 #include <shoveler/view.h>
 
 extern "C" {
+#include <glib.h>
+
 #include <shoveler/view/canvas.h>
 #include <shoveler/view/client.h>
 #include <shoveler/view/chunk.h>
@@ -28,7 +32,9 @@ extern "C" {
 
 #include "interest.h"
 
+using improbable::EntityAcl;
 using improbable::ComponentInterest;
+using improbable::Metadata;
 using improbable::Position;
 using shoveler::Canvas;
 using shoveler::Chunk;
@@ -44,10 +50,13 @@ using shoveler::Tilemap;
 using shoveler::TilemapTiles;
 using shoveler::Tileset;
 using std::endl;
+using std::map;
 using std::ofstream;
 using std::unordered_map;
+using std::set;
 using std::string;
 using worker::ComponentId;
+using worker::EntityId;
 using worker::List;
 
 using Query = ComponentInterest::Query;
@@ -72,48 +81,38 @@ static const unordered_map<string, ComponentId> COMPONENT_IDS = {
 
 ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double edgeLength)
 {
-	List<Query> queries;
+	map<EntityId, set<ComponentId>> dependencies;
 
 	GHashTableIter iter;
 	ShovelerViewQualifiedComponent *dependencyTarget;
 	GQueue *dependencySourceList;
 	g_hash_table_iter_init(&iter, view->reverseDependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
-		bool hasDependenciesFromOtherEntities = false;
-		for(GList *dependencySourceListIter = dependencySourceList->head; dependencySourceListIter != NULL; dependencySourceListIter = dependencySourceListIter->next) {
-			const ShovelerViewQualifiedComponent *dependencySource = (ShovelerViewQualifiedComponent *) dependencySourceListIter->data;
-			if(dependencySource->entityId != dependencyTarget->entityId) {
-				hasDependenciesFromOtherEntities = true;
-				break;
-			}
-		}
-
-		if(!hasDependenciesFromOtherEntities) {
+		unordered_map<string, ComponentId>::const_iterator componentIdQuery = COMPONENT_IDS.find(
+			dependencyTarget->componentName);
+		if (componentIdQuery == COMPONENT_IDS.end()) {
+			shovelerLogWarning(
+				"Found a dependency on component '%s' of entity %lld, but the component ID map doesn't contain an entry for this target, ignoring dependency.",
+				dependencyTarget->componentName,
+				dependencyTarget->entityId);
 			continue;
 		}
 
+		dependencies[dependencyTarget->entityId].insert(componentIdQuery->second);
+	}
+
+	List<Query> queries;
+	for(map<EntityId, set<ComponentId>>::const_iterator iter = dependencies.begin(); iter != dependencies.end(); ++iter) {
 		QueryConstraint constraint;
-		constraint.set_entity_id_constraint({dependencyTarget->entityId});
+		constraint.set_entity_id_constraint({iter->first});
+
+		List<ComponentId> dependencyComponentIds(iter->second.begin(), iter->second.end());
+		dependencyComponentIds.emplace_back(EntityAcl::ComponentId);
+		dependencyComponentIds.emplace_back(Metadata::ComponentId);
 
 		Query query;
 		query.set_constraint(constraint);
-
-		unordered_map<string, ComponentId>::const_iterator componentIdQuery = COMPONENT_IDS.find(dependencyTarget->componentName);
-		if(componentIdQuery != COMPONENT_IDS.end()) {
-			query.set_result_component_id({componentIdQuery->second});
-		} else {
-			for(GList *dependencySourceListIter = dependencySourceList->head; dependencySourceListIter != NULL; dependencySourceListIter = dependencySourceListIter->next) {
-				const ShovelerViewQualifiedComponent *dependencySource = (ShovelerViewQualifiedComponent *) dependencySourceListIter->data;
-				shovelerLogWarning(
-					"Component '%s' of entity %lld declared a dependency on component '%s' of entity %lld, but the component ID map doesn't contain an entry for this target."
-						"Setting component interest query result type to full snapshot, which might be inefficient.",
-					dependencySource->componentName,
-					dependencySource->entityId,
-					dependencyTarget->componentName,
-					dependencyTarget->entityId);
-			}
-			query.set_full_snapshot_result({true});
-		}
+		query.set_result_component_id(dependencyComponentIds);
 
 		queries.emplace_back(query);
 	}
