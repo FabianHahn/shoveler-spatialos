@@ -105,7 +105,8 @@ int main(int argc, char **argv) {
 
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerServer";
-	parameters.Network.ConnectionType = worker::NetworkConnectionType::kTcp;
+	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
+	parameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kInsecure;
 	parameters.Network.UseExternalIp = false;
 
 	const std::string workerId = argv[1];
