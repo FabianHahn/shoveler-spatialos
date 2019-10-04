@@ -10,6 +10,7 @@
 #include <improbable/view.h>
 #include <improbable/worker.h>
 #include <shoveler.h>
+#include <set>
 
 extern "C" {
 #include <glib.h>
@@ -88,6 +89,7 @@ const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
+static void refreshCanvas(worker::Connection& connection, worker::View& view, worker::EntityId canvasEntityId, const std::set<worker::EntityId>& connectedClients);
 static Color colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ);
@@ -162,6 +164,8 @@ int main(int argc, char **argv) {
 	ShovelerExecutor *tickExecutor = shovelerExecutorCreateDirect();
 	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastHeartbeatMicrosMap;
 
+	std::set<worker::EntityId> connectedClients;
+
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
@@ -220,6 +224,8 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat>& op) {
 		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
+		connectedClients.insert(op.EntityId);
+		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
 	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat>& op) {
@@ -243,6 +249,8 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp& op) {
 		shovelerLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
+		connectedClients.erase(op.EntityId);
+		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
 	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp& op) {
@@ -512,54 +520,10 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnCreateEntityResponse([&](const worker::CreateEntityResponseOp& op) {
 		shovelerLogInfo("Received create entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
-
-		if(op.StatusCode == worker::StatusCode::kSuccess) {
-			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
-			if(query != view.Entities.end()) {
-				const worker::Entity& entity = query->second;
-				const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
-
-				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
-					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
-					tileSpriteEntityIds.emplace_back(*op.EntityId);
-
-					Canvas::Update canvasUpdate;
-					canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
-					connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
-
-					shovelerLogInfo("Sent component update to add new client entity %lld to canvas entity's tile sprites list.", *op.EntityId);
-				}
-			}
-		}
 	});
 
 	dispatcher.OnDeleteEntityResponse([&](const worker::DeleteEntityResponseOp& op) {
 		shovelerLogInfo("Received delete entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
-
-		if(op.StatusCode == worker::StatusCode::kSuccess) {
-			const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
-			if(query != view.Entities.end()) {
-				const worker::Entity& entity = query->second;
-				const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
-
-				if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
-					worker::List<worker::EntityId> tileSpriteEntityIds = entity.Get<Canvas>()->tile_sprite_entity_ids();
-					for(worker::List<worker::EntityId>::iterator iter = tileSpriteEntityIds.begin(); iter != tileSpriteEntityIds.end();) {
-						if(*iter == op.EntityId) {
-							iter = tileSpriteEntityIds.erase(iter);
-						} else {
-							++iter;
-						}
-					}
-
-					Canvas::Update canvasUpdate;
-					canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
-					connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
-
-					shovelerLogInfo("Sent component update to remove deleted client entity %lld from canvas entity's tile sprites list.", op.EntityId);
-				}
-			}
-		}
 	});
 
 	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
@@ -588,6 +552,25 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer)
 		if (diff > 1000 * context->maxHeartbeatTimeoutMs) {
 			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
 			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
+		}
+	}
+}
+
+static void refreshCanvas(worker::Connection& connection, worker::View& view, worker::EntityId canvasEntityId, const std::set<worker::EntityId>& connectedClients)
+{
+	const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
+	if(query != view.Entities.end()) {
+		const worker::Entity& entity = query->second;
+		const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+
+		if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
+			worker::List<worker::EntityId> tileSpriteEntityIds{connectedClients.begin(), connectedClients.end()};
+
+			Canvas::Update canvasUpdate;
+			canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
+			connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
+
+			shovelerLogInfo("Sent component update to refresh canvas entity %lld's tile sprites list.", canvasEntityId);
 		}
 	}
 }
