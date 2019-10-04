@@ -17,7 +17,10 @@ extern "C" {
 #include "tiles/map.h"
 #include "tiles/tileset.h"
 
+using improbable::ComponentInterest;
 using improbable::EntityAcl;
+using improbable::Interest;
+using improbable::InterestData;
 using improbable::Metadata;
 using improbable::Persistence;
 using improbable::Position;
@@ -53,6 +56,9 @@ using worker::Result;
 using worker::SnapshotOutputStream;
 using worker::StreamErrorCode;
 
+using Query = ComponentInterest::Query;
+using QueryConstraint = ComponentInterest::QueryConstraint;
+
 static GString *getImageData(ShovelerImage *image);
 
 static const unsigned int chunkSize = 10;
@@ -82,6 +88,7 @@ int main(int argc, char **argv) {
 		Client,
 		Drawable,
 		EntityAcl,
+		Interest,
 		Metadata,
 		Material,
 		Model,
@@ -113,6 +120,16 @@ int main(int argc, char **argv) {
 	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
 	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
 	bootstrapEntity.Add<EntityAcl>({clientOrServerRequirementSet, bootstrapComponentAclMap});
+	Query query;
+	QueryConstraint queryConstraint;
+	queryConstraint.set_component_constraint(Client::ComponentId);
+	query.set_constraint(queryConstraint);
+	query.set_full_snapshot_result({true});
+	ComponentInterest componentInterest;
+	componentInterest.set_queries({query});
+	InterestData interestData;
+	interestData.component_interest()[Bootstrap::ComponentId] = componentInterest;
+	bootstrapEntity.Add<Interest>(interestData);
 	entities[1] = bootstrapEntity;
 
 	Entity quadDrawableEntity;
@@ -242,8 +259,8 @@ int main(int argc, char **argv) {
 		chunkBackgroundEntity.Add<TilemapTiles>({false, 0, chunkSize, chunkSize, chunk.backgroundTiles});
 		chunkBackgroundEntity.Add<Tilemap>({{nextEntityId}, {3, 4}});
 		worker::Map<std::uint32_t, WorkerRequirementSet> chunkBackgroundComponentAclMap;
-		canvasComponentAclMap.insert({{TilemapTiles::ComponentId, serverRequirementSet}});
-		chunkBackgroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, canvasComponentAclMap});
+		chunkBackgroundComponentAclMap.insert({{TilemapTiles::ComponentId, serverRequirementSet}});
+		chunkBackgroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, chunkBackgroundComponentAclMap});
 		EntityId backgroundEntityId = nextEntityId;
 		entities[backgroundEntityId] = chunkBackgroundEntity;
 		nextEntityId++;
@@ -284,7 +301,7 @@ int main(int argc, char **argv) {
 	for(std::unordered_map<EntityId, Entity>::const_iterator iter = entities.begin(); iter != entities.end(); ++iter) {
 		Result<worker::None, StreamErrorCode> entityWritten = outputStream->WriteEntity(iter->first, iter->second);
 		if(!entityWritten) {
-			shovelerLogError("Failed to write entity %lld to snapshot: %s", entityWritten.GetErrorMessage().c_str());
+			shovelerLogError("Failed to write entity %lld to snapshot: %s", iter->first, entityWritten.GetErrorMessage().c_str());
 			return EXIT_FAILURE;
 		}
 	}

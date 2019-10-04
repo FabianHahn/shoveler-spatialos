@@ -12,7 +12,10 @@ extern "C" {
 #include <shoveler/log.h>
 }
 
+using improbable::ComponentInterest;
 using improbable::EntityAcl;
+using improbable::Interest;
+using improbable::InterestData;
 using improbable::Metadata;
 using improbable::Persistence;
 using improbable::Position;
@@ -40,6 +43,9 @@ using worker::Result;
 using worker::SnapshotOutputStream;
 using worker::StreamErrorCode;
 
+using Query = ComponentInterest::Query;
+using QueryConstraint = ComponentInterest::QueryConstraint;
+
 int main(int argc, char **argv) {
 	shovelerLogInit("shoveler-spatialos/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 
@@ -55,6 +61,7 @@ int main(int argc, char **argv) {
 		Client,
 		Drawable,
 		EntityAcl,
+		Interest,
 		Light,
 		Material,
 		Metadata,
@@ -81,6 +88,16 @@ int main(int argc, char **argv) {
 	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
 	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
 	bootstrapEntity.Add<EntityAcl>({clientOrServerRequirementSet, bootstrapComponentAclMap});
+	Query query;
+	QueryConstraint queryConstraint;
+	queryConstraint.set_component_constraint(Client::ComponentId);
+	query.set_constraint(queryConstraint);
+	query.set_full_snapshot_result({true});
+	ComponentInterest componentInterest;
+	componentInterest.set_queries({query});
+	InterestData interestData;
+	interestData.component_interest()[Bootstrap::ComponentId] = componentInterest;
+	bootstrapEntity.Add<Interest>(interestData);
 	entities[1] = bootstrapEntity;
 
 	Entity cubeDrawableEntity;
@@ -162,7 +179,7 @@ int main(int argc, char **argv) {
 	for(std::unordered_map<EntityId, Entity>::const_iterator iter = entities.begin(); iter != entities.end(); ++iter) {
 		Result<worker::None, StreamErrorCode> entityWritten = outputStream->WriteEntity(iter->first, iter->second);
 		if(!entityWritten) {
-			shovelerLogError("Failed to write entity %lld to snapshot: %s", entityWritten.GetErrorMessage().c_str());
+			shovelerLogError("Failed to write entity %lld to snapshot: %s", iter->first, entityWritten.GetErrorMessage().c_str());
 			return EXIT_FAILURE;
 		}
 	}
