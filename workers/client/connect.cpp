@@ -109,7 +109,7 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 			return {};
 		}
 
-		shovelerLogInfo("Connecting to local deployment...\n\tWorker ID: %s\n\tAddress: %s:%d", workerId.c_str(), hostname.c_str(), port);
+		shovelerLogInfo("Connecting to local deployment...\n\tWorker ID: %s\n\tAddress: %s:%d", workerId.c_str(), hostname.c_str(), (unsigned int) port);
 		return worker::Connection::ConnectAsync(components, hostname, port, workerId, connectionParameters).Get();
 	}
 }
