@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
 	ConnectionParameters connectionParameters;
 	connectionParameters.WorkerType = "ShovelerClient";
 	connectionParameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
-	connectionParameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kInsecure;
+	connectionParameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kDtls;
 
 	worker::Option<Connection> connectionOption = connect(argc, argv, connectionParameters, components);
 	if(!connectionOption || !connectionOption->IsConnected()) {
