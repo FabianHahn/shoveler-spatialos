@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/games). SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C](https://docs.improbable.io/reference/13.7/csdk/introduction), [C++](https://docs.improbable.io/reference/13.7/cppsdk/introduction), [C#](https://docs.improbable.io/reference/13.7/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/13.7/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/13.7/shared/byoe/introduction).
+This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/spatialos). SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C](https://docs.improbable.io/reference/14.1/csdk/introduction), [C++](https://docs.improbable.io/reference/14.1/cppsdk/introduction), [C#](https://docs.improbable.io/reference/14.1/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/14.1/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/14.1/shared/byoe/introduction).
 This project uses the C++ SDK to run _shoveler_ workers on both the client and the server side to implement a simple interactive 3D sandbox demo game, which harnesses the power of SpatialOS to enable multiplayer in the cloud.
 Though I work at Improbable, this is a personal project built in my free time using publicly available resources.
 It is not an Improbable product.
@@ -35,31 +35,32 @@ If you've just navigated to this repository on GitHub for the first time and are
 
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
-| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 14.0.0) | [FPL beta](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/introduction) | n/a (active development) |
-| [`0.2`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.2) | C++ (version 13.7.1) | [FPL beta](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/introduction) | FPL port, working tiles demo |
-| [`0.1`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.1) | C++ (version 13.5.1) | [SPL](https://docs.improbable.io/reference/13.7/shared/project-layout/files-and-directories) | Initial release, working lights demo |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C++ (version 14.1.0) | [FPL beta](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/introduction) | n/a (active development) |
+| [`0.3`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.3) | C++ (version 14.1.0) | [FPL beta](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/introduction) | full query-based interest support |
+| [`0.2`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.2) | C++ (version 13.7.1) | [FPL beta](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/introduction) | FPL port, working tiles demo |
+| [`0.1`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.1) | C++ (version 13.5.1) | [SPL](https://docs.improbable.io/reference/14.1/shared/project-layout/files-and-directories) | Initial release, working lights demo |
 
 ## Repository structure
 
-The overall directory structure of this repository was chosen to comply with the [SpatialOS beta flexible project structure](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/introduction) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
+The overall directory structure of this repository was chosen to comply with the [SpatialOS beta flexible project structure](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/introduction) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
  * [`assets/`](assets/): Asset references fetched using a [CMake `ExternalData` rule](https://cmake.org/cmake/help/v3.3/module/ExternalData.html) from a [separate asset repository](https://github.com/FabianHahn/shoveler-spatialos-assets) to avoid binary files in this repository.
- * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/13.7/shared/schema/introduction#schema-introduction) for the project.
+ * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/14.1/shared/schema/introduction#schema-introduction) for the project.
  * [`seeders/lights.cpp`](seeders/lights.cpp): Complete seeder tool source code for initial snapshot generation of the lights demo.
  * [`seeders/tiles/map.cpp`](seeders/tiles/map.cpp): Map generation source code for tiles demo.
  * [`seeders/tiles.cpp`](seeders/tiles.cpp): Seeder tool source code entrypoint for initial snapshot generation of the tiles demo.
  * [`shoveler/`](shoveler/): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository.
- * [`worker_sdk/CMakeLists.txt`](worker_sdk/CMakeLists.txt): Helper CMake file to [link against the SpatialOS C++ worker SDK](https://docs.improbable.io/reference/13.7/cppsdk/building).
+ * [`worker_sdk/CMakeLists.txt`](worker_sdk/CMakeLists.txt): Helper CMake file to [link against the SpatialOS C++ worker SDK](https://docs.improbable.io/reference/14.1/cppsdk/building).
  * [`workers/client/`](workers/client/): Complete source code for client worker.
  * [`workers/client/client.cpp`](workers/client/client.cpp): Source file containing main function for client worker.
- * [`workers/client/worker.json`](workers/client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/reference/client-worker-configuration)
+ * [`workers/client/worker.json`](workers/client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/reference/client-worker-configuration)
  * [`workers/server/server.cpp`](workers/server/server.cpp): Complete source code for server worker
- * [`workers/server/worker.json`](workers/server/worker.json): [SpatialOS server worker configuration file](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/reference/server-worker-configuration)
+ * [`workers/server/worker.json`](workers/server/worker.json): [SpatialOS server worker configuration file](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/reference/server-worker-configuration)
   * [`workers/updater/`](workers/updater/): Complete source code for runtime asset updater worker.
  * [`CMakeLists.txt`](CMakeLists.txt): Root CMake project definition file.
- * [`CMakeLists.txt.external.in`](CMakeLists.txt.external.in): Helper CMake file to [download SpatialOS dependencies](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/build-process/worker-build-process#1-download-dependencies).
- * [`lights.json`](lights.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/reference/launch-configuration) for the lights demo.
- * [`spatialos.json`](spatialos.json): [SpatialOS project configuration file](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/reference/project-configuration) containing the project name and referencing the other configuration files.
- * [`tiles.json`](tiles.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/13.7/shared/flexible-project-layout/reference/launch-configuration) for the tiles demo.
+ * [`CMakeLists.txt.external.in`](CMakeLists.txt.external.in): Helper CMake file to [download SpatialOS dependencies](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/build-process/worker-build-process#1-download-dependencies).
+ * [`lights.json`](lights.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/reference/launch-configuration) for the lights demo.
+ * [`spatialos.json`](spatialos.json): [SpatialOS project configuration file](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/reference/project-configuration) containing the project name and referencing the other configuration files.
+ * [`tiles.json`](tiles.json): [SpatialOS launch configuration file](https://docs.improbable.io/reference/14.1/shared/flexible-project-layout/reference/launch-configuration) for the tiles demo.
 
 ## Usage
 
@@ -67,7 +68,7 @@ The overall directory structure of this repository was chosen to comply with the
 
 ### Prerequisites
 
-You need to have [CMake](https://cmake.org/), the [`spatial` CLI](https://docs.improbable.io/reference/13.7/shared/spatialos-cli-introduction) installed and available in your system `PATH`. You also need a bash-compatible shell on Windows, which you should have through your [Git](https://git-scm.com/) installation that you will also need to clone this repository.
+You need to have [CMake](https://cmake.org/) 3.13 or later and the [`spatial` CLI](https://docs.improbable.io/reference/14.1/shared/spatialos-cli-introduction) both installed and available in your system `PATH`. You also need a bash-compatible shell on Windows, which you should have through your [Git](https://git-scm.com/) installation that you will also need to clone this repository.
 
 On Linux, you further need headers for the [X Window System](http://www.opengroup.org/tech/desktop/x-window-system/). If you are using a Linux distribution based on the [APT](https://wiki.debian.org/Apt) package manager such as _Debian_ or _Ubuntu_, you can install them with the following command:
 ```
@@ -88,7 +89,7 @@ cd shoveler-spatialos
 
 Optionally, you might want to check out the latest stable tag:
 ```
-git checkout v0.2
+git checkout v0.3
 ```
 
 Create a CMake build directory and switch into it:
@@ -119,8 +120,8 @@ cmake --build . --config release
 
 To run a local deployment, simply run the following command:
 ```
-spatial alpha local launch --launch_config=lights.json # start the lights demo
-spatial alpha local launch --launch_config=tiles.json # start the tiles demo
+spatial alpha local launch --launch_config=lights.json --snapshot=build/seeders/lights.snapshot # start the lights demo
+spatial alpha local launch --launch_config=tiles.json --snapshot=build/seeders/tiles.snapshot # start the tiles demo
 ```
 
 Once the SpatialOS Runtime has started up, you should be able to open the [Inspector](http://localhost:21000/inspector) in your browser and see the entities present in the seed snapshot, as well as a connected managed server worker.
@@ -155,8 +156,8 @@ spatial alpha cloud upload -a spatialos-shoveler-assembly
 
 To launch a cloud deployment, run the following command from the root directory of the project. You have to specify the same assembly name as before, and further an arbitrary deployment name, which in this example is simply `shoveler_spatialos`:
 ```
-spatial alpha cloud launch -a spatialos-shoveler-assembly -d shoveler_spatialos --launch_config=lights.json # launch lights demo
-spatial alpha cloud launch -a spatialos-shoveler-assembly -d shoveler_spatialos --launch_config=tiles.json # launch tiles demo
+spatial alpha cloud launch -a spatialos-shoveler-assembly -d shoveler_spatialos --launch_config=lights.json --snapshot=build/seeders/lights.snapshot # launch lights demo
+spatial alpha cloud launch -a spatialos-shoveler-assembly -d shoveler_spatialos --launch_config=tiles.json --snapshot=build/seeders/tiles.snapshot # launch tiles demo
 ```
 
 It will take a few minutes for your deployment to start up, which you can also monitor in the [SpatialOS console](https://console.improbable.io/projects). As soon as it is running, open the deployment overview page in the console and click on the "LAUNCH" button on the left side. This will open a dialog instructing you to install the SpatialOS Launcher. The Launcher currently only supports clients built with _Unity_ or _Unreal Engine_ and thus won't work to start client workers for this project, so ignore Step 1 and instead copy the link that the blue "Launch" button in Step 2 points to (e.g. in Chrome: right click, select "copy link address"). Then connect a client by simply passing this link as its only command line argument in quotes:
