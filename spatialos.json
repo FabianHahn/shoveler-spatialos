@@ -4,6 +4,7 @@
   "schemaDescriptor": "build/schema/schema.descriptor",
   "launchConfiguration": "lights.json",
   "clientWorkers": [
+    "workers/bot_client/worker.json",
     "workers/c_client/worker.json",
     "workers/client/worker.json",
     "workers/client/worker.LauncherClient.json",
