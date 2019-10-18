@@ -1,0 +1,214 @@
+{
+  "identifier": {
+    "name": "shoveler"
+  },
+  "projectId": {
+    "name": "loom"
+  },
+  "assembly": {
+    "name": "shoveler-bots-23.04.2021-3"
+  },
+  "initialState": {
+    "taggedSnapshot": {
+      "historyName": "shoveler",
+      "snapshotTag": "shoveler-tiles-23.04.2021-3"
+    }
+  },
+  "lifetime": {
+    "seconds": "1200"
+  },
+  "launchConfiguration": {
+    "template": "w4c_r0060_NFR",
+    "world": {
+      "chunkEdgeLengthMeters": "10",
+      "legacyFlags": [
+        {
+          "name": "load_snapshot_at_startup",
+          "value": "true"
+        }
+      ],
+      "dimensions": {
+        "xMeters": "200",
+        "zMeters": "200"
+      }
+    },
+    "load_balancing": {
+      "layer_configurations": [
+        {
+          "layer": "ShovelerServer",
+          "rectangle_grid": {
+            "cols": 1,
+            "rows": 1
+          }
+        }
+      ]
+    },
+    "workers": [
+      {
+        "workerType": "ShovelerClient",
+        "flags": [
+          {
+            "name": "controller_frame_position",
+            "value": "0 0 5"
+          },
+          {
+            "name": "controller_frame_direction",
+            "value": "0 0 -1"
+          },
+          {
+            "name": "controller_frame_up",
+            "value": "0 1 0"
+          },
+          {
+            "name": "controller_move_factor",
+            "value": "2.0"
+          },
+          {
+            "name": "controller_bounding_box_2d_size",
+            "value": "0.9"
+          },
+          {
+            "name": "controller_lock_move_z",
+            "value": "false"
+          },
+          {
+            "name": "controller_lock_tilt_x",
+            "value": "true"
+          },
+          {
+            "name": "controller_lock_tilt_y",
+            "value": "true"
+          },
+          {
+            "name": "position_mapping_x",
+            "value": "+x"
+          },
+          {
+            "name": "position_mapping_y",
+            "value": "+z"
+          },
+          {
+            "name": "position_mapping_z",
+            "value": "+y"
+          },
+          {
+            "name": "hide_player_client_entity_model",
+            "value": "false"
+          },
+          {
+            "name": "game_type",
+            "value": "tiles"
+          }
+        ],
+        "permissions": [
+          {
+            "all": {}
+          }
+        ]
+      },
+      {
+        "workerType": "ShovelerServer",
+        "flags": [
+          {
+            "name": "game_type",
+            "value": "tiles"
+          }
+        ],
+        "permissions": [
+          {
+            "all": {}
+          }
+        ]
+      }
+    ]
+  },
+  "genericClientNodes": [
+    {
+      "name": "bots",
+      "size": "quad",
+      "config": {
+        "command": {
+          "assemblyZip": "LauncherClient@Linux.zip",
+          "path": "mono",
+          "args": [
+            "BashWrapper.exe",
+            "./bot.sh",
+            "100",
+            "{receptionist_ip}",
+            "{receptionist_port}"
+          ]
+        },
+        "instances": 1
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "name": "view_lateness_full",
+      "initialDelaySeconds": 30,
+      "prometheusExpressionTemplate": "spatialos_bridge_view_lateness_ms::summary5m{app='%project%',dpl='%deployment%',quantile='0.90'}",
+      "fallback": {"valueFallback": {"value": 0}}
+    },
+    {
+      "name": "shunt_queueing_latency",
+      "initialDelaySeconds": 30,
+      "prometheusExpressionTemplate": "histogram_quantile(0.90, sum(rate(shunt_queue_latency_bucket{app='%project%',dpl='%deployment%'}[5m])) by (le))",
+      "fallback": {"valueFallback": {"value": 0}}
+    },
+    {
+      "name": "state_synchroniser_event_latency",
+      "initialDelaySeconds": 30,
+      "prometheusExpressionTemplate": "histogram_quantile(0.90, sum(rate(state_synchroniser_event_latency_bucket{app='%project%',dpl='%deployment%'}[5m])) by (le))",
+      "fallback": {"valueFallback": {"value": 0}}
+    },
+    {
+      "name": "clients_connected",
+      "initialDelaySeconds": 900,
+      "prometheusExpressionTemplate": "spatialos_worker_connected::sum{project='%project%', dpl='%deployment%', worker_type='ShovelerBotClient'}",
+      "fallback": {"valueFallback": {"value": 0}}
+    },
+    {
+      "name": "player_updates",
+      "initialDelaySeconds": 900,
+      "prometheusExpressionTemplate": "improbable_bridge_upstream_message::rate1m_sum{project='%project%', dpl='%deployment%',node_cat=''}",
+      "fallback": {"valueFallback": {"value": 0}}
+    }
+  ],
+  "expectations": [
+    {
+      "name": "view_lateness_is_low",
+      "metricExpectation": {
+        "metricName": "view_lateness_full",
+        "maxValue": {"value": 10}
+      }
+    },
+    {
+      "name": "shunt_queueing_latency_is_low",
+      "metricExpectation": {
+        "metricName": "shunt_queueing_latency",
+        "maxValue": {"value": 100}
+      }
+    },
+    {
+      "name": "state_synchroniser_event_latency_is_low",
+      "metricExpectation": {
+        "metricName": "state_synchroniser_event_latency",
+        "maxValue": {"value": 250}
+      }
+    },
+    {
+      "name": "clients_are_sending_updates",
+      "metricExpectation": {
+        "minValue": {"value": 3000},
+        "metricName": "player_updates"
+      }
+    },
+    {
+      "name": "all_clients_connected",
+      "metricExpectation": {
+        "minValue": {"value": 100},
+        "metricName": "clients_connected"
+      }
+    }
+  ]
+}

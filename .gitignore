@@ -3,6 +3,7 @@
 *.svg
 *.png
 *.dot
+*.exe
 build
 logs
 cmake-*
