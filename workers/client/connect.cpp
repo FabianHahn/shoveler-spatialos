@@ -78,7 +78,7 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 		locatorParameters.ProjectName = projectName;
 		locatorParameters.CredentialsType = worker::LocatorCredentialsType::kLoginToken;
 		locatorParameters.LoginToken = worker::LoginTokenCredentials{authToken};
-		worker::Locator locator{"locator.improbable.io", locatorParameters};
+		worker::Locator locator{"locator-staging.improbable.io", locatorParameters};
 
 		auto queueStatusCallback = [&](const worker::QueueStatus& queueStatus) {
 			if (!queueStatus.Error.empty()) {
