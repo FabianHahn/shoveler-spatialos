@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
+	if(argc != 1 && argc != 2 && argc != 4 && argc != 5) {
 		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>\n\t%s <locator hostname> <project name> <deployment name> <login token>", argv[0], argv[0], argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
@@ -136,12 +136,16 @@ int main(int argc, char **argv) {
 		TilemapTiles,
 		Tileset,
 		TileSprite,
-      TileSpriteAnimation>{};
+		TileSpriteAnimation>{};
 
 	ConnectionParameters connectionParameters;
 	connectionParameters.WorkerType = "ShovelerClient";
 	connectionParameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
 	connectionParameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kDtls;
+	worker::alpha::FlowControlParameters flowControlParameters;
+	flowControlParameters.DownstreamWindowSizeBytes = 1 << 24;
+	flowControlParameters.UpstreamWindowSizeBytes = 1 << 24;
+	connectionParameters.Network.ModularUdp.FlowControl = {flowControlParameters};
 
 	worker::Option<Connection> connectionOption = connect(argc, argv, connectionParameters, components);
 	if(!connectionOption || !connectionOption->IsConnected()) {
@@ -263,11 +267,11 @@ int main(int argc, char **argv) {
 	dispatcher.OnAuthorityChange<Client>([&](const worker::AuthorityChangeOp& op) {
 		shovelerLogInfo("Changing client authority for entity %lld to %d.", op.EntityId, op.Authority);
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		if (op.Authority == worker::Authority::kAuthoritative) {
+		if(op.Authority == worker::Authority::kAuthoritative) {
 			shovelerViewEntityDelegateClient(entity);
 			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
 			context.clientEntityId = op.EntityId;
-		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
+		} else if(op.Authority == worker::Authority::kNotAuthoritative) {
 			shovelerViewEntityUndelegateClient(entity);
 			shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
 			context.clientEntityId = 0;
@@ -354,24 +358,21 @@ int main(int argc, char **argv) {
 	return EXIT_SUCCESS;
 }
 
-static void updateGame(ShovelerGame *game, double dt)
-{
+static void updateGame(ShovelerGame *game, double dt) {
 	shovelerCameraUpdateView(game->camera);
 }
 
-static void clientPingTick(void *clientContextPointer)
-{
+static void clientPingTick(void *clientContextPointer) {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 	context->connection->SendCommandRequest<ClientPing>(context->bootstrapEntityId, {context->clientEntityId}, {});
 }
 
-static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer)
-{
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer) {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
 	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		const Option<std::string> &flagOption = context->connection->GetWorkerFlag("game_type");
-		if (flagOption && *flagOption == "tiles") {
+		const Option<std::string>& flagOption = context->connection->GetWorkerFlag("game_type");
+		if(flagOption && *flagOption == "tiles") {
 			shovelerLogInfo("Sending dig hole command...");
 			context->connection->SendCommandRequest<DigHole>(context->bootstrapEntityId, {context->clientEntityId}, {});
 		} else {
@@ -382,14 +383,12 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 	}
 }
 
-static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer)
-{
+static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer) {
 	ClientContext *context = (ClientContext *) contextPointer;
 	context->viewDependenciesUpdated = true;
 }
 
-static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest, ShovelerVector3 position, double edgeLength)
-{
+static void updateInterest(Connection& connection, EntityId clientEntityId, ShovelerView *view, bool absoluteInterest, ShovelerVector3 position, double edgeLength) {
 	ComponentInterest interest = computeViewInterest(view, absoluteInterest, position, edgeLength);
 
 	Interest::Update interestUpdate;
@@ -399,8 +398,7 @@ static void updateInterest(Connection& connection, EntityId clientEntityId, Shov
 	shovelerLogInfo("Sent interest update with %zu queries.", interest.queries().size());
 }
 
-static void updateEdgeLength(ClientContext *context, ShovelerVector3 position)
-{
+static void updateEdgeLength(ClientContext *context, ShovelerVector3 position) {
 	if(context->absoluteInterest) {
 		return;
 	}
@@ -419,8 +417,7 @@ static void updateEdgeLength(ClientContext *context, ShovelerVector3 position)
 	context->viewDependenciesUpdated = true;
 }
 
-static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer)
-{
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer) {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
 	if(key == GLFW_KEY_F7 && action == GLFW_PRESS) {

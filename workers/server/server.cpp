@@ -89,17 +89,17 @@ const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
-static void refreshCanvas(worker::Connection& connection, worker::View& view, worker::EntityId canvasEntityId, const std::set<worker::EntityId>& connectedClients);
+static void refreshCanvas(worker::Connection &connection, worker::View &view, worker::EntityId canvasEntityId, const std::set<worker::EntityId> &connectedClients);
 static Color colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
-static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ);
+static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId);
-static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::View& view);
+static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
+static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view);
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet);
 
 int main(int argc, char **argv) {
-	if (argc != 5) {
+	if(argc != 5) {
 		return 1;
 	}
 
@@ -110,6 +110,10 @@ int main(int argc, char **argv) {
 	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
 	parameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kInsecure;
 	parameters.Network.UseExternalIp = false;
+	worker::alpha::FlowControlParameters flowControlParameters;
+	flowControlParameters.DownstreamWindowSizeBytes = 1 << 24;
+	flowControlParameters.UpstreamWindowSizeBytes = 1 << 24;
+	parameters.Network.ModularUdp.FlowControl = {flowControlParameters};
 
 	const std::string workerId = argv[1];
 	const std::string hostname = argv[2];
@@ -159,24 +163,24 @@ int main(int argc, char **argv) {
 	worker::Connection connection = worker::Connection::ConnectAsync(components, hostname, port, workerId, parameters).Get();
 	bool disconnected = false;
 	worker::View view{components};
-	worker::Dispatcher& dispatcher = view;
+	worker::Dispatcher &dispatcher = view;
 
 	ShovelerExecutor *tickExecutor = shovelerExecutorCreateDirect();
 	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastHeartbeatMicrosMap;
 
 	std::set<worker::EntityId> connectedClients;
 
-	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
+	dispatcher.OnDisconnect([&](const worker::DisconnectOp &op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
 		disconnected = true;
 	});
 
-	dispatcher.OnMetrics([&](const worker::MetricsOp& op) {
+	dispatcher.OnMetrics([&](const worker::MetricsOp &op) {
 		auto metrics = op.Metrics;
 		connection.SendMetrics(metrics);
 	});
 
-	dispatcher.OnLogMessage([&](const worker::LogMessageOp& op) {
+	dispatcher.OnLogMessage([&](const worker::LogMessageOp &op) {
 		switch(op.Level) {
 			case worker::LogLevel::kDebug:
 				shovelerLogTrace(op.Message.c_str());
@@ -198,45 +202,45 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnAddEntity([&](const worker::AddEntityOp& op) {
+	dispatcher.OnAddEntity([&](const worker::AddEntityOp &op) {
 		shovelerLogInfo("Adding entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp& op) {
+	dispatcher.OnRemoveEntity([&](const worker::RemoveEntityOp &op) {
 		shovelerLogInfo("Removing entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnAddComponent<Bootstrap>([&](const worker::AddComponentOp<Bootstrap>& op) {
+	dispatcher.OnAddComponent<Bootstrap>([&](const worker::AddComponentOp<Bootstrap> &op) {
 		shovelerLogInfo("Adding bootstrap to entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnComponentUpdate<Bootstrap>([&](const worker::ComponentUpdateOp<Bootstrap>& op) {
+	dispatcher.OnComponentUpdate<Bootstrap>([&](const worker::ComponentUpdateOp<Bootstrap> &op) {
 		shovelerLogInfo("Updating bootstrap for entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnRemoveComponent<Bootstrap>([&](const worker::RemoveComponentOp& op) {
+	dispatcher.OnRemoveComponent<Bootstrap>([&](const worker::RemoveComponentOp &op) {
 		shovelerLogInfo("Removing bootstrap from entity %lld.", op.EntityId);
 	});
 
-	dispatcher.OnAuthorityChange<Bootstrap>([&](const worker::AuthorityChangeOp& op) {
+	dispatcher.OnAuthorityChange<Bootstrap>([&](const worker::AuthorityChangeOp &op) {
 		shovelerLogInfo("Authority change to %d for entity %lld.", op.Authority, op.EntityId);
 	});
 
-	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat>& op) {
+	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat> &op) {
 		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
 		connectedClients.insert(op.EntityId);
 		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
-	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat>& op) {
-		const auto& authorityQuery = view.ComponentAuthority.find(op.EntityId);
-		if (authorityQuery != view.ComponentAuthority.end()) {
-			const auto& componentAuthorityQuery = authorityQuery->second.find(ClientHeartbeat::ComponentId);
-			if (componentAuthorityQuery != authorityQuery->second.end() && componentAuthorityQuery->second == Authority::kAuthoritative) {
-				if (lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
+	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat> &op) {
+		const auto &authorityQuery = view.ComponentAuthority.find(op.EntityId);
+		if(authorityQuery != view.ComponentAuthority.end()) {
+			const auto &componentAuthorityQuery = authorityQuery->second.find(ClientHeartbeat::ComponentId);
+			if(componentAuthorityQuery != authorityQuery->second.end() && componentAuthorityQuery->second == Authority::kAuthoritative) {
+				if(lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
 					std::string clientWorkerId = "(unknown)";
 					const auto &clientComponentOption = view.Entities[op.EntityId].Get<Client>();
-					if (clientComponentOption) {
+					if(clientComponentOption) {
 						clientWorkerId = clientComponentOption->worker_id();
 					}
 
@@ -247,27 +251,27 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp& op) {
+	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp &op) {
 		shovelerLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
 		connectedClients.erase(op.EntityId);
 		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
-	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp& op) {
+	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp &op) {
 		shovelerLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
-		if (op.Authority == Authority::kAuthoritative) {
+		if(op.Authority == Authority::kAuthoritative) {
 			int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
 			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", initialHeartbeat);
 
 			ClientHeartbeat::Update heartbeatUpdate;
 			heartbeatUpdate.set_last_server_heartbeat(initialHeartbeat);
 			connection.SendComponentUpdate<ClientHeartbeat>(op.EntityId, heartbeatUpdate);
-		} else if (op.Authority == Authority::kNotAuthoritative) {
+		} else if(op.Authority == Authority::kNotAuthoritative) {
 			lastHeartbeatMicrosMap.erase(op.EntityId);
 		}
 	});
 
-	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity>& op) {
+	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity> &op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
 		Coordinates playerPosition = getNewPlayerPosition(connection, view);
@@ -301,7 +305,7 @@ int main(int argc, char **argv) {
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
 
 		const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
-		if (flagOption && *flagOption == "tiles") {
+		if(flagOption && *flagOption == "tiles") {
 			int modulo = characterCounter++ % 4;
 			worker::EntityId tilesetEntityId = characterAnimationTilesetEntityId;
 			if(modulo == 1) {
@@ -340,21 +344,21 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing>& op) {
+	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing> &op) {
 		worker::EntityId clientEntityId = op.Request.client_entity_id();
 		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
 		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
 			shovelerLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		const worker::Map<worker::ComponentId, Authority>& componentAuthorityMap = entityAuthorityQuery->second;
+		const worker::Map<worker::ComponentId, Authority> &componentAuthorityMap = entityAuthorityQuery->second;
 
 		worker::Map<worker::ComponentId, Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
 		if(componentAuthorityQuery == componentAuthorityMap.end()) {
 			shovelerLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		const Authority& HeartbeatAuthority = componentAuthorityQuery->second;
+		const Authority &HeartbeatAuthority = componentAuthorityQuery->second;
 
 		if(HeartbeatAuthority != Authority::kAuthoritative) {
 			shovelerLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
@@ -376,7 +380,7 @@ int main(int argc, char **argv) {
 		shovelerLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 	});
 
-	dispatcher.OnCommandRequest<ClientSpawnCube>([&](const worker::CommandRequestOp<ClientSpawnCube>& op) {
+	dispatcher.OnCommandRequest<ClientSpawnCube>([&](const worker::CommandRequestOp<ClientSpawnCube> &op) {
 		worker::EntityId clientEntityId = op.Request.client_entity_id();
 		shovelerLogInfo("Received client spawn cube from %s for client entity %lld in direction (%.2f, %.2f, %.2f).", op.CallerWorkerId.c_str(), clientEntityId, op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z());
 
@@ -386,13 +390,13 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		const worker::Entity& clientEntity = entityQuery->second;
-		worker::Option<const ClientInfoData&> clientInfoComponent = clientEntity.Get<ClientInfo>();
+		const worker::Entity &clientEntity = entityQuery->second;
+		worker::Option<const ClientInfoData &> clientInfoComponent = clientEntity.Get<ClientInfo>();
 		if(!clientInfoComponent) {
 			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without client info component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		worker::Option<const PositionData&> positionComponent = clientEntity.Get<Position>();
+		worker::Option<const PositionData &> positionComponent = clientEntity.Get<Position>();
 		if(!positionComponent) {
 			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
@@ -427,7 +431,7 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnCommandRequest<DigHole>([&](const worker::CommandRequestOp<DigHole>& op) {
+	dispatcher.OnCommandRequest<DigHole>([&](const worker::CommandRequestOp<DigHole> &op) {
 		worker::EntityId clientEntityId = op.Request.client_entity_id();
 		shovelerLogInfo("Received dig hole request from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 
@@ -438,8 +442,8 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		const worker::Entity& clientEntity = entityQuery->second;
-		worker::Option<const PositionData&> positionComponent = clientEntity.Get<Position>();
+		const worker::Entity &clientEntity = entityQuery->second;
+		worker::Option<const PositionData &> positionComponent = clientEntity.Get<Position>();
 		if(!positionComponent) {
 			shovelerLogWarning("Received dig hole request from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			connection.SendCommandFailure<DigHole>(op.RequestId, "client entity without position");
@@ -465,7 +469,7 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		TilemapTilesTile& tile = tiles[tileZ * chunkSize + tileX];
+		TilemapTilesTile &tile = tiles[tileZ * chunkSize + tileX];
 		if(tile.tileset_column() > 2) {
 			shovelerLogWarning("Received dig hole request from %s for client entity %lld, but its current tile is not grass.", op.CallerWorkerId.c_str(), clientEntityId);
 			connection.SendCommandFailure<DigHole>(op.RequestId, "tile isn't grass");
@@ -487,7 +491,7 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnCommandRequest<UpdateResource>([&](const worker::CommandRequestOp<UpdateResource>& op) {
+	dispatcher.OnCommandRequest<UpdateResource>([&](const worker::CommandRequestOp<UpdateResource> &op) {
 		worker::EntityId resourceEntityId = op.Request.resource_entity_id();
 		shovelerLogInfo("Received update request from %s for resource entity %lld.", op.CallerWorkerId.c_str(), resourceEntityId);
 
@@ -498,8 +502,8 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		const worker::Entity& resourceEntity = entityQuery->second;
-		worker::Option<const ResourceData&> resourceComponent = resourceEntity.Get<Resource>();
+		const worker::Entity &resourceEntity = entityQuery->second;
+		worker::Option<const ResourceData &> resourceComponent = resourceEntity.Get<Resource>();
 		if(!resourceComponent) {
 			shovelerLogWarning("Received update request from %s for resource entity %lld without resource component, ignoring.", op.CallerWorkerId.c_str(), resourceEntityId);
 			connection.SendCommandFailure<UpdateResource>(op.RequestId, "client entity without position");
@@ -518,11 +522,11 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	dispatcher.OnCreateEntityResponse([&](const worker::CreateEntityResponseOp& op) {
+	dispatcher.OnCreateEntityResponse([&](const worker::CreateEntityResponseOp &op) {
 		shovelerLogInfo("Received create entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
 	});
 
-	dispatcher.OnDeleteEntityResponse([&](const worker::DeleteEntityResponseOp& op) {
+	dispatcher.OnDeleteEntityResponse([&](const worker::DeleteEntityResponseOp &op) {
 		shovelerLogInfo("Received delete entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
 	});
 
@@ -539,29 +543,27 @@ int main(int argc, char **argv) {
 	shovelerExecutorFree(tickExecutor);
 }
 
-static void clientCleanupTick(void *clientCleanupTickContextPointer)
-{
+static void clientCleanupTick(void *clientCleanupTickContextPointer) {
 	ClientCleanupTickContext *context = (ClientCleanupTickContext *) clientCleanupTickContextPointer;
 
 	int64_t now = g_get_monotonic_time();
-	for(const auto& item: *context->lastHeartbeatMicrosMap) {
+	for(const auto &item: *context->lastHeartbeatMicrosMap) {
 		worker::EntityId entityId = item.first;
 		const std::string &workerId = item.second.first;
 		int64_t last = item.second.second;
 		int64_t diff = now - last;
-		if (diff > 1000 * context->maxHeartbeatTimeoutMs) {
+		if(diff > 1000 * context->maxHeartbeatTimeoutMs) {
 			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
 			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
 		}
 	}
 }
 
-static void refreshCanvas(worker::Connection& connection, worker::View& view, worker::EntityId canvasEntityId, const std::set<worker::EntityId>& connectedClients)
-{
+static void refreshCanvas(worker::Connection &connection, worker::View &view, worker::EntityId canvasEntityId, const std::set<worker::EntityId> &connectedClients) {
 	const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
 	if(query != view.Entities.end()) {
-		const worker::Entity& entity = query->second;
-		const worker::Map<worker::ComponentId, Authority>& entityAuthority = view.ComponentAuthority[canvasEntityId];
+		const worker::Entity &entity = query->second;
+		const worker::Map<worker::ComponentId, Authority> &entityAuthority = view.ComponentAuthority[canvasEntityId];
 
 		if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
 			worker::List<worker::EntityId> tileSpriteEntityIds{connectedClients.begin(), connectedClients.end()};
@@ -575,21 +577,18 @@ static void refreshCanvas(worker::Connection& connection, worker::View& view, wo
 	}
 }
 
-static Color colorFromHsv(float h, float s, float v)
-{
+static Color colorFromHsv(float h, float s, float v) {
 	ShovelerColor colorRgb = shovelerColorFromHsv(h, s, v);
 	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
 
 	return Color{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
 }
 
-static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ)
-{
+static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ) {
 	return shovelerVector2(-halfMapWidth + chunkX * chunkSize + tileX, -halfMapHeight + chunkZ * chunkSize + tileZ);
 }
 
-static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ)
-{
+static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ) {
 	double diffX = x + halfMapWidth;
 	double diffZ = z + halfMapHeight;
 
@@ -600,9 +599,8 @@ static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX
 	tileZ = (int) floor(diffZ - chunkZ * chunkSize);
 }
 
-static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ)
-{
-	if (chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows) {
+static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ) {
+	if(chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows) {
 		shovelerLogWarning("Cannot resolve chunk background entity id for out of range chunk at (%d, %d).", chunkX, chunkZ);
 		return 0;
 	}
@@ -610,16 +608,15 @@ static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ)
 	return firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
 }
 
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId)
-{
+static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId) {
 	worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
 	if(chunkBackgroundEntityQuery == view.Entities.end()) {
 		shovelerLogWarning("Chunk background entity %lld is not in view.", chunkBackgroundEntityId);
 		return {};
 	}
 
-	const worker::Entity& chunkBackgroundEntity = chunkBackgroundEntityQuery->second;
-	worker::Option<const TilemapTilesData&> tilemapTilesComponent = chunkBackgroundEntity.Get<TilemapTiles>();
+	const worker::Entity &chunkBackgroundEntity = chunkBackgroundEntityQuery->second;
+	worker::Option<const TilemapTilesData &> tilemapTilesComponent = chunkBackgroundEntity.Get<TilemapTiles>();
 	if(!tilemapTilesComponent) {
 		shovelerLogWarning("Supposed chunk background entity %lld doesn't have a tilemap tiles component.", chunkBackgroundEntityId);
 		return {};
@@ -628,10 +625,9 @@ static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connec
 	return tilemapTilesComponent->tiles();
 }
 
-static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::View& view)
-{
+static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view) {
 	const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
-	if (!(flagOption && *flagOption == "tiles")) {
+	if(!(flagOption && *flagOption == "tiles")) {
 		return {0, 5, 0};
 	}
 
@@ -641,13 +637,13 @@ static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::
 
 		EntityId backgroundChunkEntityId = getChunkBackgroundEntityId(startingChunkX, startingChunkZ);
 		const List<TilemapTilesTile> &tiles = getChunkBackgroundTiles(connection, view, backgroundChunkEntityId);
-		if (tiles.empty()) {
+		if(tiles.empty()) {
 			continue;
 		}
 
 		int startingTileX = rand() % 10;
 		int startingTileZ = rand() % 10;
-		const TilemapTilesTile& tile = tiles[startingTileZ * chunkSize + startingTileX];
+		const TilemapTilesTile &tile = tiles[startingTileZ * chunkSize + startingTileX];
 		if(tile.tileset_column() > 2) { // not grass
 			continue;
 		}
@@ -666,10 +662,9 @@ static Coordinates getNewPlayerPosition(worker::Connection& connection, worker::
 	return {0.5, 5, 0.5};
 }
 
-static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet)
-{
+static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet) {
 	for(worker::List<std::string>::const_iterator iter = attributeSet.begin(); iter != attributeSet.end(); ++iter) {
-		if (g_str_has_prefix(iter->c_str(), "workerId:")) {
+		if(g_str_has_prefix(iter->c_str(), "workerId:")) {
 			return {{{{*iter}}}};
 		}
 	}

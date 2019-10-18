@@ -136,6 +136,10 @@ int main(int argc, char **argv) {
 	parameters.WorkerType = "ShovelerBotClient";
 	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
 	parameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kDtls;
+	worker::alpha::FlowControlParameters flowControlParameters;
+	flowControlParameters.DownstreamWindowSizeBytes = 1 << 24;
+	flowControlParameters.UpstreamWindowSizeBytes = 1 << 24;
+	parameters.Network.ModularUdp.FlowControl = {flowControlParameters};
 
 	worker::Option<Connection> connectionOption = connect(argc, argv, parameters, components);
 	if(!connectionOption || !connectionOption->IsConnected()) {
