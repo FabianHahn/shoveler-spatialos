@@ -223,6 +223,8 @@ int main(int argc, char **argv) {
 		} else if(op.Authority == worker::Authority::kNotAuthoritative) {
 			shovelerExecutorRemoveCallback(executor, clientPingTickCallback);
 			context.clientEntityId = 0;
+			shovelerLogError("Lost authority over the client entity %lld.", op.EntityId);
+			disconnected = true;
 		}
 	});
 
