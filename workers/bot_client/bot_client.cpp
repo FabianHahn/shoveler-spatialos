@@ -164,7 +164,9 @@ int main(int argc, char **argv) {
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	ShovelerExecutorCallback *clientDirectionChangeCallback = shovelerExecutorSchedulePeriodic(executor, 0, clientDirectionChangeTimeoutMs, clientDirectionChange, &context);
 
-	Result<RequestId<OutgoingCommandRequest<CreateClientEntity>>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {}, {});
+	CreateClientEntity::Request request;
+	request.set_is_bot(true);
+	Result<RequestId<OutgoingCommandRequest<CreateClientEntity>>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, request, {});
 	if(!createClientEntityRequestId) {
 		shovelerLogError("Failed to send create client entity request: %s", createClientEntityRequestId.GetErrorMessage().c_str());
 		return EXIT_FAILURE;

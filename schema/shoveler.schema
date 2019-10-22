@@ -101,7 +101,7 @@ type PerspectiveCamera {
 }
 
 type CreateClientEntityRequest {
-
+    bool is_bot = 1;
 }
 
 type CreateClientEntityResponse {

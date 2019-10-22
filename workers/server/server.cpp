@@ -306,14 +306,19 @@ int main(int argc, char **argv) {
 
 		const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
 		if(flagOption && *flagOption == "tiles") {
-			int modulo = characterCounter++ % 4;
 			worker::EntityId tilesetEntityId = characterAnimationTilesetEntityId;
-			if(modulo == 1) {
-				tilesetEntityId = character2AnimationTilesetEntityId;
-			} else if(modulo == 2) {
-				tilesetEntityId = character3AnimationTilesetEntityId;
-			} else if(modulo == 3) {
-				tilesetEntityId = character4AnimationTilesetEntityId;
+			if (op.Request.is_bot()) {
+				shovelerLogInfo("bot connecting");
+				tilesetEntityId = 1210;
+			} else {
+				int modulo = characterCounter++ % 4;
+				if (modulo == 1) {
+					tilesetEntityId = character2AnimationTilesetEntityId;
+				} else if (modulo == 2) {
+					tilesetEntityId = character3AnimationTilesetEntityId;
+				} else if (modulo == 3) {
+					tilesetEntityId = character4AnimationTilesetEntityId;
+				}
 			}
 
 			clientEntity.Add<TileSprite>({tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});

@@ -291,6 +291,23 @@ int main(int argc, char **argv) {
 		entities[nextEntityId] = chunkEntity;
 		nextEntityId++;
 	}
+	
+	ShovelerImage *character5PngImage = shovelerImagePngReadFile("/home/fabian/Projects/shoveler-spatialos/kraken.png");
+	ShovelerImage *character5AnimationTilesetImage = shovelerImageCreateAnimationTileset(character5PngImage, characterShiftAmount);
+	GString *character5AnimationTilesetPngData = getImageData(character5AnimationTilesetImage);
+	shovelerImageFree(character5PngImage);
+	shovelerImageFree(character5AnimationTilesetImage);
+	Entity character5AnimationTilesetEntity;
+	character5AnimationTilesetEntity.Add<Metadata>({"tileset"});
+	character5AnimationTilesetEntity.Add<Persistence>({});
+	character5AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character5AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character5AnimationTilesetPngData->str, character5AnimationTilesetPngData->len}});
+	character5AnimationTilesetEntity.Add<Texture>({nextEntityId, true, false, true});
+	character5AnimationTilesetEntity.Add<Tileset>({nextEntityId, 4, 3, 1});
+	character5AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
+	g_string_free(character5AnimationTilesetPngData, true);
+	entities[nextEntityId] = character5AnimationTilesetEntity;
+	nextEntityId++;
 
 	Result<SnapshotOutputStream, StreamErrorCode> outputStream = SnapshotOutputStream::Create(components, snapshotFilename);
 	if(!outputStream) {
