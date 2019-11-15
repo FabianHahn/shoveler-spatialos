@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	ShovelerGame *game = shovelerGameCreate(shovelerSampleUpdate, &windowSettings, &cameraSettings, &controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(shovelerSampleUpdate, /* updateAuthoritativeViewComponent */ NULL, &windowSettings, &cameraSettings, &controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 	characterSprite.size = shovelerVector2(0.2f, 0.2f);
 	shovelerCanvasAddTileSprite(canvas, &characterSprite);
 
-	animation = shovelerTileSpriteAnimationCreate(&characterSprite, 0.1f);
+	animation = shovelerTileSpriteAnimationCreate(&characterSprite, shovelerVector2(0.0f, 0.0f), 0.1f);
 	animation->moveAmountThreshold = 0.25f;
 
 	ShovelerMaterial *canvasMaterial = shovelerMaterialCanvasCreate(game->shaderCache, /* screenspace */ false);
