@@ -11,7 +11,7 @@ extern "C" {
 using shoveler::Light;
 using shoveler::LightType;
 
-static ShovelerViewLightType convertLightType(LightType type);
+static ShovelerComponentLightType convertLightType(LightType type);
 
 void registerLightCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 {
@@ -19,19 +19,26 @@ void registerLightCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewLightConfiguration lightConfiguration;
+		lightConfiguration.positionEntityId = op.Data.position();
 		lightConfiguration.type = convertLightType(op.Data.type());
 		lightConfiguration.width = (int) op.Data.width();
 		lightConfiguration.height = (int) op.Data.height();
 		lightConfiguration.samples = (GLsizei) op.Data.samples();
 		lightConfiguration.ambientFactor = op.Data.ambient_factor();
 		lightConfiguration.exponentialFactor = op.Data.exponential_factor();
-		lightConfiguration.color = ShovelerVector3{op.Data.color().r(), op.Data.color().g(), op.Data.color().b()};
-		shovelerViewEntityAddLight(entity, lightConfiguration);
+		lightConfiguration.color = ShovelerVector3{op.Data.color().x(), op.Data.color().y(), op.Data.color().z()};
+		shovelerViewEntityAddLight(entity, &lightConfiguration);
 	});
 
 	dispatcher.OnComponentUpdate<Light>([&, view](const worker::ComponentUpdateOp<Light>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		ShovelerViewLightConfiguration configuration = *shovelerViewEntityGetLightConfiguration(entity);
+
+		ShovelerViewLightConfiguration configuration;
+		shovelerViewEntityGetLightConfiguration(entity, &configuration);
+
+        if(op.Update.position()) {
+            configuration.positionEntityId = *op.Update.position();
+        }
 
 		if(op.Update.type()) {
 			configuration.type = convertLightType(*op.Update.type());
@@ -57,7 +64,11 @@ void registerLightCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 			configuration.exponentialFactor = *op.Update.exponential_factor();
 		}
 
-		shovelerViewEntityUpdateLight(entity, configuration);
+		if(op.Update.color()) {
+			configuration.color = ShovelerVector3{op.Update.color()->x(), op.Update.color()->y(), op.Update.color()->z()};
+		}
+
+		shovelerViewEntityUpdateLight(entity, &configuration);
 	});
 
 	dispatcher.OnRemoveComponent<Light>([&, view](const worker::RemoveComponentOp& op) {
@@ -66,12 +77,12 @@ void registerLightCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 	});
 }
 
-static ShovelerViewLightType convertLightType(LightType type)
+static ShovelerComponentLightType convertLightType(LightType type)
 {
 	switch(type) {
 		case LightType::POINT:
-			return SHOVELER_VIEW_LIGHT_TYPE_POINT;
+			return SHOVELER_COMPONENT_LIGHT_TYPE_POINT;
 		case LightType::SPOT:
-			return SHOVELER_VIEW_LIGHT_TYPE_SPOT;
+			return SHOVELER_COMPONENT_LIGHT_TYPE_SPOT;
 	}
 }

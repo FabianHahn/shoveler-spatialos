@@ -29,6 +29,7 @@ static const int64_t clientPingTimeoutMs = 1000;
 
 static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected);
 static void updateGame(ShovelerGame *game, double dt);
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value);
 static void clientPingTick(void *clientContextPointer);
 
 int main(int argc, char **argv) {
@@ -115,7 +116,7 @@ int main(int argc, char **argv) {
 	cameraSettings.projection.nearClippingPlane = 0.01;
 	cameraSettings.projection.farClippingPlane = 1000;
 
-	ShovelerGame *game = shovelerGameCreate(updateGame, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -264,6 +265,11 @@ static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected
 static void updateGame(ShovelerGame *game, double dt)
 {
 	shovelerCameraUpdateView(game->camera);
+}
+
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
+{
+
 }
 
 static void clientPingTick(void *clientContextPointer)

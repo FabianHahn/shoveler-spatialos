@@ -17,35 +17,22 @@ void registerTextureCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewTextureConfiguration configuration;
-		configuration.imageResourceEntityId = op.Data.image_resource_entity_id();
-		configuration.interpolate = op.Data.interpolate();
-		configuration.useMipmaps = op.Data.use_mipmaps();
-		configuration.clamp = op.Data.clamp();
+		configuration.imageResourceEntityId = op.Data.image_resource();
 
-		shovelerViewEntityAddTexture(entity, configuration);
+		shovelerViewEntityAddTexture(entity, &configuration);
 	});
 
 	dispatcher.OnComponentUpdate<Texture>([&, view](const worker::ComponentUpdateOp<Texture>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		ShovelerViewTextureConfiguration configuration = *shovelerViewEntityGetTextureConfiguration(entity);
 
-		if(op.Update.image_resource_entity_id()) {
-			configuration.imageResourceEntityId = *op.Update.image_resource_entity_id();
+		ShovelerViewTextureConfiguration configuration;
+		shovelerViewEntityGetTextureConfiguration(entity, &configuration);
+
+		if(op.Update.image_resource()) {
+			configuration.imageResourceEntityId = *op.Update.image_resource();
 		}
 
-		if(op.Update.interpolate()) {
-			configuration.imageResourceEntityId = *op.Update.interpolate();
-		}
-
-		if(op.Update.use_mipmaps()) {
-			configuration.useMipmaps = *op.Update.use_mipmaps();
-		}
-
-		if(op.Update.clamp()) {
-			configuration.imageResourceEntityId = *op.Update.clamp();
-		}
-
-		shovelerViewEntityUpdateTexture(entity, configuration);
+		shovelerViewEntityUpdateTexture(entity, &configuration);
 	});
 
 	dispatcher.OnRemoveComponent<Texture>([&, view](const worker::RemoveComponentOp& op) {

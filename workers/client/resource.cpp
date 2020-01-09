@@ -5,7 +5,7 @@
 #include "resource.h"
 
 extern "C" {
-#include <shoveler/view/resources.h>
+#include <shoveler/view/resource.h>
 #include <shoveler/log.h>
 }
 
@@ -21,7 +21,7 @@ void registerResourceCallbacks(worker::Dispatcher& dispatcher, ShovelerView *vie
 		configuration.buffer = reinterpret_cast<const unsigned char *>(op.Data.content().c_str());
 		configuration.bufferSize = op.Data.content().size();
 
-		shovelerViewEntityAddResource(entity, configuration);
+		shovelerViewEntityAddResource(entity, &configuration);
 	});
 
 	dispatcher.OnComponentUpdate<Resource>([&, view](const worker::ComponentUpdateOp<Resource>& op) {
@@ -46,7 +46,7 @@ void registerResourceCallbacks(worker::Dispatcher& dispatcher, ShovelerView *vie
 			configuration.bufferSize = currentConfiguration.bufferSize;
 		}
 
-		shovelerViewEntityUpdateResourceConfiguration(entity, configuration);
+		shovelerViewEntityUpdateResourceConfiguration(entity, &configuration);
 
 		free(const_cast<char *>(configuration.typeId));
 		delete[] configuration.buffer;

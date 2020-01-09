@@ -6,6 +6,7 @@
 
 extern "C" {
 #include <shoveler/view/position.h>
+#include <shoveler/component.h>
 #include <shoveler/log.h>
 #include <shoveler/types.h>
 }
@@ -13,15 +14,8 @@ extern "C" {
 using improbable::Coordinates;
 using improbable::Position;
 
-static struct PositionUpdateRequestContext {
-	worker::Connection *connection;
-	ShovelerCoordinateMapping mappingX;
-	ShovelerCoordinateMapping mappingY;
-	ShovelerCoordinateMapping mappingZ;
-} updateContext;
-
 static ShovelerVector3 mapPositionCoordinates(const Coordinates& coordinates, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ);
-static void requestPositionUpdate(ShovelerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer);
+static ShovelerVector3 mapPositionCoordinatesVector(ShovelerVector3 coordinatesVector, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ);
 
 void registerPositionCallbacks(worker::Connection& connection, worker::Dispatcher& dispatcher, ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
@@ -29,30 +23,27 @@ void registerPositionCallbacks(worker::Connection& connection, worker::Dispatche
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerVector3 coordinates = mapPositionCoordinates(op.Data.coords(), mappingX, mappingY, mappingZ);
-		shovelerViewEntityAddPosition(entity, coordinates.values[0], coordinates.values[1], coordinates.values[2]);
+		shovelerViewEntityAddPosition(entity, coordinates);
 	});
 
 	dispatcher.OnComponentUpdate<Position>([&, view, mappingX, mappingY, mappingZ](const worker::ComponentUpdateOp<Position>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
+		ShovelerComponent *component = shovelerViewEntityGetPositionComponent(entity);
+
 		if(op.Update.coords()) {
 			ShovelerVector3 coordinates = mapPositionCoordinates(*op.Update.coords(), mappingX, mappingY, mappingZ);
-			shovelerViewEntityUpdatePosition(entity, coordinates.values[0], coordinates.values[1], coordinates.values[2]);
+			shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES, coordinates);
 		}
 	});
 
-	updateContext.connection = &connection;
-	updateContext.mappingX = mappingX;
-	updateContext.mappingY = mappingY;
-	updateContext.mappingZ = mappingZ;
 	dispatcher.OnAuthorityChange<Position>([&, view](const worker::AuthorityChangeOp& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 		if (op.Authority == worker::Authority::kAuthoritative) {
-			shovelerViewEntityDelegatePosition(entity, requestPositionUpdate, &updateContext);
+			shovelerViewEntityDelegate(entity, shovelerComponentTypeIdPosition);
 		} else if (op.Authority == worker::Authority::kNotAuthoritative) {
-			shovelerViewEntityUndelegatePosition(entity);
+            shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdPosition);
 		}
 	});
-
 
 	dispatcher.OnRemoveComponent<Position>([&, view](const worker::RemoveComponentOp& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
@@ -60,15 +51,29 @@ void registerPositionCallbacks(worker::Connection& connection, worker::Dispatche
 	});
 }
 
-ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, worker::EntityId entityId)
+void requestPositionUpdate(worker::Connection& connection, ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
+{
+    assert(component->type->id == shovelerComponentTypeIdPosition);
+    assert(configurationOption->type == SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3);
+
+    // TODO: inverse mapping here?
+    ShovelerVector3 coordinates = mapPositionCoordinatesVector(value->vector3Value, mappingX, mappingY, mappingZ);
+
+    Position::Update positionUpdate;
+    positionUpdate.set_coords({coordinates.values[0], coordinates.values[1], coordinates.values[2]});
+    connection.SendComponentUpdate<Position>(component->entityId, positionUpdate);
+}
+
+ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, worker::EntityId entityId)
 {
 	ShovelerVector3 spatialOsPosition = shovelerVector3(0.0f, 0.0f, 0.0f);
 
 	ShovelerViewEntity *entity = shovelerViewGetEntity(view, entityId);
 	if(entity != NULL) {
-		ShovelerViewPosition *position = shovelerViewEntityGetPosition(entity);
+		ShovelerComponent *position = shovelerViewEntityGetPositionComponent(entity);
 		if(position != NULL) {
-			spatialOsPosition = mapPositionCoordinates({position->x, position->y, position->z}, updateContext.mappingX, updateContext.mappingY, updateContext.mappingZ);
+		    const ShovelerVector3 *coordinates = shovelerComponentGetPositionCoordinates(position);
+			spatialOsPosition = mapPositionCoordinatesVector(*coordinates, mappingX, mappingY, mappingZ);
 		}
 	}
 
@@ -78,20 +83,14 @@ ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, worker::EntityId 
 static ShovelerVector3 mapPositionCoordinates(const Coordinates& coordinates, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
 	ShovelerVector3 coordinatesVector = shovelerVector3((float) coordinates.x(), (float) coordinates.y(), (float) coordinates.z());
-	float mappedX = shovelerCoordinateMap(coordinatesVector, mappingX);
-	float mappedY = shovelerCoordinateMap(coordinatesVector, mappingY);
-	float mappedZ = shovelerCoordinateMap(coordinatesVector, mappingZ);
-
-	return shovelerVector3(mappedX, mappedY, mappedZ);
+	return mapPositionCoordinatesVector(coordinatesVector, mappingX, mappingY, mappingZ);
 }
 
-static void requestPositionUpdate(ShovelerViewComponent *component, double x, double y, double z, void *positionUpdateRequestContextPointer)
+static ShovelerVector3 mapPositionCoordinatesVector(ShovelerVector3 coordinatesVector, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
-	PositionUpdateRequestContext *context = (PositionUpdateRequestContext *) positionUpdateRequestContextPointer;
+    float mappedX = shovelerCoordinateMap(coordinatesVector, mappingX);
+    float mappedY = shovelerCoordinateMap(coordinatesVector, mappingY);
+    float mappedZ = shovelerCoordinateMap(coordinatesVector, mappingZ);
 
-	ShovelerVector3 coordinates = mapPositionCoordinates({x, y, z}, context->mappingX, context->mappingY, context->mappingZ);
-
-	Position::Update positionUpdate;
-	positionUpdate.set_coords({coordinates.values[0], coordinates.values[1], coordinates.values[2]});
-	context->connection->SendComponentUpdate<Position>(component->entity->entityId, positionUpdate);
+    return shovelerVector3(mappedX, mappedY, mappedZ);
 }

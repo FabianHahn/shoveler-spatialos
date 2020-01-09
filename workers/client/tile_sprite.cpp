@@ -22,7 +22,8 @@ void registerTileSpriteCallbacks(worker::Dispatcher& dispatcher, ShovelerView *v
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewTileSpriteConfiguration configuration;
-		configuration.tilesetEntityId = op.Data.tileset_entity_id();
+		configuration.positionEntityId = op.Data.position();
+		configuration.tilesetEntityId = op.Data.tileset();
 		configuration.tilesetColumn = op.Data.tileset_column();
 		configuration.tilesetRow = op.Data.tileset_row();
 		configuration.positionMappingX = convertCoordinateMapping(op.Data.position_mapping_x());
@@ -36,11 +37,17 @@ void registerTileSpriteCallbacks(worker::Dispatcher& dispatcher, ShovelerView *v
 
 	dispatcher.OnComponentUpdate<TileSprite>([&, view](const worker::ComponentUpdateOp<TileSprite>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		ShovelerViewTileSpriteConfiguration configuration = *shovelerViewEntityGetTileSpriteConfiguration(entity);
 
-		if(op.Update.tileset_entity_id()) {
-			configuration.tilesetEntityId = *op.Update.tileset_entity_id();
+		ShovelerViewTileSpriteConfiguration configuration;
+		shovelerViewEntityGetTileSpriteConfiguration(entity, &configuration);
+
+		if(op.Update.position()) {
+			configuration.positionEntityId = *op.Update.position();
 		}
+
+        if(op.Update.tileset()) {
+            configuration.tilesetEntityId = *op.Update.tileset();
+        }
 
 		if(op.Update.tileset_column()) {
 			configuration.tilesetColumn = *op.Update.tileset_column();

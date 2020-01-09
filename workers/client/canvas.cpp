@@ -6,6 +6,7 @@
 
 extern "C" {
 #include <shoveler/view/canvas.h>
+#include <shoveler/component.h>
 #include <shoveler/log.h>
 }
 
@@ -19,43 +20,46 @@ void registerCanvasCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewCanvasConfiguration configuration;
-		configuration.numTileSprites = op.Data.tile_sprite_entity_ids().size();
-		configuration.tileSpriteEntityIds = new long long int[configuration.numTileSprites];
+		configuration.numTileSprites = op.Data.tile_sprites().size();
+        long long int *tileSpriteEntityIds = new long long int[configuration.numTileSprites];
 		{
 			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Data.tile_sprite_entity_ids().begin(); iter != op.Data.tile_sprite_entity_ids().end(); ++iter, ++i) {
-				configuration.tileSpriteEntityIds[i] = *iter;
+			for(List<EntityId>::const_iterator iter = op.Data.tile_sprites().begin(); iter != op.Data.tile_sprites().end(); ++iter, ++i) {
+				tileSpriteEntityIds[i] = *iter;
 			}
 		}
+		configuration.tileSpriteEntityIds = tileSpriteEntityIds;
 
 		shovelerViewEntityAddCanvas(entity, &configuration);
 
-		delete[] configuration.tileSpriteEntityIds;
+		delete[] tileSpriteEntityIds;
 	});
 
 	dispatcher.OnComponentUpdate<Canvas>([&, view](const worker::ComponentUpdateOp<Canvas>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		const ShovelerViewCanvasConfiguration *currentConfiguration = shovelerViewEntityGetCanvasConfiguration(entity);
+		ShovelerComponent *component = shovelerViewEntityGetCanvasComponent(entity);
 
-		ShovelerViewCanvasConfiguration configuration;
-		if(op.Update.tile_sprite_entity_ids()) {
-			configuration.numTileSprites = op.Update.tile_sprite_entity_ids()->size();
-			configuration.tileSpriteEntityIds = new long long int[configuration.numTileSprites];
+        ShovelerViewCanvasConfiguration configuration;
+		shovelerViewEntityGetCanvasConfiguration(entity, &configuration);
+
+        long long int *tileSpriteEntityIds = NULL;
+		if(op.Update.tile_sprites()) {
+			configuration.numTileSprites = op.Update.tile_sprites()->size();
+            tileSpriteEntityIds = new long long int[configuration.numTileSprites];
 			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Update.tile_sprite_entity_ids()->begin(); iter != op.Update.tile_sprite_entity_ids()->end(); ++iter, ++i) {
-				configuration.tileSpriteEntityIds[i] = *iter;
+			for(List<EntityId>::const_iterator iter = op.Update.tile_sprites()->begin(); iter != op.Update.tile_sprites()->end(); ++iter, ++i) {
+				tileSpriteEntityIds[i] = *iter;
 			}
-		} else {
-			configuration.numTileSprites = currentConfiguration->numTileSprites;
-			configuration.tileSpriteEntityIds = new long long int[configuration.numTileSprites];
-			for(int i = 0; i < configuration.numTileSprites; ++i) {
-				configuration.tileSpriteEntityIds[i] = currentConfiguration->tileSpriteEntityIds[i];
-			}
+			configuration.tileSpriteEntityIds = tileSpriteEntityIds;
 		}
 
-		shovelerViewEntityUpdateCanvas(entity, configuration);
+		shovelerViewEntityUpdateCanvas(entity, &configuration);
 
-		delete[] configuration.tileSpriteEntityIds;
+		if(tileSpriteEntityIds != NULL) {
+            delete[] tileSpriteEntityIds;
+        }
+
+		shovelerComponentActivate(component);
 	});
 
 	dispatcher.OnRemoveComponent<Canvas>([&, view](const worker::RemoveComponentOp& op) {

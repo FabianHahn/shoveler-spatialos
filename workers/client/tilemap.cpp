@@ -19,51 +19,52 @@ void registerTilemapCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewTilemapConfiguration configuration;
-		configuration.tilesEntityId = op.Data.tiles_entity_id();
+		configuration.tilesEntityId = op.Data.tiles();
+        configuration.collidersEntityId = op.Data.colliders();
 
-		configuration.numTilesets = op.Data.tileset_entity_ids().size();
-		configuration.tilesetEntityIds = new long long int[configuration.numTilesets];
+		configuration.numTilesets = op.Data.tilesets().size();
+        long long int *tilesetEntityIds = new long long int[configuration.numTilesets];
 		{
 			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Data.tileset_entity_ids().begin(); iter != op.Data.tileset_entity_ids().end(); ++iter, ++i) {
-				configuration.tilesetEntityIds[i] = *iter;
+			for(List<EntityId>::const_iterator iter = op.Data.tilesets().begin(); iter != op.Data.tilesets().end(); ++iter, ++i) {
+				tilesetEntityIds[i] = *iter;
 			}
 		}
+		configuration.tilesetEntityIds = tilesetEntityIds;
 
 		shovelerViewEntityAddTilemap(entity, &configuration);
 
-		delete[] configuration.tilesetEntityIds;
+		delete[] tilesetEntityIds;
 	});
 
 	dispatcher.OnComponentUpdate<Tilemap>([&, view](const worker::ComponentUpdateOp<Tilemap>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		const ShovelerViewTilemapConfiguration *currentConfiguration = shovelerViewEntityGetTilemapConfiguration(entity);
 
 		ShovelerViewTilemapConfiguration configuration;
-		if(op.Update.tiles_entity_id()) {
-			configuration.tilesEntityId = *op.Update.tiles_entity_id();
-		} else {
-			configuration.tilesEntityId = currentConfiguration->tilesEntityId;
+		shovelerViewEntityGetTilemapConfiguration(entity, &configuration);
+
+		if(op.Update.tiles()) {
+			configuration.tilesEntityId = *op.Update.tiles();
 		}
 
-		if(op.Update.tileset_entity_ids()) {
-			configuration.numTilesets = op.Update.tileset_entity_ids()->size();
-			configuration.tilesetEntityIds = new long long int[configuration.numTilesets];
+        if(op.Update.colliders()) {
+            configuration.collidersEntityId = *op.Update.colliders();
+        }
+
+        long long int *tilesetEntityIds = NULL;
+		if(op.Update.tilesets()) {
+			configuration.numTilesets = op.Update.tilesets()->size();
+            tilesetEntityIds = new long long int[configuration.numTilesets];
 			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Update.tileset_entity_ids()->begin(); iter != op.Update.tileset_entity_ids()->end(); ++iter, ++i) {
-				configuration.tilesetEntityIds[i] = *iter;
+			for(List<EntityId>::const_iterator iter = op.Update.tilesets()->begin(); iter != op.Update.tilesets()->end(); ++iter, ++i) {
+				tilesetEntityIds[i] = *iter;
 			}
-		} else {
-			configuration.numTilesets = currentConfiguration->numTilesets;
-			configuration.tilesetEntityIds = new long long int[configuration.numTilesets];
-			for(int i = 0; i < configuration.numTilesets; ++i) {
-				configuration.tilesetEntityIds[i] = currentConfiguration->tilesetEntityIds[i];
-			}
+			configuration.tilesetEntityIds = tilesetEntityIds;
 		}
 
-		shovelerViewEntityUpdateTilemap(entity, configuration);
+		shovelerViewEntityUpdateTilemap(entity, &configuration);
 
-		delete[] configuration.tilesetEntityIds;
+		delete[] tilesetEntityIds;
 	});
 
 	dispatcher.OnRemoveComponent<Tilemap>([&, view](const worker::RemoveComponentOp& op) {

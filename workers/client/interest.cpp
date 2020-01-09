@@ -16,14 +16,17 @@ extern "C" {
 #include <shoveler/view/canvas.h>
 #include <shoveler/view/client.h>
 #include <shoveler/view/chunk.h>
+#include <shoveler/view/chunk_layer.h>
 #include <shoveler/view/drawable.h>
 #include <shoveler/view/material.h>
 #include <shoveler/view/model.h>
 #include <shoveler/view/position.h>
-#include <shoveler/view/resources.h>
+#include <shoveler/view/resource.h>
+#include <shoveler/view/sampler.h>
 #include <shoveler/view/texture.h>
 #include <shoveler/view/tile_sprite.h>
 #include <shoveler/view/tile_sprite_animation.h>
+#include <shoveler/view/tilemap_colliders.h>
 #include <shoveler/view/tilemap_tiles.h>
 #include <shoveler/view/tilemap.h>
 #include <shoveler/view/tileset.h>
@@ -38,15 +41,18 @@ using improbable::Metadata;
 using improbable::Position;
 using shoveler::Canvas;
 using shoveler::Chunk;
+using shoveler::ChunkLayer;
 using shoveler::Client;
 using shoveler::Drawable;
 using shoveler::Material;
 using shoveler::Model;
 using shoveler::Resource;
+using shoveler::Sampler;
 using shoveler::Texture;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
 using shoveler::Tilemap;
+using shoveler::TilemapColliders;
 using shoveler::TilemapTiles;
 using shoveler::Tileset;
 using std::endl;
@@ -63,20 +69,23 @@ using Query = ComponentInterest::Query;
 using QueryConstraint = ComponentInterest::QueryConstraint;
 
 static const unordered_map<string, ComponentId> COMPONENT_IDS = {
-	{shovelerViewCanvasComponentName,				Canvas::ComponentId},
-	{shovelerViewChunkComponentName,				Chunk::ComponentId},
-	{shovelerViewClientComponentName,				Client::ComponentId},
-	{shovelerViewDrawableComponentName,				Drawable::ComponentId},
-	{shovelerViewMaterialComponentName,				Material::ComponentId},
-	{shovelerViewModelComponentName,				Model::ComponentId},
-	{shovelerViewPositionComponentName,				Position::ComponentId},
-	{shovelerViewResourceComponentName,				Resource::ComponentId},
-	{shovelerViewTextureComponentName,				Texture::ComponentId},
-	{shovelerViewTileSpriteComponentName,			TileSprite::ComponentId},
-	{shovelerViewTileSpriteAnimationComponentName,	TileSpriteAnimation::ComponentId},
-	{shovelerViewTilemapComponentName,				Tilemap::ComponentId},
-	{shovelerViewTilemapTilesComponentName,			TilemapTiles::ComponentId},
-	{shovelerViewTilesetComponentName,				Tileset::ComponentId},
+	{shovelerComponentTypeIdCanvas,		    		Canvas::ComponentId},
+	{shovelerComponentTypeIdChunk,		    		Chunk::ComponentId},
+    {shovelerComponentTypeIdChunkLayer,				ChunkLayer::ComponentId},
+	{shovelerComponentTypeIdClient,				    Client::ComponentId},
+	{shovelerComponentTypeIdDrawable,				Drawable::ComponentId},
+	{shovelerComponentTypeIdMaterial,				Material::ComponentId},
+	{shovelerComponentTypeIdModel,				    Model::ComponentId},
+	{shovelerComponentTypeIdPosition,				Position::ComponentId},
+	{shovelerComponentTypeIdResource,				Resource::ComponentId},
+	{shovelerComponentTypeIdTexture,				Texture::ComponentId},
+    {shovelerComponentTypeIdSampler,			    Sampler::ComponentId},
+	{shovelerComponentTypeIdTileSprite,			    TileSprite::ComponentId},
+	{shovelerComponentTypeIdTileSpriteAnimation,	TileSpriteAnimation::ComponentId},
+	{shovelerComponentTypeIdTilemap,				Tilemap::ComponentId},
+    {shovelerComponentTypeIdTilemapColliders,		TilemapColliders::ComponentId},
+	{shovelerComponentTypeIdTilemapTiles,			TilemapTiles::ComponentId},
+	{shovelerComponentTypeIdTileset,				Tileset::ComponentId},
 };
 
 ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double edgeLength)
@@ -89,11 +98,11 @@ ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 	g_hash_table_iter_init(&iter, view->reverseDependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
 		unordered_map<string, ComponentId>::const_iterator componentIdQuery = COMPONENT_IDS.find(
-			dependencyTarget->componentName);
+			dependencyTarget->componentTypeId);
 		if (componentIdQuery == COMPONENT_IDS.end()) {
 			shovelerLogWarning(
 				"Found a dependency on component '%s' of entity %lld, but the component ID map doesn't contain an entry for this target, ignoring dependency.",
-				dependencyTarget->componentName,
+				dependencyTarget->componentTypeId,
 				dependencyTarget->entityId);
 			continue;
 		}

@@ -3,6 +3,7 @@
 #include <shoveler.h>
 
 #include "tile_sprite_animation.h"
+#include "coordinate_mapping.h"
 
 extern "C" {
 #include <shoveler/view/tile_sprite_animation.h>
@@ -19,7 +20,10 @@ void registerTileSpriteAnimationCallbacks(worker::Dispatcher& dispatcher, Shovel
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewTileSpriteAnimationConfiguration configuration;
-		configuration.tileSpriteEntityId = op.Data.tile_sprite_entity_id() != 0 ? op.Data.tile_sprite_entity_id() : op.EntityId;
+		configuration.positionEntityId = op.Data.position();
+		configuration.tileSpriteEntityId = op.Data.tile_sprite();
+		configuration.positionMappingX = convertCoordinateMapping(op.Data.position_mapping_x());
+        configuration.positionMappingY = convertCoordinateMapping(op.Data.position_mapping_y());
 		configuration.moveAmountThreshold = op.Data.move_amount_threshold();
 
 		shovelerViewEntityAddTileSpriteAnimation(entity, &configuration);
@@ -27,10 +31,16 @@ void registerTileSpriteAnimationCallbacks(worker::Dispatcher& dispatcher, Shovel
 
 	dispatcher.OnComponentUpdate<TileSpriteAnimation>([&, view](const worker::ComponentUpdateOp<TileSpriteAnimation>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		ShovelerViewTileSpriteAnimationConfiguration configuration = *shovelerViewEntityGetTileSpriteAnimationConfiguration(entity);
 
-		if(op.Update.tile_sprite_entity_id()) {
-			configuration.tileSpriteEntityId = *op.Update.tile_sprite_entity_id() != 0 ? *op.Update.tile_sprite_entity_id() : op.EntityId;
+		ShovelerViewTileSpriteAnimationConfiguration configuration;
+		shovelerViewEntityGetTileSpriteAnimationConfiguration(entity, &configuration);
+
+        if(op.Update.position()) {
+            configuration.positionEntityId = *op.Update.position();
+        }
+
+		if(op.Update.tile_sprite()) {
+			configuration.tileSpriteEntityId = *op.Update.tile_sprite();
 		}
 
 		if(op.Update.move_amount_threshold()) {

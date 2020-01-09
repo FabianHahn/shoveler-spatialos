@@ -38,7 +38,6 @@ using shoveler::Client;
 using shoveler::ClientHeartbeat;
 using shoveler::ClientInfo;
 using shoveler::ClientInfoData;
-using shoveler::Color;
 using shoveler::CoordinateMapping;
 using shoveler::CreateClientEntityRequest;
 using shoveler::CreateClientEntityResponse;
@@ -54,9 +53,9 @@ using shoveler::Resource;
 using shoveler::ResourceData;
 using shoveler::TilemapTiles;
 using shoveler::TilemapTilesData;
-using shoveler::TilemapTilesTile;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
+using shoveler::Vector3;
 using worker::Authority;
 using worker::CreateEntityRequest;
 using worker::EntityId;
@@ -74,6 +73,12 @@ using UpdateResource = shoveler::Bootstrap::Commands::UpdateResource;
 using Query = ComponentInterest::Query;
 using QueryConstraint = ComponentInterest::QueryConstraint;
 
+struct TilesData {
+	std::string tilesetColumns;
+	std::string tilesetRows;
+	std::string tilesetIds;
+};
+
 struct ClientCleanupTickContext {
 	worker::Connection *connection;
 	int64_t maxHeartbeatTimeoutMs;
@@ -90,11 +95,11 @@ const int numPlayerPositionAttempts = 10;
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
 static void refreshCanvas(worker::Connection &connection, worker::View &view, worker::EntityId canvasEntityId, const std::set<worker::EntityId> &connectedClients);
-static Color colorFromHsv(float h, float s, float v);
+static Vector3 colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
+static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
 static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view);
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet);
 
@@ -239,9 +244,9 @@ int main(int argc, char **argv) {
 			if(componentAuthorityQuery != authorityQuery->second.end() && componentAuthorityQuery->second == Authority::kAuthoritative) {
 				if(lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
 					std::string clientWorkerId = "(unknown)";
-					const auto &clientComponentOption = view.Entities[op.EntityId].Get<Client>();
-					if(clientComponentOption) {
-						clientWorkerId = clientComponentOption->worker_id();
+					const auto &clientInfoComponentOption = view.Entities[op.EntityId].Get<ClientInfo>();
+					if(clientInfoComponentOption) {
+						clientWorkerId = clientInfoComponentOption->worker_id();
 					}
 
 					lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_server_heartbeat());
@@ -278,7 +283,7 @@ int main(int argc, char **argv) {
 
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
-		clientEntity.Add<Client>({op.CallerWorkerId});
+		clientEntity.Add<Client>({});
 		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<Position>({playerPosition});
@@ -305,6 +310,8 @@ int main(int argc, char **argv) {
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
 
 		const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
+		float hue = 0.0f;
+		float saturation = 0.0f;
 		if(flagOption && *flagOption == "tiles") {
 			int modulo = characterCounter++ % 4;
 			worker::EntityId tilesetEntityId = characterAnimationTilesetEntityId;
@@ -316,19 +323,20 @@ int main(int argc, char **argv) {
 				tilesetEntityId = character4AnimationTilesetEntityId;
 			}
 
-			clientEntity.Add<TileSprite>({tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
-			clientEntity.Add<TileSpriteAnimation>({0, 0.5});
+			clientEntity.Add<TileSprite>({0, tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
+			clientEntity.Add<TileSpriteAnimation>({0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, 0.5});
 		} else {
-			float hue = (float) rand() / RAND_MAX;
-			float saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
-			Color playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
-			Color playerLightColor = colorFromHsv(hue, saturation, 0.1f);
+			hue = (float) rand() / RAND_MAX;
+			saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
+			Vector3 playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
+			Vector3 playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
-			clientEntity.Add<ClientInfo>({hue, saturation});
-			clientEntity.Add<Material>({MaterialType::PARTICLE, playerParticleColor, {}, {}, {}});
-			clientEntity.Add<Model>({pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, PolygonMode::FILL});
-			clientEntity.Add<Light>({LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor, {}});
+			clientEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, {playerParticleColor}, {}, {}});
+			clientEntity.Add<Model>({0, pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, PolygonMode::FILL});
+			clientEntity.Add<Light>({0, LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor});
 		}
+
+		clientEntity.Add<ClientInfo>({op.CallerWorkerId, hue, saturation});
 
 		Result<RequestId<CreateEntityRequest>> createEntityRequestId = connection.SendCreateEntityRequest(clientEntity, {}, {});
 		if(!createEntityRequestId) {
@@ -345,7 +353,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing> &op) {
-		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		worker::EntityId clientEntityId = op.Request.client();
 		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
 		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
 			shovelerLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
@@ -381,7 +389,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnCommandRequest<ClientSpawnCube>([&](const worker::CommandRequestOp<ClientSpawnCube> &op) {
-		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		worker::EntityId clientEntityId = op.Request.client();
 		shovelerLogInfo("Received client spawn cube from %s for client entity %lld in direction (%.2f, %.2f, %.2f).", op.CallerWorkerId.c_str(), clientEntityId, op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z());
 
 		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(clientEntityId);
@@ -405,14 +413,14 @@ int main(int argc, char **argv) {
 		ShovelerVector3 normalizedDirection = shovelerVector3Normalize(shovelerVector3(op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z()));
 		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(positionComponent->coords().x(), positionComponent->coords().y(), positionComponent->coords().z()), 0.5f, normalizedDirection);
 
-		Color cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
+		Vector3 cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
 
 		worker::Entity cubeEntity;
 		cubeEntity.Add<Metadata>({"cube"});
 		cubeEntity.Add<Persistence>({});
 		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
-		cubeEntity.Add<Material>({MaterialType::COLOR, cubeColor, {}, {}, {}});
-		cubeEntity.Add<Model>({cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
+		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, cubeColor, {}, {}});
+		cubeEntity.Add<Model>({0, cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
 		WorkerRequirementSet clientRequirementSet({clientAttributeSet});
@@ -432,7 +440,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnCommandRequest<DigHole>([&](const worker::CommandRequestOp<DigHole> &op) {
-		worker::EntityId clientEntityId = op.Request.client_entity_id();
+		worker::EntityId clientEntityId = op.Request.client();
 		shovelerLogInfo("Received dig hole request from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 
 		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(clientEntityId);
@@ -462,26 +470,30 @@ int main(int argc, char **argv) {
 		}
 
 		worker::EntityId chunkBackgroundEntityId = getChunkBackgroundEntityId(chunkX, chunkZ);
-		List<TilemapTilesTile> tiles = getChunkBackgroundTiles(connection, view, chunkBackgroundEntityId);
-		if(tiles.empty()) {
+		Option<TilesData> tiles = getChunkBackgroundTiles(connection, view, chunkBackgroundEntityId);
+		if(!tiles) {
 			shovelerLogError("Received dig hole request from %s for client entity %lld, but failed to resolve chunk background entity %lld tilemap tiles.", op.CallerWorkerId.c_str(), clientEntityId, chunkBackgroundEntityId);
 			connection.SendCommandFailure<DigHole>(op.RequestId, "failed to resolve chunk background entity tilemap tiles");
 			return;
 		}
 
-		TilemapTilesTile &tile = tiles[tileZ * chunkSize + tileX];
-		if(tile.tileset_column() > 2) {
+		char& tilesetColumn = tiles->tilesetColumns[tileZ * chunkSize + tileX];
+		char& tilesetRows = tiles->tilesetRows[tileZ * chunkSize + tileX];
+		char& tilesetIds = tiles->tilesetIds[tileZ * chunkSize + tileX];
+		if(tilesetColumn > 2) {
 			shovelerLogWarning("Received dig hole request from %s for client entity %lld, but its current tile is not grass.", op.CallerWorkerId.c_str(), clientEntityId);
 			connection.SendCommandFailure<DigHole>(op.RequestId, "tile isn't grass");
 			return;
 		}
 
-		tile.set_tileset_column(6);
-		tile.set_tileset_row(1);
-		tile.set_tileset_id(2);
+		tilesetColumn = 6;
+		tilesetRows = 1;
+		tilesetIds = 2;
 
 		TilemapTiles::Update tilemapTilesUpdate;
-		tilemapTilesUpdate.set_tiles(tiles);
+		tilemapTilesUpdate.set_tileset_columns(tiles->tilesetColumns);
+		tilemapTilesUpdate.set_tileset_rows(tiles->tilesetRows);
+		tilemapTilesUpdate.set_tileset_ids(tiles->tilesetIds);
 		connection.SendComponentUpdate<TilemapTiles>(chunkBackgroundEntityId, tilemapTilesUpdate);
 
 		Result<None> commandResponseSent = connection.SendCommandResponse<DigHole>(op.RequestId, {});
@@ -492,7 +504,7 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnCommandRequest<UpdateResource>([&](const worker::CommandRequestOp<UpdateResource> &op) {
-		worker::EntityId resourceEntityId = op.Request.resource_entity_id();
+		worker::EntityId resourceEntityId = op.Request.resource();
 		shovelerLogInfo("Received update request from %s for resource entity %lld.", op.CallerWorkerId.c_str(), resourceEntityId);
 
 		worker::Map<worker::EntityId, worker::Entity>::const_iterator entityQuery = view.Entities.find(resourceEntityId);
@@ -554,7 +566,7 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer) {
 		int64_t diff = now - last;
 		if(diff > 1000 * context->maxHeartbeatTimeoutMs) {
 			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
-			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId, workerId.c_str(), context->maxHeartbeatTimeoutMs);
+			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId.Id, workerId.c_str(), context->maxHeartbeatTimeoutMs);
 		}
 	}
 }
@@ -569,7 +581,7 @@ static void refreshCanvas(worker::Connection &connection, worker::View &view, wo
 			worker::List<worker::EntityId> tileSpriteEntityIds{connectedClients.begin(), connectedClients.end()};
 
 			Canvas::Update canvasUpdate;
-			canvasUpdate.set_tile_sprite_entity_ids(tileSpriteEntityIds);
+			canvasUpdate.set_tile_sprites(tileSpriteEntityIds);
 			connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
 
 			shovelerLogInfo("Sent component update to refresh canvas entity %lld's tile sprites list.", canvasEntityId);
@@ -577,11 +589,11 @@ static void refreshCanvas(worker::Connection &connection, worker::View &view, wo
 	}
 }
 
-static Color colorFromHsv(float h, float s, float v) {
+static Vector3 colorFromHsv(float h, float s, float v) {
 	ShovelerColor colorRgb = shovelerColorFromHsv(h, s, v);
 	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
 
-	return Color{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
+	return Vector3{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
 }
 
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ) {
@@ -608,7 +620,7 @@ static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ) {
 	return firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
 }
 
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId) {
+static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId) {
 	worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
 	if(chunkBackgroundEntityQuery == view.Entities.end()) {
 		shovelerLogWarning("Chunk background entity %lld is not in view.", chunkBackgroundEntityId);
@@ -622,7 +634,7 @@ static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection &connec
 		return {};
 	}
 
-	return tilemapTilesComponent->tiles();
+	return {{*tilemapTilesComponent->tileset_columns(), *tilemapTilesComponent->tileset_rows(), *tilemapTilesComponent->tileset_ids()}};
 }
 
 static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view) {
@@ -636,15 +648,17 @@ static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::
 		int startingChunkZ = 9 + (rand() % 2);
 
 		EntityId backgroundChunkEntityId = getChunkBackgroundEntityId(startingChunkX, startingChunkZ);
-		const List<TilemapTilesTile> &tiles = getChunkBackgroundTiles(connection, view, backgroundChunkEntityId);
-		if(tiles.empty()) {
+		Option<TilesData> tiles = getChunkBackgroundTiles(connection, view, backgroundChunkEntityId);
+		if(!tiles) {
 			continue;
 		}
 
 		int startingTileX = rand() % 10;
 		int startingTileZ = rand() % 10;
-		const TilemapTilesTile &tile = tiles[startingTileZ * chunkSize + startingTileX];
-		if(tile.tileset_column() > 2) { // not grass
+		unsigned char tilesetColumn = tiles->tilesetColumns[startingTileZ * chunkSize + startingTileX];
+		unsigned char tilesetRows = tiles->tilesetRows[startingTileZ * chunkSize + startingTileX];
+		unsigned char tilesetIds = tiles->tilesetIds[startingTileZ * chunkSize + startingTileX];
+		if(tilesetColumn > 2) { // not grass
 			continue;
 		}
 

@@ -7,6 +7,7 @@
 
 #include "canvas.h"
 #include "chunk.h"
+#include "chunk_layer.h"
 #include "configuration.h"
 #include "connect.h"
 #include "drawable.h"
@@ -17,10 +18,12 @@
 #include "model.h"
 #include "position.h"
 #include "resource.h"
+#include "sampler.h"
 #include "texture.h"
 #include "tile_sprite.h"
 #include "tile_sprite_animation.h"
 #include "tilemap.h"
+#include "tilemap_colliders.h"
 #include "tilemap_tiles.h"
 #include "tileset.h"
 
@@ -28,7 +31,9 @@ extern "C" {
 #include <shoveler/camera/perspective.h>
 #include <shoveler/resources/image_png.h>
 #include <shoveler/view/client.h>
+#include <shoveler/view/position.h>
 #include <shoveler/view/resources.h>
+#include <shoveler/component.h>
 #include <shoveler/constants.h>
 #include <shoveler/game.h>
 #include <shoveler/global.h>
@@ -48,15 +53,20 @@ using improbable::Position;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::Chunk;
+using shoveler::ChunkLayer;
 using shoveler::Client;
+using shoveler::ClientHeartbeat;
+using shoveler::ClientInfo;
 using shoveler::Drawable;
 using shoveler::Light;
 using shoveler::LightType;
 using shoveler::Material;
 using shoveler::Model;
 using shoveler::Resource;
+using shoveler::Sampler;
 using shoveler::Texture;
 using shoveler::Tilemap;
+using shoveler::TilemapColliders;
 using shoveler::TilemapTiles;
 using shoveler::Tileset;
 using shoveler::TileSprite;
@@ -88,8 +98,10 @@ struct ClientContext {
 };
 
 static const int64_t clientPingTimeoutMs = 1000;
+static const char *const shovelerComponentViewTargetClientContext = "client_context";
 
 static void updateGame(ShovelerGame *game, double dt);
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value);
 static void clientPingTick(void *clientContextPointer);
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
@@ -120,7 +132,10 @@ int main(int argc, char **argv) {
 		Bootstrap,
 		Canvas,
 		Chunk,
+		ChunkLayer,
 		Client,
+		ClientHeartbeat,
+		ClientInfo,
 		Drawable,
 		EntityAcl,
 		Interest,
@@ -131,8 +146,10 @@ int main(int argc, char **argv) {
 		Persistence,
 		Position,
 		Resource,
+		Sampler,
 		Texture,
 		Tilemap,
+		TilemapColliders,
 		TilemapTiles,
 		Tileset,
 		TileSprite,
@@ -164,7 +181,7 @@ int main(int argc, char **argv) {
 	cameraSettings.projection.nearClippingPlane = 0.01;
 	cameraSettings.projection.farClippingPlane = 1000;
 
-	ShovelerGame *game = shovelerGameCreate(updateGame, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -181,6 +198,8 @@ int main(int argc, char **argv) {
 	context.viewDependenciesUpdated = false;
 	context.lastInterestUpdatePositionY = 0.0f;
 	context.edgeLength = 20.5f;
+
+	shovelerViewSetTarget(view, shovelerComponentViewTargetClientContext, &context);
 
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 
@@ -201,7 +220,7 @@ int main(int argc, char **argv) {
 	shovelerResourcesImagePngRegister(resources);
 
 	shovelerViewAddDependencyCallback(view, viewDependencyCallbackFunction, &context);
-	shovelerViewSetTarget(view, shovelerViewResourcesTargetName, resources);
+	shovelerViewSetResources(view, resources);
 
 	dispatcher.OnDisconnect([&](const worker::DisconnectOp& op) {
 		shovelerLogError("Disconnected from SpatialOS: %s", op.Reason.c_str());
@@ -255,10 +274,8 @@ int main(int argc, char **argv) {
 
 		if(clientConfiguration.hidePlayerClientEntityModel) {
 			clientComponentConfiguration.modelEntityId = op.EntityId;
-			clientComponentConfiguration.disableModelVisibility = true;
 		} else {
-			clientComponentConfiguration.modelEntityId = 0;
-			clientComponentConfiguration.disableModelVisibility = false;
+			clientComponentConfiguration.modelEntityId = {};
 		}
 
 		shovelerViewEntityAddClient(entity, &clientComponentConfiguration);
@@ -268,11 +285,12 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Changing client authority for entity %lld to %d.", op.EntityId, op.Authority);
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 		if(op.Authority == worker::Authority::kAuthoritative) {
-			shovelerViewEntityDelegateClient(entity);
+			shovelerViewEntityDelegate(entity, shovelerComponentTypeIdClient);
+			shovelerComponentActivate(shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdClient));
 			clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
 			context.clientEntityId = op.EntityId;
 		} else if(op.Authority == worker::Authority::kNotAuthoritative) {
-			shovelerViewEntityUndelegateClient(entity);
+			shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdClient);
 			shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
 			context.clientEntityId = 0;
 		}
@@ -320,14 +338,17 @@ int main(int argc, char **argv) {
 	registerPositionCallbacks(connection, dispatcher, view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ);
 	registerMetadataCallbacks(dispatcher, view);
 	registerResourceCallbacks(dispatcher, view);
+	registerSamplerCallbacks(dispatcher, view);
 	registerTextureCallbacks(dispatcher, view);
 	registerTilesetCallbacks(dispatcher, view);
+	registerTilemapCollidersCallbacks(dispatcher, view);
 	registerTilemapTilesCallbacks(dispatcher, view);
 	registerTilemapCallbacks(dispatcher, view);
 	registerTileSpriteCallbacks(dispatcher, view);
 	registerTileSpriteAnimationCallbacks(dispatcher, view);
 	registerCanvasCallbacks(dispatcher, view);
 	registerChunkCallbacks(dispatcher, view);
+	registerChunkLayerCallbacks(dispatcher, view);
 	registerDrawableCallbacks(dispatcher, view);
 	registerMaterialCallbacks(dispatcher, view);
 	registerModelCallbacks(dispatcher, view);
@@ -339,7 +360,7 @@ int main(int argc, char **argv) {
 		dispatcher.Process(connection.GetOpList(0));
 		shovelerGameRenderFrame(game);
 
-		ShovelerVector3 position = getEntitySpatialOsPosition(view, context.clientEntityId);
+		ShovelerVector3 position = getEntitySpatialOsPosition(view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ, context.clientEntityId);
 		updateEdgeLength(&context, position);
 
 		if(clientInterestAuthoritative && context.viewDependenciesUpdated) {
@@ -360,6 +381,15 @@ int main(int argc, char **argv) {
 
 static void updateGame(ShovelerGame *game, double dt) {
 	shovelerCameraUpdateView(game->camera);
+}
+
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
+{
+	ClientContext *context = (ClientContext *) shovelerViewGetTarget(game->view, shovelerComponentViewTargetClientContext);
+
+	if(component->type->id == shovelerComponentTypeIdPosition) {
+		requestPositionUpdate(*context->connection, game->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, component, configurationOption, value);
+	}
 }
 
 static void clientPingTick(void *clientContextPointer) {
@@ -424,7 +454,7 @@ static void keyHandler(ShovelerInput *input, int key, int scancode, int action, 
 		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
 		context->absoluteInterest = !context->absoluteInterest;
 
-		ShovelerVector3 position = getEntitySpatialOsPosition(context->game->view, context->clientEntityId);
+		ShovelerVector3 position = getEntitySpatialOsPosition(context->game->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
 		updateEdgeLength(context, position);
 		updateInterest(*context->connection, context->clientEntityId, context->game->view, context->absoluteInterest, position, context->edgeLength);
 	}

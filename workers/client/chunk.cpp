@@ -26,29 +26,33 @@ void registerChunkCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewChunkConfiguration configuration;
+		configuration.positionEntityId = op.Data.position();
 		configuration.positionMappingX = convertCoordinateMapping(op.Data.position_mapping_x());
 		configuration.positionMappingY = convertCoordinateMapping(op.Data.position_mapping_y());
 		const Vector2& size = op.Data.size();
 		configuration.size = shovelerVector2(size.x(), size.y());
-		configuration.collider = op.Data.collider();
-		const List<ChunkLayer>& layers = op.Data.layers();
+		const List<EntityId>& layers = op.Data.layers();
 		configuration.numLayers = layers.size();
-		configuration.layers = new ShovelerViewChunkLayerConfiguration[configuration.numLayers];
+        long long int *layerEntityIds = new long long int[configuration.numLayers];
 		for(int i = 0; i < configuration.numLayers; ++i) {
-			configuration.layers[i].type = convertLayerType(layers[i].type());
-			configuration.layers[i].valueEntityId = layers[i].value_entity_id();
+            layerEntityIds[i] = layers[i];
 		}
+		configuration.layerEntityIds = layerEntityIds;
 
 		shovelerViewEntityAddChunk(entity, &configuration);
 
-		delete[] configuration.layers;
+		delete[] layerEntityIds;
 	});
 
 	dispatcher.OnComponentUpdate<Chunk>([&, view](const worker::ComponentUpdateOp<Chunk>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		const ShovelerViewChunkConfiguration *currentConfiguration = shovelerViewEntityGetChunkConfiguration(entity);
 
-		ShovelerViewChunkConfiguration configuration;
+        ShovelerViewChunkConfiguration configuration;
+		shovelerViewEntityGetChunkConfiguration(entity, &configuration);
+
+        if(op.Update.position()) {
+            configuration.positionEntityId = *op.Update.position();
+        }
 
 		if(op.Update.position_mapping_x()) {
 			configuration.positionMappingX = convertCoordinateMapping(*op.Update.position_mapping_x());
@@ -63,29 +67,22 @@ void registerChunkCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 			configuration.size = shovelerVector2(size.x(), size.y());
 		}
 
-		if(op.Update.collider()) {
-			configuration.collider = *op.Update.collider();
-		}
-
+        long long int *layerEntityIds = NULL;
 		if(op.Update.layers()) {
-			const List<ChunkLayer>& layers = *op.Update.layers();
+			const List<EntityId>& layers = *op.Update.layers();
 			configuration.numLayers = layers.size();
-			configuration.layers = new ShovelerViewChunkLayerConfiguration[configuration.numLayers];
+            layerEntityIds = new long long int[configuration.numLayers];
 			for(int i = 0; i < configuration.numLayers; ++i) {
-				configuration.layers[i].type = convertLayerType(layers[i].type());
-				configuration.layers[i].valueEntityId = layers[i].value_entity_id();
+                layerEntityIds[i] = layers[i];
 			}
-		} else {
-			configuration.numLayers = currentConfiguration->numLayers;
-			configuration.layers = new ShovelerViewChunkLayerConfiguration[configuration.numLayers];
-			for(int i = 0; i < configuration.numLayers; ++i) {
-				configuration.layers[i] = currentConfiguration->layers[i];
-			}
+            configuration.layerEntityIds = layerEntityIds;
 		}
 
-		shovelerViewEntityUpdateChunk(entity, configuration);
+		shovelerViewEntityUpdateChunk(entity, &configuration);
 
-		delete[] configuration.layers;
+		if(layerEntityIds != NULL) {
+            delete[] layerEntityIds;
+		}
 	});
 
 	dispatcher.OnRemoveComponent<Chunk>([&, view](const worker::RemoveComponentOp& op) {

@@ -4,6 +4,7 @@
 
 extern "C" {
 #include <shoveler/view/model.h>
+#include <shoveler/component.h>
 #include <shoveler/log.h>
 #include <shoveler/types.h>
 }
@@ -18,50 +19,57 @@ void registerModelCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 	dispatcher.OnAddComponent<Model>([&, view](const worker::AddComponentOp<Model>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
-		ShovelerViewModelConfiguration modelConfiguration;
-		modelConfiguration.drawableEntityId = op.Data.drawable_entity_id() != 0 ? op.Data.drawable_entity_id() : op.EntityId;
-		modelConfiguration.materialEntityId = op.Data.material_entity_id() != 0 ? op.Data.material_entity_id() : op.EntityId;
-		modelConfiguration.rotation = ShovelerVector3{op.Data.rotation().x(), op.Data.rotation().y(), op.Data.rotation().z()};
-		modelConfiguration.scale = ShovelerVector3{op.Data.scale().x(), op.Data.scale().y(), op.Data.scale().z()};
-		modelConfiguration.visible = op.Data.visible();
-		modelConfiguration.emitter = op.Data.emitter();
-		modelConfiguration.castsShadow = op.Data.casts_shadow();
-		modelConfiguration.polygonMode = getPolygonMode(op.Data.polygon_mode());
-		shovelerViewEntityAddModel(entity, modelConfiguration);
+		ShovelerViewModelConfiguration configuration;
+		configuration.positionEntityId = op.Data.position();
+		configuration.drawableEntityId = op.Data.drawable();
+		configuration.materialEntityId = op.Data.material();
+        configuration.rotation = ShovelerVector3{op.Data.rotation().x(), op.Data.rotation().y(), op.Data.rotation().z()};
+        configuration.scale = ShovelerVector3{op.Data.scale().x(), op.Data.scale().y(), op.Data.scale().z()};
+        configuration.visible = op.Data.visible();
+        configuration.emitter = op.Data.emitter();
+        configuration.castsShadow = op.Data.casts_shadow();
+        configuration.polygonMode = getPolygonMode(op.Data.polygon_mode());
+		shovelerViewEntityAddModel(entity, &configuration);
 	});
 
 	dispatcher.OnComponentUpdate<Model>([&, view](const worker::ComponentUpdateOp<Model>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
+        ShovelerComponent *component = shovelerViewEntityGetModelComponent(entity);
 
-		if(op.Update.drawable_entity_id()) {
-			shovelerViewEntityUpdateModelDrawableEntityId(entity, *op.Update.drawable_entity_id());
+        if(op.Update.position()) {
+			shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_POSITION, *op.Update.position());
+        }
+
+        if(op.Update.drawable()) {
+			shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_DRAWABLE, *op.Update.drawable());
 		}
 
-		if(op.Update.material_entity_id()) {
-			shovelerViewEntityUpdateModelMaterialEntityId(entity, *op.Update.material_entity_id());
-		}
+        if(op.Update.material()) {
+			shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_MATERIAL, *op.Update.material());
+        }
 
 		if(op.Update.rotation()) {
-			ShovelerVector3 rotation{op.Update.rotation()->x(), op.Update.rotation()->y(), op.Update.rotation()->z()};
-			shovelerViewEntityUpdateModelRotation(entity, rotation);
+            shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_ROTATION, ShovelerVector3{op.Update.rotation()->x(), op.Update.rotation()->y(), op.Update.rotation()->z()});
 		}
 
-		if(op.Update.scale()) {
-			ShovelerVector3 scale{-op.Update.scale()->x(), op.Update.scale()->y(), op.Update.scale()->z()};
-			shovelerViewEntityUpdateModelScale(entity, scale);
-		}
+        if(op.Update.scale()) {
+            shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_SCALE, ShovelerVector3{op.Update.scale()->x(), op.Update.scale()->y(), op.Update.scale()->z()});
+        }
 
 		if(op.Update.visible()) {
-			shovelerViewEntityUpdateModelVisible(entity, *op.Update.visible());
+            shovelerComponentUpdateCanonicalConfigurationOptionBool(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_VISIBLE, *op.Update.visible());
 		}
 
-		if(op.Update.emitter()) {
-			shovelerViewEntityUpdateModelEmitter(entity, *op.Update.emitter());
-		}
+        if(op.Update.emitter()) {
+            shovelerComponentUpdateCanonicalConfigurationOptionBool(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_EMITTER, *op.Update.emitter());
+        }
+
+        if(op.Update.casts_shadow()) {
+            shovelerComponentUpdateCanonicalConfigurationOptionBool(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_CASTS_SHADOW, *op.Update.casts_shadow());
+        }
 
 		if(op.Update.polygon_mode()) {
-			GLuint polygonMode = getPolygonMode(*op.Update.polygon_mode());
-			shovelerViewEntityUpdateModelPolygonMode(entity, polygonMode);
+            shovelerComponentUpdateCanonicalConfigurationOptionInt(component, SHOVELER_COMPONENT_MODEL_OPTION_ID_POLYGON_MODE, getPolygonMode(*op.Update.polygon_mode()));
 		}
 	});
 

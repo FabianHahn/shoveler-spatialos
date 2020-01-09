@@ -46,7 +46,6 @@ using shoveler::Texture;
 using shoveler::Tilemap;
 using shoveler::TilemapTiles;
 using shoveler::TilemapTilesData;
-using shoveler::TilemapTilesTile;
 using shoveler::Tileset;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
@@ -62,6 +61,12 @@ using worker::View;
 
 using CreateClientEntity = Bootstrap::Commands::CreateClientEntity;
 using ClientPing = Bootstrap::Commands::ClientPing;
+
+struct TilesData {
+	std::string tilesetColumns;
+	std::string tilesetRows;
+	std::string tilesetIds;
+};
 
 struct ClientContext {
 	Connection *connection;
@@ -83,7 +88,7 @@ static void clientDirectionChange(void *clientContextPointer);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId);
+static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
 
 static const long long int bootstrapEntityId = 1;
 static const int64_t clientPingTimeoutMs = 1000;
@@ -350,14 +355,14 @@ static bool validatePoint(ClientContext *context, const Coordinates& coordinates
 	}
 
 	worker::EntityId chunkBackgroundEntityId = getChunkBackgroundEntityId(chunkX, chunkZ);
-	List<TilemapTilesTile> tiles = getChunkBackgroundTiles(*context->connection, *context->view, chunkBackgroundEntityId);
-	if(tiles.empty()) {
+	Option<TilesData> tiles = getChunkBackgroundTiles(*context->connection, *context->view, chunkBackgroundEntityId);
+	if(!tiles) {
 		shovelerLogTrace("Position (%.2f, %.2f, %.2f) validates to false because background tiles are empty.", coordinates.x(), coordinates.y(), coordinates.z());
 		return false;
 	}
 
-	TilemapTilesTile& tile = tiles[tileZ * chunkSize + tileX];
-	if(tile.tileset_column() > 2) { // tile isn't grass
+	char tilesetColumn = tiles->tilesetColumns[tileZ * chunkSize + tileX];
+	if(tilesetColumn > 2) { // tile isn't grass
 		shovelerLogTrace("Position (%.2f, %.2f, %.2f) validates to false because tile isn't grass.", coordinates.x(), coordinates.y(), coordinates.z());
 		return false;
 	}
@@ -406,7 +411,8 @@ static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ) {
 	return firstChunkEntityId + 3 * chunkX * numChunkColumns + 3 * chunkZ;
 }
 
-static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connection, worker::View& view, EntityId chunkBackgroundEntityId) {
+static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId)
+{
 	worker::Map<worker::EntityId, worker::Entity>::const_iterator chunkBackgroundEntityQuery = view.Entities.find(chunkBackgroundEntityId);
 	if(chunkBackgroundEntityQuery == view.Entities.end()) {
 		shovelerLogWarning("Chunk background entity %lld is not in view.", chunkBackgroundEntityId);
@@ -420,5 +426,5 @@ static List<TilemapTilesTile> getChunkBackgroundTiles(worker::Connection& connec
 		return {};
 	}
 
-	return tilemapTilesComponent->tiles();
+	return {{*tilemapTilesComponent->tileset_columns(), *tilemapTilesComponent->tileset_rows(), *tilemapTilesComponent->tileset_ids()}};
 }

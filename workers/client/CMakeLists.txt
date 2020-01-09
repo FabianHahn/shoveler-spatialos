@@ -5,6 +5,8 @@ set(SHOVELER_CLIENT_SRC
 	canvas.h
 	chunk.cpp
 	chunk.h
+	chunk_layer.cpp
+	chunk_layer.h
 	client.cpp
 	configuration.cpp
 	configuration.h
@@ -27,6 +29,8 @@ set(SHOVELER_CLIENT_SRC
 	position.h
 	resource.cpp
 	resource.h
+	sampler.cpp
+	sampler.h
 	texture.cpp
 	texture.h
 	tile_sprite.cpp
@@ -35,6 +39,8 @@ set(SHOVELER_CLIENT_SRC
 	tile_sprite_animation.h
 	tilemap.cpp
 	tilemap.h
+	tilemap_colliders.cpp
+	tilemap_colliders.h
 	tilemap_tiles.cpp
 	tilemap_tiles.h
 	tileset.cpp

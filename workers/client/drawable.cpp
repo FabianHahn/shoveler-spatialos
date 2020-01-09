@@ -12,7 +12,7 @@ extern "C" {
 using shoveler::Drawable;
 using shoveler::DrawableType;
 
-static ShovelerViewDrawableType convertDrawableType(DrawableType type);
+static ShovelerComponentDrawableType convertDrawableType(DrawableType type);
 
 void registerDrawableCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 {
@@ -22,18 +22,19 @@ void registerDrawableCallbacks(worker::Dispatcher& dispatcher, ShovelerView *vie
 		ShovelerViewDrawableConfiguration configuration;
 		configuration.type = convertDrawableType(op.Data.type());
 
-		shovelerViewEntityAddDrawable(entity, configuration);
+		shovelerViewEntityAddDrawable(entity, &configuration);
 	});
 
 	dispatcher.OnComponentUpdate<Drawable>([&, view](const worker::ComponentUpdateOp<Drawable>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
-		ShovelerViewDrawableConfiguration configuration = *shovelerViewEntityGetDrawableConfiguration(entity);
+		ShovelerViewDrawableConfiguration configuration;
+		shovelerViewEntityGetDrawableConfiguration(entity, &configuration);
 
 		if(op.Update.type()) {
 			configuration.type = convertDrawableType(*op.Update.type());
 		}
 
-		shovelerViewEntityUpdateDrawable(entity, configuration);
+		shovelerViewEntityUpdateDrawable(entity, &configuration);
 	});
 
 	dispatcher.OnRemoveComponent<Drawable>([&, view](const worker::RemoveComponentOp& op) {
@@ -42,14 +43,14 @@ void registerDrawableCallbacks(worker::Dispatcher& dispatcher, ShovelerView *vie
 	});
 }
 
-static ShovelerViewDrawableType convertDrawableType(DrawableType type)
+static ShovelerComponentDrawableType convertDrawableType(DrawableType type)
 {
 	switch(type) {
 		case DrawableType::CUBE:
-			return SHOVELER_VIEW_DRAWABLE_TYPE_CUBE;
+			return SHOVELER_COMPONENT_DRAWABLE_TYPE_CUBE;
 		case DrawableType::QUAD:
-			return SHOVELER_VIEW_DRAWABLE_TYPE_QUAD;
+			return SHOVELER_COMPONENT_DRAWABLE_TYPE_QUAD;
 		case DrawableType::POINT:
-			return SHOVELER_VIEW_DRAWABLE_TYPE_POINT;
+			return SHOVELER_COMPONENT_DRAWABLE_TYPE_POINT;
 	}
 }
