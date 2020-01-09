@@ -4,7 +4,6 @@
 
 using worker::Entity;
 using worker::List;
-using shoveler::TilemapTilesTile;
 
 static const int halfMapWidth = 100;
 static const int halfMapHeight = 100;
@@ -45,31 +44,40 @@ static ChunkData createStartingAreaBottomLeft(int chunkSize)
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
-			TilemapTilesTile backgroundTile;
-			TilemapTilesTile foregroundTile;
+			char backgroundTileColumn = 0;
+			char backgroundTileRow = 0;
+			char backgroundTileId = 0;
+			char backgroundTileCollider = 0;
 
-			foregroundTile.set_tileset_column(0);
-			foregroundTile.set_tileset_row(0);
-			foregroundTile.set_tileset_id(0);
-			foregroundTile.set_colliding(false);
+			char foregroundTileColumn = 0;
+			char foregroundTileRow = 0;
+			char foregroundTileId = 0;
+			char foregroundTileCollider = 0;
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
 			int grassRow = rand() % 2;
-			backgroundTile.set_tileset_column(grassColumn);
-			backgroundTile.set_tileset_row(grassRow);
-			backgroundTile.set_tileset_id(2);
-			foregroundTile.set_colliding(false);
+			backgroundTileColumn = grassColumn;
+			backgroundTileRow = grassRow;
+			backgroundTileId = 2;
+			backgroundTileCollider = false;
 
 			// place boundary rocks
 			if((i == 0 || j == 0) && i != chunkSize - 1 && j != chunkSize - 1) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(0);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 0;
+				backgroundTileCollider = true;
 			}
 
-			chunk.backgroundTiles.emplace_back(backgroundTile);
-			chunk.foregroundTiles.emplace_back(foregroundTile);
+			chunk.backgroundTiles.tilesetColumns += backgroundTileColumn;
+			chunk.backgroundTiles.tilesetRows += backgroundTileRow;
+			chunk.backgroundTiles.tilesetIds += backgroundTileId;
+			chunk.backgroundTiles.tilesetColliders += backgroundTileCollider;
+
+			chunk.foregroundTiles.tilesetColumns += foregroundTileColumn;
+			chunk.foregroundTiles.tilesetRows += foregroundTileRow;
+			chunk.foregroundTiles.tilesetIds += foregroundTileId;
+			chunk.foregroundTiles.tilesetColliders += foregroundTileCollider;
 		}
 	}
 
@@ -83,31 +91,45 @@ static ChunkData createStartingAreaBottomRight(int chunkSize)
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
-			TilemapTilesTile backgroundTile;
-			TilemapTilesTile foregroundTile;
+			char backgroundTileColumn = 0;
+			char backgroundTileRow = 0;
+			char backgroundTileId = 0;
+			char backgroundTileCollider = 0;
 
-			foregroundTile.set_tileset_column(0);
-			foregroundTile.set_tileset_row(0);
-			foregroundTile.set_tileset_id(0);
-			foregroundTile.set_colliding(false);
+			char foregroundTileColumn = 0;
+			char foregroundTileRow = 0;
+			char foregroundTileId = 0;
+			char foregroundTileCollider = 0;
+
+			foregroundTileColumn = 0;
+			foregroundTileRow = 0;
+			foregroundTileId = 0;
+			foregroundTileCollider = false;
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
 			int grassRow = rand() % 2;
-			backgroundTile.set_tileset_column(grassColumn);
-			backgroundTile.set_tileset_row(grassRow);
-			backgroundTile.set_tileset_id(2);
-			foregroundTile.set_colliding(false);
+			backgroundTileColumn = grassColumn;
+			backgroundTileRow = grassRow;
+			backgroundTileId = 2;
+			backgroundTileCollider = false;
 
 			// place boundary rocks
 			if((i == 0 || j == chunkSize - 1) && i != chunkSize - 1 && j != 0) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(0);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 0;
+				backgroundTileCollider = true;
 			}
 
-			chunk.backgroundTiles.emplace_back(backgroundTile);
-			chunk.foregroundTiles.emplace_back(foregroundTile);
+			chunk.backgroundTiles.tilesetColumns += backgroundTileColumn;
+			chunk.backgroundTiles.tilesetRows += backgroundTileRow;
+			chunk.backgroundTiles.tilesetIds += backgroundTileId;
+			chunk.backgroundTiles.tilesetColliders += backgroundTileCollider;
+
+			chunk.foregroundTiles.tilesetColumns += foregroundTileColumn;
+			chunk.foregroundTiles.tilesetRows += foregroundTileRow;
+			chunk.foregroundTiles.tilesetIds += foregroundTileId;
+			chunk.foregroundTiles.tilesetColliders += foregroundTileCollider;
 		}
 	}
 
@@ -121,31 +143,45 @@ static ChunkData createStartingAreaTopLeft(int chunkSize)
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
-			TilemapTilesTile backgroundTile;
-			TilemapTilesTile foregroundTile;
+			char backgroundTileColumn = 0;
+			char backgroundTileRow = 0;
+			char backgroundTileId = 0;
+			char backgroundTileCollider = 0;
 
-			foregroundTile.set_tileset_column(0);
-			foregroundTile.set_tileset_row(0);
-			foregroundTile.set_tileset_id(0);
-			foregroundTile.set_colliding(false);
+			char foregroundTileColumn = 0;
+			char foregroundTileRow = 0;
+			char foregroundTileId = 0;
+			char foregroundTileCollider = 0;
+
+			foregroundTileColumn = 0;
+			foregroundTileRow = 0;
+			foregroundTileId = 0;
+			foregroundTileCollider = false;
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
 			int grassRow = rand() % 2;
-			backgroundTile.set_tileset_column(grassColumn);
-			backgroundTile.set_tileset_row(grassRow);
-			backgroundTile.set_tileset_id(2);
-			foregroundTile.set_colliding(false);
+			backgroundTileColumn = grassColumn;
+			backgroundTileRow = grassRow;
+			backgroundTileId = 2;
+			foregroundTileCollider = false;
 
 			// place boundary rocks
 			if((i == chunkSize - 1 || j == 0) && i != 0 && j != chunkSize - 1) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(0);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 0;
+				backgroundTileCollider = true;
 			}
 
-			chunk.backgroundTiles.emplace_back(backgroundTile);
-			chunk.foregroundTiles.emplace_back(foregroundTile);
+			chunk.backgroundTiles.tilesetColumns += backgroundTileColumn;
+			chunk.backgroundTiles.tilesetRows += backgroundTileRow;
+			chunk.backgroundTiles.tilesetIds += backgroundTileId;
+			chunk.backgroundTiles.tilesetColliders += backgroundTileCollider;
+
+			chunk.foregroundTiles.tilesetColumns += foregroundTileColumn;
+			chunk.foregroundTiles.tilesetRows += foregroundTileRow;
+			chunk.foregroundTiles.tilesetIds += foregroundTileId;
+			chunk.foregroundTiles.tilesetColliders += foregroundTileCollider;
 		}
 	}
 
@@ -159,31 +195,45 @@ static ChunkData createStartingAreaTopRight(int chunkSize)
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
-			TilemapTilesTile backgroundTile;
-			TilemapTilesTile foregroundTile;
+			char backgroundTileColumn = 0;
+			char backgroundTileRow = 0;
+			char backgroundTileId = 0;
+			char backgroundTileCollider = 0;
 
-			foregroundTile.set_tileset_column(0);
-			foregroundTile.set_tileset_row(0);
-			foregroundTile.set_tileset_id(0);
-			foregroundTile.set_colliding(false);
+			char foregroundTileColumn = 0;
+			char foregroundTileRow = 0;
+			char foregroundTileId = 0;
+			char foregroundTileCollider = 0;
+
+			foregroundTileColumn = 0;
+			foregroundTileRow = 0;
+			foregroundTileId = 0;
+			foregroundTileCollider = false;
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
 			int grassRow = rand() % 2;
-			backgroundTile.set_tileset_column(grassColumn);
-			backgroundTile.set_tileset_row(grassRow);
-			backgroundTile.set_tileset_id(2);
-			foregroundTile.set_colliding(false);
+			backgroundTileColumn = grassColumn;
+			backgroundTileRow = grassRow;
+			backgroundTileId = 2;
+			foregroundTileCollider = false;
 
 			// place boundary rocks
 			if((i == chunkSize - 1 || j == chunkSize - 1) && i != 0 && j != 0) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(0);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 0;
+				backgroundTileCollider = true;
 			}
 
-			chunk.backgroundTiles.emplace_back(backgroundTile);
-			chunk.foregroundTiles.emplace_back(foregroundTile);
+			chunk.backgroundTiles.tilesetColumns += backgroundTileColumn;
+			chunk.backgroundTiles.tilesetRows += backgroundTileRow;
+			chunk.backgroundTiles.tilesetIds += backgroundTileId;
+			chunk.backgroundTiles.tilesetColliders += backgroundTileCollider;
+
+			chunk.foregroundTiles.tilesetColumns += foregroundTileColumn;
+			chunk.foregroundTiles.tilesetRows += foregroundTileRow;
+			chunk.foregroundTiles.tilesetIds += foregroundTileId;
+			chunk.foregroundTiles.tilesetColliders += foregroundTileCollider;
 		}
 	}
 
@@ -201,76 +251,87 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
-			TilemapTilesTile backgroundTile;
-			TilemapTilesTile foregroundTile;
+			char backgroundTileColumn = 0;
+			char backgroundTileRow = 0;
+			char backgroundTileId = 0;
+			char backgroundTileCollider = 0;
 
-			foregroundTile.set_tileset_column(0);
-			foregroundTile.set_tileset_row(0);
-			foregroundTile.set_tileset_id(0);
-			foregroundTile.set_colliding(false);
+			char foregroundTileColumn = 0;
+			char foregroundTileRow = 0;
+			char foregroundTileId = 0;
+			char foregroundTileCollider = 0;
+
+			foregroundTileColumn = 0;
+			foregroundTileRow = 0;
+			foregroundTileId = 0;
+			foregroundTileCollider = false;
 
 			// fill background with grass
 			int grassColumn = rand() % 3;
 			int grassRow = rand() % 2;
-			backgroundTile.set_tileset_column(grassColumn);
-			backgroundTile.set_tileset_row(grassRow);
-			backgroundTile.set_tileset_id(2);
-			foregroundTile.set_colliding(false);
+			backgroundTileColumn = grassColumn;
+			backgroundTileRow = grassRow;
+			backgroundTileId = 2;
+			foregroundTileCollider = false;
 
 			// place rocks
 			int rockSeed = rand() % rockSeedModulo;
 			if(rockSeed == 0) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(0);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 0;
+				backgroundTileCollider = true;
 			}
 
 			// place bushes
 			int bushSeed = rand() % bushSeedModulo;
 			if(bushSeed == 0) {
-				backgroundTile.set_tileset_column(5);
-				backgroundTile.set_tileset_row(1);
-				backgroundTile.set_colliding(true);
+				backgroundTileColumn = 5;
+				backgroundTileRow = 1;
+				backgroundTileCollider = true;
 			}
 
 			// place trees
 			do {
 				if(i > 0) {
-					const TilemapTilesTile& previousRow = chunk.backgroundTiles[(i - 1) * chunkSize + j];
+					char previousRowTileColumn = chunk.backgroundTiles.tilesetColumns[(i - 1) * chunkSize + j];
+					char previousRowTileRow = chunk.backgroundTiles.tilesetRows[(i - 1) * chunkSize + j];
 
 					// complete left part of tree
-					if(previousRow.tileset_column() == 3 && previousRow.tileset_row() == 0) {
-						foregroundTile.set_tileset_column(3);
-						foregroundTile.set_tileset_row(1);
-						foregroundTile.set_tileset_id(2);
+					if(previousRowTileColumn == 3 && previousRowTileRow == 0) {
+						foregroundTileColumn = 3;
+						foregroundTileRow = 1;
+						foregroundTileId = 2;
 						break;
 					}
 
 					// complete right part of tree
-					if(previousRow.tileset_column() == 4 && previousRow.tileset_row() == 0) {
-						foregroundTile.set_tileset_column(4);
-						foregroundTile.set_tileset_row(1);
-						foregroundTile.set_tileset_id(2);
+					if(previousRowTileColumn == 4 && previousRowTileRow == 0) {
+						foregroundTileColumn = 4;
+						foregroundTileRow = 1;
+						foregroundTileId = 2;
 						break;
 					}
 				}
 
 				if(j > 0) {
-					const TilemapTilesTile &previousTile = *chunk.backgroundTiles.rbegin();
+					char previousTileColumn = *chunk.backgroundTiles.tilesetColumns.rbegin();
+					char previousTileRow = *chunk.backgroundTiles.tilesetRows.rbegin();
 
 					// complete bottom part of tree
-					if (previousTile.tileset_column() == 3 && previousTile.tileset_row() == 0) {
-						backgroundTile.set_tileset_column(4);
-						backgroundTile.set_tileset_row(0);
-						backgroundTile.set_colliding(true);
+					if (previousTileColumn == 3 && previousTileRow == 0) {
+						backgroundTileColumn = 4;
+						backgroundTileRow = 0;
+						backgroundTileCollider = true;
 						break;
 					}
 				}
 
 				if(i > 0 && j < chunkSize - 1) {
-					const TilemapTilesTile& previousRowNext = chunk.backgroundTiles[(i - 1) * chunkSize + j + 1];
+					char previousRowNextTileColumn = chunk.backgroundTiles.tilesetColumns[(i - 1) * chunkSize + j + 1];
+					char previousRowNextTileRow = chunk.backgroundTiles.tilesetRows[(i - 1) * chunkSize + j + 1];
+
 					// reject positions that already have a tree starting on the bottom right neighbor tile
-					if (previousRowNext.tileset_column() == 3 && previousRowNext.tileset_row() == 0) {
+					if (previousRowNextTileColumn == 3 && previousRowNextTileRow == 0) {
 						break;
 					}
 				}
@@ -283,14 +344,21 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 				// start new tree
 				int treeSeed = rand() % treeSeedModulo;
 				if(treeSeed == 0) {
-					backgroundTile.set_tileset_column(3);
-					backgroundTile.set_tileset_row(0);
-					backgroundTile.set_colliding(true);
+					backgroundTileColumn = 3;
+					backgroundTileRow = 0;
+					backgroundTileCollider = true;
 				}
 			} while (false);
 
-			chunk.backgroundTiles.emplace_back(backgroundTile);
-			chunk.foregroundTiles.emplace_back(foregroundTile);
+			chunk.backgroundTiles.tilesetColumns += backgroundTileColumn;
+			chunk.backgroundTiles.tilesetRows += backgroundTileRow;
+			chunk.backgroundTiles.tilesetIds += backgroundTileId;
+			chunk.backgroundTiles.tilesetColliders += backgroundTileCollider;
+
+			chunk.foregroundTiles.tilesetColumns += foregroundTileColumn;
+			chunk.foregroundTiles.tilesetRows += foregroundTileRow;
+			chunk.foregroundTiles.tilesetIds += foregroundTileId;
+			chunk.foregroundTiles.tilesetColliders += foregroundTileCollider;
 		}
 	}
 
