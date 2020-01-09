@@ -11,43 +11,10 @@ type Vector3 {
 	float z = 3;
 }
 
-/** Represents an RGB color triplet. */
-type Color {
-	/** Red color component, must be in [0, 1]. */
-	float r = 1;
-	/** Green color component, must be in [0, 1]. */
-	float g = 2;
-	/** Blue color component, must be in [0, 1]. */
-	float b = 3;
-}
-
-/** Represents a tile of tilemap tiles that are defined in-component. */
-type TilemapTilesTile {
-	/** The column index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_column = 1;
-	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_row = 2;
-	/**
-	 * The ID of the tileset in the tilemap these tiles are rendered on.
-	 * Tileset IDs start with 1, where 0 denotes a blank tile that isn't rendered on these tiles.
-	 * Value must be in [0, 255].
-	 */
-	int32 tileset_id = 3;
-	/** If true, this tile can collide with 2D objects. */
-	bool colliding = 4;
-}
-
 /** Layer type of this chunk layer. */
 enum ChunkLayerType {
 	CANVAS = 0;
 	TILEMAP = 1;
-}
-
-/** Represents one layer of a chunk to be rendered. */
-type ChunkLayer {
-	ChunkLayerType type = 1;
-	/** Depending on the type of this layer, dependency entity id containing a component of the respective type defining the layer data. */
-	EntityId value_entity_id = 2;
 }
 
 /** Represents a coordinate mapping from a 3d position onto another single coordinate dimension. */
@@ -109,7 +76,7 @@ type CreateClientEntityResponse {
 }
 
 type ClientPingRequest {
-	EntityId client_entity_id = 1;
+	EntityId client = 1;
 }
 
 type ClientPingResponse {
@@ -117,7 +84,7 @@ type ClientPingResponse {
 }
 
 type ClientSpawnCubeRequest {
-	EntityId client_entity_id = 1;
+	EntityId client = 1;
 	Vector3 direction = 2;
 	Vector3 rotation = 3;
 }
@@ -127,7 +94,7 @@ type ClientSpawnCubeResponse {
 }
 
 type DigHoleRequest {
-	EntityId client_entity_id = 1;
+	EntityId client = 1;
 }
 
 type DigHoleResponse {
@@ -135,7 +102,7 @@ type DigHoleResponse {
 }
 
 type UpdateResourceRequest {
-	EntityId resource_entity_id = 1;
+	EntityId resource = 1;
 	string type_id = 2;
 	bytes content = 3;
 }
@@ -166,15 +133,16 @@ component Bootstrap {
 /** Marks an entity as the player entity of a client playing the game. */
 component Client {
 	id = 1335;
-	/** Worker ID of the client represented by this entity. */
-	string worker_id = 1;
+	EntityId position = 1;
+	option<EntityId> model = 2;
 }
 
 /** Server-side metadata associated with each connected client. */
 component ClientInfo {
 	id = 133742;
-	float color_hue = 1;
-	float color_saturation = 2;
+	string worker_id = 1;
+	float color_hue = 2;
+	float color_saturation = 3;
 }
 
 /** Component for the server worker to keep track of the last heartbeat sent by the client represented by this entity. */
@@ -200,24 +168,30 @@ component Resource {
 component Texture {
 	id = 1338;
 	/** Dependency entity ID containing a Resource component with the image for the texture. */
-	EntityId image_resource_entity_id = 1;
+	EntityId image_resource = 1;
+}
+
+
+/** Represents a texture that can be used within a material. */
+component Sampler {
+	id = 13381;
 	/** If true, texture lookups use linear interpolation instead of nearest neighbor. */
-	bool interpolate = 2;
+	bool interpolate = 1;
 	/** If true, auto-generates and mipmaps for the texture. */
-	bool use_mipmaps = 3;
+	bool use_mipmaps = 2;
 	/** If true, texture lookups are clamped on the texture boundaries. */
-	bool clamp = 4;
+	bool clamp = 3;
 }
 
 /** Represents a tileset that can be added to a tilemap and be referenced by tilemap tiles. */
 component Tileset {
 	id = 1339;
 	/** Dependency entity ID containing a Resource component with the image for the tileset. */
-	EntityId image_resource_entity_id = 1;
+	EntityId image_resource = 1;
 	/** Number of tile columns in the tileset, must be in [0, 255]. */
-	int32 columns = 2;
+	int32 num_columns = 2;
 	/** Number of tile rows in the tileset, must be in [0, 255]. */
-	int32 rows = 3;
+	int32 num_rows = 3;
 	/**
 	 * Number of pixels of padding to insert between tiles to avoid rendering artifacts due to OpenGL texture atlas lookup.
 	 * If set to 0, the tileset image will be used unchanged but might display flickering line artifacts between tiles.
@@ -230,55 +204,70 @@ component Tileset {
 /** Represents tiles of a tilemap to be rendered. */
 component TilemapTiles {
 	id = 1340;
-	/** If true, uses the Resource component on another entity to specify tiles data. */
-	bool is_image_resource_entity_definition = 1;
 	/**
-	 * If is_image_resource_entity_definition is true, specifies dependency entity ID containing a Resource component with the image for the tilemap.
+	 * If set, specifies dependency entity ID containing a Resource component with the image for the tilemap.
 	 * The image needs to have three channels (rgb), each pixel of which represents a tile:
 	 *  - r channel: Column index of the referenced tile in the tileset.
 	 *  - g channel: Row index of the referenced tile in the tileset.
 	 *  - b channel: ID of the tileset in the tilemap these tiles are rendered on.
 	 *    Tileset IDs start with 1, where 0 denotes a blank tile that isn't rendered on these tiles.
 	 */
-	EntityId image_resource_entity_id = 2;
+	option<EntityId> image_resource = 1;
 	/** Number of tile columns in the tilemap tiles, must be in [0, 255]. */
-	uint32 num_columns = 3;
+	option<uint32> num_columns = 2;
 	/** Number of tile rows in the tilemap tiles, must be in [0, 255]. */
-	uint32 num_rows = 4;
-	/** Array of tiles, where tile (column, row) is at position [row * numColumns + column]. */
-	list<TilemapTilesTile> tiles = 5;
+	option<uint32> num_rows = 3;
+	/** Array of tileset column bytes, where tile (column, row) is at position [row * numColumns + column]. */
+	option<bytes> tileset_columns = 4;
+	/** Array of tileset row bytes, where tile (column, row) is at position [row * numColumns + column]. */
+    option<bytes> tileset_rows = 5;
+    /** Array of tileset id bytes, where tile (column, row) is at position [row * numColumns + column]. */
+    option<bytes> tileset_ids = 6;
+}
+
+/** Represents a tilemap with tiles to render and multiple referenced tilesets to be rendered. */
+component TilemapColliders {
+	id = 134132;
+	/** Number of tile columns in the tilemap colliders, must be in [0, 255]. */
+	int32 num_columns = 1;
+	/** Number of tile rows in the tilemap colliders, must be in [0, 255]. */
+    int32 num_rows = 2;
+	/** Array of collider boolean bytes, where tile (column, row) is at position [row * numColumns + column] */
+    bytes colliders = 3;
 }
 
 /** Represents a tilemap with tiles to render and multiple referenced tilesets to be rendered. */
 component Tilemap {
 	id = 1341;
-	/**
-	 * Dependency entity IDs containing a TilemapTiles component.
-	 */
-	EntityId tiles_entity_id = 1;
+	/** Dependency entity IDs containing a TilemapTiles component. */
+	EntityId tiles = 1;
+	/** Dependency entity IDs containing a TilemapColliders component. */
+    EntityId colliders = 2;
 	/**
 	 * List of dependency entity IDs each containing a Tileset component.
 	 * Each tileset is assigned an increasing tileset ID starting with 1.
 	 * The initial tileset ID 0 is used to denote tiles that should not be rendered.
 	 */
-	list<EntityId> tileset_entity_ids = 2;
+	list<EntityId> tilesets = 3;
 }
 
 /** Represents a sprite that is rendered as a single tile from a tileset. */
 component TileSprite {
 	id = 1342;
+	/** Dependency entity ID containing a Position component referenced by this tile sprite. */
+    EntityId position = 1;
 	/** Dependency entity ID containing a Tileset component referenced by this tile sprite. */
-	EntityId tileset_entity_id = 1;
+	EntityId tileset = 2;
 	/** The column index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_column = 2;
+	int32 tileset_column = 3;
 	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_row = 3;
+	int32 tileset_row = 4;
 	/** The mapping to use from the entity position to the 2d x coodinate. */
-	CoordinateMapping position_mapping_x = 4;
+	CoordinateMapping position_mapping_x = 5;
 	/** The mapping to use from the entity position to the 2d y coodinate. */
-	CoordinateMapping position_mapping_y = 5;
+	CoordinateMapping position_mapping_y = 6;
 	/** The size of the sprite when rendered onto a canvas. */
-	Vector2 size = 6;
+	Vector2 size = 7;
 }
 
 /**
@@ -290,58 +279,75 @@ component TileSprite {
  */
 component TileSpriteAnimation {
 	id = 1343;
+	EntityId position = 1;
 	/** Dependency entity ID containing a TileSprite component referenced by this animation. */
-	EntityId tile_sprite_entity_id = 1;
+	EntityId tile_sprite = 2;
+    /** The mapping to use from the entity position to the 2d x coodinate. */
+    CoordinateMapping position_mapping_x = 3;
+    /** The mapping to use from the entity position to the 2d y coodinate. */
+    CoordinateMapping position_mapping_y = 4;
 	/** Amount of positional displacement that needs to accumulate between movement frames are alternated. */
-	float move_amount_threshold = 2;
+	float move_amount_threshold = 5;
 }
 
 /** Represents an infinite 2d canvas onto which tile sprites can be drawn. */
 component Canvas {
 	id = 1344;
 	/** List of dependency entity IDs each containing a TileSprite component. */
-	list<EntityId> tile_sprite_entity_ids = 1;
+	list<EntityId> tile_sprites = 1;
+}
+
+component ChunkLayer {
+    id = 1345;
+    ChunkLayerType type = 1;
+    option<EntityId> canvas = 2;
+    option<EntityId> tilemap = 3;
 }
 
 /** Represents a chunk with multiple layers. */
 component Chunk {
-	id = 1345;
+	id = 13451337;
+	/** Dependency entity id of the position to use for the chunk. */
+	EntityId position = 1;
 	/** The mapping to use from the entity position to the chunk center's 2d x coodinate. */
-	CoordinateMapping position_mapping_x = 1;
+	CoordinateMapping position_mapping_x = 2;
 	/** The mapping to use from the entity position to the chunk center's 2d y coodinate. */
-	CoordinateMapping position_mapping_y = 2;
+	CoordinateMapping position_mapping_y = 3;
 	/**
 	 * Denotes the 2d size of this chunk.
 	 * For each canvas layer in the chunk, only this chunk's region will be rendered.
 	 */
-	Vector2 size = 3;
-	/** If true, registers the chunk as a 2D collider, which will check for collisions with tiles on tilemap layers. */
-    bool collider = 4;
+	Vector2 size = 4;
 	/**
-	 * List of chunk layers to be rendered.
+	 * List of dependency entity IDs each containing a ChunkLayer component to be rendered.
 	 * Layers will be rendered in the order they appear in the list, later ones drawing over earlier ones.
 	 */
-	list<ChunkLayer> layers = 5;
+	list<EntityId> layers = 5;
 }
 
 /** Represents drawable geometry that can be rendered. */
 component Drawable {
 	id = 1346;
 	DrawableType type = 1;
+	option<int32> tiles_width = 2;
+	option<int32> tiles_height = 3;
 }
 
 /** Represents a material containing a shader that can be used to render geometry. */
 component Material {
 	id = 1347;
 	MaterialType type = 1;
+	option<EntityId> texture = 2;
+	option<EntityId> texture_sampler = 3;
+	option<EntityId> tilemap = 4;
+	option<EntityId> canvas = 5;
+	option<EntityId> chunk = 6;
 	/** If type is set to COLOR, specifies the color of the material. */
-	option<Color> color = 2;
-	/** If type is set to TEXTURE, TILEMAP, CANVAS or CHUNK, specifies a dependency entity ID containing a the respective component. */
-	option<EntityId> data_entity_id = 3;
+	option<Vector3> color = 7;
 	/** If type is set to CANVAS, specifies the position of the region to render by the material. */
-	option<Vector2> canvas_region_position = 4;
+	option<Vector2> canvas_region_position = 8;
 	/** If type is set to CANVAS, specifies the size of the region to render by the material. */
-	option<Vector2> canvas_region_size = 5;
+	option<Vector2> canvas_region_size = 9;
 }
 
 /**
@@ -351,23 +357,25 @@ component Material {
  */
 component Model {
 	id = 1348;
+	/** Dependency entity ID containing a Position component used by this model. */
+	EntityId position = 1;
 	/** Dependency entity ID containing a Drawable component referenced by this model which specifies the geometry. */
-	EntityId drawable_entity_id = 1;
+	EntityId drawable = 2;
 	/** Dependency entity ID containing a Material component referenced by this model which specifies the shader. */
-	EntityId material_entity_id = 2;
+	EntityId material = 3;
 	/** Rotation of the model in 3D space. */
-	Vector3 rotation = 3;
+	Vector3 rotation = 4;
 	/** Scale of the model in 3D coordinate axes. */
-	Vector3 scale = 4;
+	Vector3 scale = 5;
 	/** If false, scene passes will skip this model. */
-	bool visible = 5;
+	bool visible = 6;
 	/**
 	 * If true, marks this model as an emitter.
 	 *
 	 * Emitters are rendered in a special render pass after lights have illuminated the scene.
 	 * Their color is rendered additively to the scene.
 	 */
-	bool emitter = 6;
+	bool emitter = 7;
 	/**
 	 * If true, marks this model as a shadow caster.
 	 *
@@ -386,21 +394,21 @@ component Model {
  */
 component Light {
 	id = 1349;
+	/** Dependency entity ID with position component to use for the light. */
+	EntityId position = 1;
 	/** Type of this light source. */
-	LightType type = 1;
+	LightType type = 2;
 	/** The width of the framebuffer to use for the light's shadow volume. */
-	uint32 width = 2;
+	uint32 width = 3;
 	/** The height of the framebuffer to use for the light's shadow volume. */
-	uint32 height = 3;
+	uint32 height = 4;
 	/** The number of samples per pixel to use when rendering the light's shadow volume. */
-	uint32 samples = 4;
+	uint32 samples = 5;
 	/** Phong ambient factor to use for this light source. */
-	float ambient_factor = 5;
+	float ambient_factor = 6;
 	/** Exponential factor to use for exponential shadow mapping of this light source. */
-	float exponential_factor = 6;
+	float exponential_factor = 7;
 	/** Color of this light source. */
-	Color color = 7;
-	/** If this light is a spot light, specifies the perspective camera for placing it. */
-	option<PerspectiveCamera> spot_light_camera = 8;
+	Vector3 color = 8;
 }
 
