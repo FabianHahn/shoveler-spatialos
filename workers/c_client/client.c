@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	ShovelerView *view = game->view;
+	shovelerClientRegisterViewComponentTypes(view);
 
 	ClientContext context;
 	context.connection = connection;
@@ -163,9 +164,30 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE:
 					shovelerLogInfo("WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE");
 					break;
-				case WORKER_OP_TYPE_ADD_COMPONENT:
-					shovelerLogInfo("WORKER_OP_TYPE_ADD_COMPONENT");
-					break;
+				case WORKER_OP_TYPE_ADD_COMPONENT: {
+					Worker_AddComponentOp *addComponentOp = &op->op.add_component;
+
+					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) addComponentOp->data.component_id);
+					if(componentTypeId == NULL) {
+						shovelerLogWarning("Received add for unknown component ID %d on entity %lld, ignoring.", addComponentOp->data.component_id, addComponentOp->entity_id);
+						break;
+					}
+
+					ShovelerViewEntity *entity = shovelerViewGetEntity(view, addComponentOp->entity_id);
+					if(entity == NULL) {
+						shovelerLogWarning("Received add component %d (%s) for unknown entity %lld, ignoring.", addComponentOp->data.component_id, componentTypeId, addComponentOp->entity_id);
+						break;
+					}
+
+					ShovelerComponent *component = shovelerViewEntityAddComponent(entity, componentTypeId);
+					if(component == NULL) {
+						shovelerLogWarning("Failed to add component %d (%s) to entity %lld.", addComponentOp->data.component_id, componentTypeId, addComponentOp->entity_id);
+						break;
+					}
+
+					shovelerLogInfo("Adding entity %lld component %d (%s).", addComponentOp->entity_id, addComponentOp->data.component_id, componentTypeId);
+					shovelerClientApplyComponentData(view, component, op->op.add_component.data.schema_type);
+				} break;
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
 					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_COMPONENT");
 					break;
