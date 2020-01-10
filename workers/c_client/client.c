@@ -11,9 +11,11 @@
 #include <shoveler/resources/image_png.h>
 #include <shoveler/resources.h>
 #include <shoveler/types.h>
+#include <shoveler/view.h>
 
 #include "configuration.h"
 #include "connect.h"
+#include "schema.h"
 
 typedef struct {
 	Worker_Connection *connection;
@@ -92,23 +94,6 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	clientConfiguration.controllerSettings.frame.position = shovelerVector3(0, 0, 0);
-	clientConfiguration.controllerSettings.frame.direction = shovelerVector3(0, 0, 1);
-	clientConfiguration.controllerSettings.frame.up = shovelerVector3(0, 1, 0);
-	clientConfiguration.controllerLockMoveX = false;
-	clientConfiguration.controllerLockMoveY = false;
-	clientConfiguration.controllerLockMoveZ = false;
-	clientConfiguration.controllerLockTiltX = false;
-	clientConfiguration.controllerLockTiltY = false;
-	clientConfiguration.controllerSettings.moveFactor = 2.0f;
-	clientConfiguration.controllerSettings.tiltFactor = 0.0005f;
-	clientConfiguration.controllerSettings.boundingBoxSize2 = 0.0f;
-	clientConfiguration.controllerSettings.boundingBoxSize3 = 0.0f;
-	clientConfiguration.positionMappingX = SHOVELER_COORDINATE_MAPPING_POSITIVE_X;
-	clientConfiguration.positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
-	clientConfiguration.positionMappingZ = SHOVELER_COORDINATE_MAPPING_POSITIVE_Z;
-	clientConfiguration.hidePlayerClientEntityModel = true;
-
 	ShovelerGameCameraSettings cameraSettings;
 	cameraSettings.frame = clientConfiguration.controllerSettings.frame;
 	cameraSettings.projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
@@ -149,7 +134,7 @@ int main(int argc, char **argv) {
 					disconnected = true;
 					break;
 				case WORKER_OP_TYPE_FLAG_UPDATE:
-					shovelerLogInfo("WORKER_OP_TYPE_FLAG_UPDATE");
+					shovelerLogTrace("WORKER_OP_TYPE_FLAG_UPDATE");
 					break;
 				case WORKER_OP_TYPE_LOG_MESSAGE:
 					handleLogMessageOp(&op->op.log_message, &disconnected);
@@ -158,13 +143,13 @@ int main(int argc, char **argv) {
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
 					break;
 				case WORKER_OP_TYPE_CRITICAL_SECTION:
-					shovelerLogInfo("WORKER_OP_TYPE_CRITICAL_SECTION");
+					shovelerLogTrace("WORKER_OP_TYPE_CRITICAL_SECTION");
 					break;
 				case WORKER_OP_TYPE_ADD_ENTITY:
-					shovelerLogInfo("WORKER_OP_TYPE_ADD_ENTITY");
+					shovelerViewAddEntity(view, op->op.add_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_REMOVE_ENTITY:
-					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_ENTITY");
+					shovelerViewRemoveEntity(view, op->op.add_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE:
 					shovelerLogInfo("WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE");
@@ -186,18 +171,37 @@ int main(int argc, char **argv) {
 					break;
 				case WORKER_OP_TYPE_AUTHORITY_CHANGE: {
 					Worker_AuthorityChangeOp *authorityChangeOp = &op->op.authority_change;
-					if(authorityChangeOp->component_id == clientComponentId) {
-						if(authorityChangeOp->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+
+					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) authorityChangeOp->component_id);
+					if(componentTypeId == NULL) {
+						shovelerLogWarning("Received authority change for unknown component ID %d on entity %lld, ignoring.", authorityChangeOp->component_id, authorityChangeOp->entity_id);
+						break;
+					}
+
+					ShovelerViewEntity *entity = shovelerViewGetEntity(view, authorityChangeOp->entity_id);
+					if (entity == NULL) {
+						shovelerLogWarning("Received authority change for unknown entity %lld, ignoring.", authorityChangeOp->entity_id);
+						break;
+					}
+
+					if(authorityChangeOp->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+						shovelerLogInfo("Gained authority over entity %lld component %d (%s).", authorityChangeOp->entity_id, authorityChangeOp->component_id, componentTypeId);
+						shovelerViewEntityDelegate(entity, componentTypeId);
+
+						if(authorityChangeOp->component_id == clientComponentId) {
 							shovelerLogInfo("Gained client authority over entity %lld.", authorityChangeOp->entity_id);
 							context.clientEntityId = authorityChangeOp->entity_id;
 							clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
-						} else if(authorityChangeOp->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
+						}
+					} else if(authorityChangeOp->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
+						shovelerLogInfo("Lost authority over entity %lld component %d (%s).", authorityChangeOp->entity_id, authorityChangeOp->component_id, componentTypeId);
+						shovelerViewEntityUndelegate(entity, componentTypeId);
+
+						if(authorityChangeOp->component_id == clientComponentId) {
 							shovelerLogWarning("Lost client authority over entity %lld.", authorityChangeOp->entity_id);
 							context.clientEntityId = 0;
 							shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
 						}
-					} else {
-						shovelerLogInfo("Authority over component %u of entity %lld changed to %u.", authorityChangeOp->component_id, authorityChangeOp->entity_id, authorityChangeOp->authority);
 					}
 				} break;
 				case WORKER_OP_TYPE_COMPONENT_UPDATE:

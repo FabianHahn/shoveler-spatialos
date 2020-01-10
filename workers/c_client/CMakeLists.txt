@@ -6,6 +6,8 @@ set(SHOVELER_C_CLIENT_SRC
 	configuration.h
 	connect.c
 	connect.h
+	schema.c
+	schema.h
 )
 
 add_executable(ShovelerCClient ${SHOVELER_C_CLIENT_SRC})
