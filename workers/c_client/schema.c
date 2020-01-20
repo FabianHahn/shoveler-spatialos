@@ -91,9 +91,28 @@ void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilesetType());
 }
 
-void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *component, Schema_ComponentData *componentData)
+void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *component, Schema_ComponentData *componentData, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
 	Schema_Object *fields = Schema_GetComponentDataFields(componentData);
+
+	// special case position updates
+	if (component->type->id == shovelerComponentTypeIdPosition) {
+		Schema_Object *coordinatesField = Schema_GetObject(fields, /* fieldId */ 1);
+		double coordinatesX = Schema_GetDouble(coordinatesField, /* fieldId */ 1);
+		double coordinatesY = Schema_GetDouble(coordinatesField, /* fieldId */ 2);
+		double coordinatesZ = Schema_GetDouble(coordinatesField, /* fieldId */ 3);
+		ShovelerVector3 coordinates = shovelerVector3((float) coordinatesX, (float) coordinatesY, (float) coordinatesZ);
+
+		float mappedCoordinatesX = shovelerCoordinateMap(coordinates, mappingX);
+		float mappedCoordinatesY = shovelerCoordinateMap(coordinates, mappingY);
+		float mappedCoordinatesZ = shovelerCoordinateMap(coordinates, mappingZ);
+		ShovelerVector3 mappedCoordinates = shovelerVector3(mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+
+		shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES, mappedCoordinates);
+
+		shovelerLogInfo("Updated entity %lld component 'position' to mapped coordinates value (%f, %f, %f).", component->entityId, mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+		return;
+	}
 
 	for(int i = 0; i < component->type->numConfigurationOptions; i++) {
 		Schema_FieldId fieldId = i + 1;

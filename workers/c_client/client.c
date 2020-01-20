@@ -5,6 +5,7 @@
 #include <improbable/c_schema.h>
 #include <improbable/c_worker.h>
 #include <shoveler/constants.h>
+#include <shoveler/component.h>
 #include <shoveler/game.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
@@ -186,7 +187,15 @@ int main(int argc, char **argv) {
 					}
 
 					shovelerLogInfo("Adding entity %lld component %d (%s).", addComponentOp->entity_id, addComponentOp->data.component_id, componentTypeId);
-					shovelerClientApplyComponentData(view, component, op->op.add_component.data.schema_type);
+					shovelerClientApplyComponentData(
+						view,
+						component,
+						op->op.add_component.data.schema_type,
+						clientConfiguration.positionMappingX,
+						clientConfiguration.positionMappingY,
+						clientConfiguration.positionMappingZ);
+
+					shovelerComponentActivate(component);
 				} break;
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
 					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_COMPONENT");
