@@ -235,9 +235,38 @@ int main(int argc, char **argv) {
 						}
 					}
 				} break;
-				case WORKER_OP_TYPE_COMPONENT_UPDATE:
-					shovelerLogInfo("WORKER_OP_TYPE_COMPONENT_UPDATE");
-					break;
+				case WORKER_OP_TYPE_COMPONENT_UPDATE: {
+					Worker_ComponentUpdateOp *updateComponentOp = &op->op.component_update;
+
+					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) updateComponentOp->update.component_id);
+					if(componentTypeId == NULL) {
+						shovelerLogWarning("Received update for unknown component ID %d on entity %lld, ignoring.", updateComponentOp->update.component_id, updateComponentOp->entity_id);
+						break;
+					}
+
+					ShovelerViewEntity *entity = shovelerViewGetEntity(view, updateComponentOp->entity_id);
+					if(entity == NULL) {
+						shovelerLogWarning("Received update component %d (%s) for unknown entity %lld, ignoring.", updateComponentOp->update.component_id, componentTypeId, updateComponentOp->entity_id);
+						break;
+					}
+
+					ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+					if(component == NULL) {
+						shovelerLogWarning("Received update for non-existing component %d (%s) on unknown entity %lld, ignoring.", updateComponentOp->update.component_id, componentTypeId, updateComponentOp->entity_id);
+						break;
+					}
+
+					shovelerLogInfo("Updating entity %lld component %d (%s).", updateComponentOp->entity_id, updateComponentOp->update.component_id, componentTypeId);
+					shovelerClientApplyComponentUpdate(
+						view,
+						component,
+						op->op.component_update.update.schema_type,
+						clientConfiguration.positionMappingX,
+						clientConfiguration.positionMappingY,
+						clientConfiguration.positionMappingZ);
+
+					shovelerComponentActivate(component);
+				} break;
 				case WORKER_OP_TYPE_COMMAND_REQUEST:
 					shovelerLogInfo("WORKER_OP_TYPE_COMMAND_REQUEST");
 					break;
