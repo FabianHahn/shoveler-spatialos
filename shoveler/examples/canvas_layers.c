@@ -6,10 +6,10 @@
 
 #include <shoveler/camera/perspective.h>
 #include <shoveler/drawable/quad.h>
-#include <shoveler/material/chunk.h>
+#include <shoveler/material/canvas.h>
 #include <shoveler/material/tile_sprite.h>
+#include <shoveler/material/tilemap.h>
 #include <shoveler/canvas.h>
-#include <shoveler/chunk.h>
 #include <shoveler/colliders.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
@@ -23,14 +23,14 @@
 #include <shoveler/scene.h>
 #include <shoveler/shader_program.h>
 #include <shoveler/sprite/tile.h>
+#include <shoveler/sprite/tilemap.h>
 #include <shoveler/texture.h>
 #include <shoveler/tilemap.h>
 #include <shoveler/tile_sprite_animation.h>
 #include <shoveler/tileset.h>
 #include <shoveler/types.h>
 
-static void shovelerSampleTerminate();
-static void shovelerSampleUpdate(ShovelerGame *game, double dt);
+static void updateGame(ShovelerGame *game, double dt);
 
 static ShovelerSprite *characterSprite;
 static ShovelerTileSpriteAnimation *animation;
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	shovelerLogInit("shoveler/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
-	ShovelerGame *game = shovelerGameCreate(shovelerSampleUpdate, /* updateAuthoritativeViewComponent */ NULL, &windowSettings, &cameraSettings, &controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(updateGame, /* updateAuthoritativeViewComponent */ NULL, &windowSettings, &cameraSettings, &controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -72,8 +72,9 @@ int main(int argc, char *argv[])
 	game->controller->lockTiltX = true;
 	game->controller->lockTiltY = true;
 
-	ShovelerChunk *chunk = shovelerChunkCreate(shovelerVector2(0.0f, 0.0f), shovelerVector2(10.0f, 10.0f));
-	shovelerCollidersAddCollider2(game->colliders, chunk->collider);
+	ShovelerCanvas *canvas = shovelerCanvasCreate(/* numLayers */ 3);
+
+	ShovelerMaterial *tilemapMaterial = shovelerMaterialTilemapCreate(game->shaderCache, /* screenspace */ false);
 
 	ShovelerImage *tilesImage = shovelerImageCreate(2, 2, 3);
 	shovelerImageClear(tilesImage);
@@ -93,10 +94,10 @@ int main(int argc, char *argv[])
 	shovelerTextureUpdate(tilesTexture);
 	bool collidingTiles[4] = {false, false, false, true};
 	ShovelerTilemap *tilemap = shovelerTilemapCreate(tilesTexture, collidingTiles);
-	shovelerChunkAddTilemapLayer(chunk, tilemap);
-
-	ShovelerCanvas *canvas = shovelerCanvasCreate(/* numLayers */ 1);
-	shovelerChunkAddCanvasLayer(chunk, canvas);
+	ShovelerSprite *tilemapSprite = shovelerSpriteTilemapCreate(tilemapMaterial, tilemap);
+	tilemapSprite->size = shovelerVector2(10.0f, 10.0f);
+	shovelerCanvasAddSprite(canvas, /* layerId */ 0, tilemapSprite);
+	shovelerCollidersAddCollider2(game->colliders, &tilemapSprite->collider);
 
 	ShovelerImage *borderTilesImage = shovelerImageCreate(1, 1, 3);
 	shovelerImageClear(borderTilesImage);
@@ -106,7 +107,10 @@ int main(int argc, char *argv[])
 	ShovelerTexture *borderTilesTexture = shovelerTextureCreate2d(borderTilesImage, true);
 	shovelerTextureUpdate(borderTilesTexture);
 	ShovelerTilemap *borderTilemap = shovelerTilemapCreate(borderTilesTexture, NULL);
-	shovelerChunkAddTilemapLayer(chunk, borderTilemap);
+	ShovelerSprite *borderTilemapSprite = shovelerSpriteTilemapCreate(tilemapMaterial, borderTilemap);
+	borderTilemapSprite->size = shovelerVector2(10.0f, 10.0f);
+	shovelerCanvasAddSprite(canvas, /* layerId */ 2, borderTilemapSprite);
+	shovelerCollidersAddCollider2(game->colliders, &borderTilemapSprite->collider);
 
 	ShovelerImage *tilesetImage = shovelerImageCreate(2, 2, 3);
 	shovelerImageClear(tilesetImage);
@@ -139,24 +143,26 @@ int main(int argc, char *argv[])
 	ShovelerSprite *tileSprite = shovelerSpriteTileCreate(tileSpriteMaterial, tileset, /* tilesetRow */ 0, /* tilesetColumn */ 1);
 	tileSprite->position = shovelerVector2(-1.5f, -1.5f);
 	tileSprite->size = shovelerVector2(5.0f, 5.0f);
-	shovelerCanvasAddSprite(canvas, /* layerId */ 0, tileSprite);
+	shovelerCanvasAddSprite(canvas, /* layerId */ 1, tileSprite);
 
 	characterSprite = shovelerSpriteTileCreate(tileSpriteMaterial, animationTileset, /* tilesetRow */ 0, /* tilesetColumn */ 0);
 	characterSprite->position = shovelerVector2(0.0f, 0.0f);
 	characterSprite->size = shovelerVector2(1.0f, 1.0f);
-	shovelerCanvasAddSprite(canvas, /* layerId */ 0, characterSprite);
+	shovelerCanvasAddSprite(canvas, /* layerId */ 1, characterSprite);
 
 	animation = shovelerTileSpriteAnimationCreate(characterSprite, shovelerVector2(0.0f, 0.0f), 0.1f);
 	animation->moveAmountThreshold = 0.25f;
 
-	ShovelerMaterial *chunkMaterial = shovelerMaterialChunkCreate(game->shaderCache, /* screenspace */ false);
-	shovelerMaterialChunkSetActive(chunkMaterial, chunk);
+	ShovelerMaterial *canvasMaterial = shovelerMaterialCanvasCreate(game->shaderCache, /* screenspace */ false);
+	shovelerMaterialCanvasSetActive(canvasMaterial, canvas);
+	shovelerMaterialCanvasSetActiveRegion(canvasMaterial, shovelerVector2(0.0f, 0.0f), shovelerVector2(10.0f, 10.0f));
+
 	ShovelerDrawable *quad = shovelerDrawableQuadCreate();
-	ShovelerModel *chunkModel = shovelerModelCreate(quad, chunkMaterial);
-	chunkModel->scale = shovelerVector3(5.0, 5.0, 1.0);
-	chunkModel->emitter = true;
-	shovelerModelUpdateTransformation(chunkModel);
-	shovelerSceneAddModel(game->scene, chunkModel);
+	ShovelerModel *model = shovelerModelCreate(quad, canvasMaterial);
+	model->scale = shovelerVector3(5.0, 5.0, 1.0);
+	model->emitter = true;
+	shovelerModelUpdateTransformation(model);
+	shovelerSceneAddModel(game->scene, model);
 
 	shovelerOpenGLCheckSuccess();
 
@@ -166,10 +172,12 @@ int main(int argc, char *argv[])
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
 	shovelerDrawableFree(quad);
-	shovelerMaterialFree(chunkMaterial);
+	shovelerMaterialFree(canvasMaterial);
+	shovelerMaterialFree(tilemapMaterial);
 	shovelerMaterialFree(tileSpriteMaterial);
-	shovelerChunkFree(chunk);
 	shovelerCanvasFree(canvas);
+	shovelerSpriteFree(tilemapSprite);
+	shovelerSpriteFree(borderTilemapSprite);
 	shovelerSpriteFree(characterSprite);
 	shovelerSpriteFree(tileSprite);
 	shovelerTilemapFree(tilemap);
@@ -187,7 +195,7 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-static void shovelerSampleUpdate(ShovelerGame *game, double dt)
+static void updateGame(ShovelerGame *game, double dt)
 {
 	ShovelerController *controller = shovelerCameraPerspectiveGetController(game->camera);
 

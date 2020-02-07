@@ -1,9 +1,12 @@
 #include <stdlib.h> // malloc, free
 
 #include "shoveler/material/tile_sprite.h"
+#include "shoveler/material.h"
 #include "shoveler/shader_program/model_vertex.h"
 #include "shoveler/shader_cache.h"
 #include "shoveler/shader_program.h"
+#include "shoveler/sprite/tile.h"
+#include "shoveler/tileset.h"
 #include "shoveler/types.h"
 #include "shoveler/uniform.h"
 #include "shoveler/uniform_map.h"
@@ -32,11 +35,9 @@ static const char *fragmentShaderSource =
 	"in vec4 lightFrustumPosition4;\n"
 	"\n"
 	"out vec4 fragmentColor;\n"
-	"\n"
-	"void main()\n"
-	"{\n"
-	"	vec2 tile = vec2(tilesetColumn, tilesetRow);\n"
 	""
+	"vec2 getSpriteUv()\n"
+	"{\n"
 	"	vec2 regionCorner = regionPosition - 0.5 * regionSize;\n"
 	"	vec2 spriteCorner = spritePosition - 0.5 * spriteSize;\n"
 	"	vec2 spriteOffset = spriteCorner - regionCorner;\n"
@@ -44,36 +45,45 @@ static const char *fragmentShaderSource =
 	"	vec2 spriteTileOffsetUv = worldUv - spriteOffsetUv;\n"
 	""
 	"	vec2 spriteUvScale = regionSize / spriteSize;\n"
-	"	vec2 spriteTileUv = spriteTileOffsetUv * spriteUvScale;\n"
+	"	return spriteTileOffsetUv * spriteUvScale;\n"
+	"}\n"
 	""
-	"	if (spriteTileUv.x >= 0.0 &&\n"
-	"		spriteTileUv.x <= 1.0 &&\n"
-	"		spriteTileUv.y >= 0.0 &&\n"
-	"		spriteTileUv.y <= 1.0) {\n"
-	"		vec2 tileUv = clamp(spriteTileUv, 0.0, 1.0);\n"
+	"void main()\n"
+	"{\n"
+	"	vec2 spriteUv = getSpriteUv();\n"
 	""
-	"		vec2 tilesetSize = textureSize(tileset, 0);\n"
-	"		vec2 tilesetInverseDimensions = 1.0 / vec2(tilesetColumns, tilesetRows);\n"
-	"		vec2 paddedTileSize = tilesetSize * tilesetInverseDimensions;\n"
-	"		vec2 paddedTilePaddingFraction = vec2(tilesetPadding) / paddedTileSize;\n"
-	"		vec2 tilePaddingScaleFactor = vec2(1.0) - 2.0 * paddedTilePaddingFraction;"
+	"	if (spriteUv.x < 0.0 ||\n"
+	"		spriteUv.x > 1.0 ||\n"
+	"		spriteUv.y < 0.0 ||\n"
+	"		spriteUv.y > 1.0) {\n"
+	"		fragmentColor = vec4(0.0f);\n"
+	"		return;"
+	"	}\n"
 	""
-	"		vec2 tilePaddedUv = paddedTilePaddingFraction + tilePaddingScaleFactor * tileUv;\n"
-	"		vec2 tilesetUv = (tile.xy + tilePaddedUv) * tilesetInverseDimensions;\n"
+	"	vec2 tile = vec2(tilesetColumn, tilesetRow);\n"
+	"	vec2 tileUv = clamp(spriteUv, 0.0, 1.0);\n"
 	""
-	"		vec4 color = texture2D(tileset, tilesetUv).rgba;\n"
-	"		if (sceneDebugMode) {\n"
-	"			fragmentColor = vec4(tilesetUv.xy, tilesetUv.y, 1.0);\n"
-	"		} else {\n"
-	"			fragmentColor = color;\n"
-	"		}\n"
+	"	vec2 tilesetSize = textureSize(tileset, 0);\n"
+	"	vec2 tilesetInverseDimensions = 1.0 / vec2(tilesetColumns, tilesetRows);\n"
+	"	vec2 paddedTileSize = tilesetSize * tilesetInverseDimensions;\n"
+	"	vec2 paddedTilePaddingFraction = vec2(tilesetPadding) / paddedTileSize;\n"
+	"	vec2 tilePaddingScaleFactor = vec2(1.0) - 2.0 * paddedTilePaddingFraction;"
+	""
+	"	vec2 tilePaddedUv = paddedTilePaddingFraction + tilePaddingScaleFactor * tileUv;\n"
+	"	vec2 tilesetUv = (tile.xy + tilePaddedUv) * tilesetInverseDimensions;\n"
+	""
+	"	vec4 color = texture2D(tileset, tilesetUv).rgba;\n"
+	"	if (sceneDebugMode) {\n"
+	"		fragmentColor = vec4(tilesetUv.xy, tilesetUv.y, 1.0);\n"
 	"	} else {\n"
-	"		fragmentColor = vec4(0.0);\n"
+	"		fragmentColor = color;\n"
 	"	}\n"
 	"}\n";
 
 typedef struct {
 	ShovelerMaterial *material;
+	ShovelerVector2 activeRegionPosition;
+	ShovelerVector2 activeRegionSize;
 	int activeSpriteTilesetColumn;
 	int activeSpriteTilesetRow;
 	ShovelerVector2 activeSpritePosition;
@@ -97,6 +107,8 @@ ShovelerMaterial *shovelerMaterialTileSpriteCreate(ShovelerShaderCache *shaderCa
 	materialData->material = shovelerMaterialCreate(shaderCache, screenspace, program);
 	materialData->material->data = materialData;
 	materialData->material->freeData = freeMaterialData;
+	materialData->activeRegionPosition = shovelerVector2(0.0f, 0.0f);
+	materialData->activeRegionSize = shovelerVector2(1.0f, 1.0f);
 	materialData->activeSpriteTilesetColumn = 0;
 	materialData->activeSpriteTilesetRow = 0;
 	materialData->activeSpritePosition = shovelerVector2(0.0f, 0.0f);
@@ -106,6 +118,9 @@ ShovelerMaterial *shovelerMaterialTileSpriteCreate(ShovelerShaderCache *shaderCa
 	materialData->activeTilesetPadding = 0;
 	materialData->activeTilesetTexture = NULL;
 	materialData->activeTilesetSampler = NULL;
+
+	shovelerUniformMapInsert(materialData->material->uniforms, "regionPosition", shovelerUniformCreateVector2Pointer(&materialData->activeRegionPosition));
+	shovelerUniformMapInsert(materialData->material->uniforms, "regionSize", shovelerUniformCreateVector2Pointer(&materialData->activeRegionSize));
 
 	shovelerUniformMapInsert(materialData->material->uniforms, "tilesetColumn", shovelerUniformCreateIntPointer(&materialData->activeSpriteTilesetColumn));
 	shovelerUniformMapInsert(materialData->material->uniforms, "tilesetRow", shovelerUniformCreateIntPointer(&materialData->activeSpriteTilesetRow));
@@ -121,18 +136,25 @@ ShovelerMaterial *shovelerMaterialTileSpriteCreate(ShovelerShaderCache *shaderCa
 	return materialData->material;
 }
 
-void shovelerMaterialTileSpriteSetActive(ShovelerMaterial *material, const ShovelerCanvasTileSprite *tileSprite)
+void shovelerMaterialTileSpriteSetActiveRegion(ShovelerMaterial *material, ShovelerVector2 regionPosition, ShovelerVector2 regionSize)
 {
 	MaterialData *materialData = material->data;
-	materialData->activeSpriteTilesetColumn = tileSprite->tilesetColumn;
-	materialData->activeSpriteTilesetRow = tileSprite->tilesetRow;
-	materialData->activeSpritePosition = tileSprite->position;
-	materialData->activeSpriteSize = tileSprite->size;
-	materialData->activeTilesetRows = tileSprite->tileset->rows;
-	materialData->activeTilesetColumns = tileSprite->tileset->columns;
-	materialData->activeTilesetPadding = tileSprite->tileset->padding;
-	materialData->activeTilesetTexture = tileSprite->tileset->texture;
-	materialData->activeTilesetSampler = tileSprite->tileset->sampler;
+	materialData->activeRegionPosition = regionPosition;
+	materialData->activeRegionSize = regionSize;
+}
+
+void shovelerMaterialTileSpriteSetActive(ShovelerMaterial *material, const ShovelerSpriteTile *spriteTile)
+{
+	MaterialData *materialData = material->data;
+	materialData->activeSpriteTilesetColumn = spriteTile->tilesetColumn;
+	materialData->activeSpriteTilesetRow = spriteTile->tilesetRow;
+	materialData->activeSpritePosition = spriteTile->sprite.position;
+	materialData->activeSpriteSize = spriteTile->sprite.size;
+	materialData->activeTilesetRows = spriteTile->tileset->rows;
+	materialData->activeTilesetColumns = spriteTile->tileset->columns;
+	materialData->activeTilesetPadding = spriteTile->tileset->padding;
+	materialData->activeTilesetTexture = spriteTile->tileset->texture;
+	materialData->activeTilesetSampler = spriteTile->tileset->sampler;
 }
 
 static void freeMaterialData(ShovelerMaterial *material)
