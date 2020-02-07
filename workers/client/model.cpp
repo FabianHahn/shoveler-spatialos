@@ -12,7 +12,7 @@ extern "C" {
 using shoveler::Model;
 using shoveler::PolygonMode;
 
-static GLuint getPolygonMode(PolygonMode polygonMode);
+static ShovelerComponentModelPolygonMode getPolygonMode(PolygonMode polygonMode);
 
 void registerModelCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 {
@@ -79,17 +79,17 @@ void registerModelCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 	});
 }
 
-static GLuint getPolygonMode(PolygonMode polygonMode)
+static ShovelerComponentModelPolygonMode getPolygonMode(PolygonMode polygonMode)
 {
 	switch(polygonMode) {
 		case PolygonMode::FILL:
-			return GL_FILL;
+			return SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 		case PolygonMode::LINE:
-			return GL_LINE;
+			return SHOVELER_COMPONENT_MODEL_POLYGON_MODE_LINE;
 		case PolygonMode::POINT:
-			return GL_POINT;
+			return SHOVELER_COMPONENT_MODEL_POLYGON_MODE_POINT;
 		default:
 			shovelerLogWarning("Tried to retrieve invalid polygon mode %d, defaulting to FILL.", polygonMode);
-			return GL_FILL;
+			return SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	}
 }

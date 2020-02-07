@@ -249,6 +249,7 @@ int main(int argc, char **argv) {
 	EntityId canvasEntityId = 9;
 	Entity canvasEntity;
 	canvasEntity.Add<Metadata>({"canvas"});
+	canvasEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {nextEntityId}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
 	canvasEntity.Add<Canvas>({{}});

@@ -100,7 +100,7 @@ void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 	shovelerViewAddComponentType(view, shovelerComponentCreateTileSpriteType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTileSpriteAnimationType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapType());
-	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapColliders());
+	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapCollidersType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapTilesType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilesetType());
 }
