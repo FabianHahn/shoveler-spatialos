@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 	cubeModelConfiguration.visible = true;
 	cubeModelConfiguration.emitter = false;
 	cubeModelConfiguration.castsShadow = true;
-	cubeModelConfiguration.polygonMode = GL_FILL;
+	cubeModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewEntity *cubeEntity = shovelerViewAddEntity(game->view, 3);
 	shovelerViewEntityAddModel(cubeEntity, &cubeModelConfiguration);
 	shovelerViewEntityAddPosition(cubeEntity, shovelerVector3(0.0, 0.0, 5.0));
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 	planeModelConfiguration.visible = true;
 	planeModelConfiguration.emitter = false;
 	planeModelConfiguration.castsShadow = true;
-	planeModelConfiguration.polygonMode = GL_FILL;
+	planeModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewEntity *planeEntity = shovelerViewAddEntity(game->view, 4);
 	shovelerViewEntityAddDrawable(planeEntity, &quadDrawableConfiguration);
 	shovelerViewEntityAddModel(planeEntity, &planeModelConfiguration);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	lightModelConfiguration.visible = true;
 	lightModelConfiguration.emitter = true;
 	lightModelConfiguration.castsShadow = false;
-	lightModelConfiguration.polygonMode = GL_FILL;
+	lightModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewLightConfiguration lightConfiguration;
 	lightConfiguration.positionEntityId = 5;
 	lightConfiguration.type = SHOVELER_COMPONENT_LIGHT_TYPE_POINT;
@@ -296,6 +296,7 @@ int main(int argc, char *argv[])
 
 	ShovelerViewTileSpriteConfiguration tileSpriteConfiguration;
 	tileSpriteConfiguration.positionEntityId = 14;
+	tileSpriteConfiguration.materialEntityId = 14;
 	tileSpriteConfiguration.tilesetEntityId = 11;
 	tileSpriteConfiguration.tilesetColumn = 0;
 	tileSpriteConfiguration.tilesetRow = 0;
@@ -308,9 +309,12 @@ int main(int argc, char *argv[])
 	tileSpriteAnimationConfiguration.positionMappingX = SHOVELER_COORDINATE_MAPPING_POSITIVE_X;
 	tileSpriteAnimationConfiguration.positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
 	tileSpriteAnimationConfiguration.moveAmountThreshold = 1.0f;
+	ShovelerViewMaterialConfiguration tileSpriteMaterialConfiguration;
+	tileSpriteMaterialConfiguration.type = SHOVELER_COMPONENT_MATERIAL_TYPE_TILE_SPRITE;
 	ShovelerViewEntity *tileSpriteEntity = shovelerViewAddEntity(game->view, 14);
 	shovelerViewEntityAddTileSprite(tileSpriteEntity, &tileSpriteConfiguration);
 	shovelerViewEntityAddTileSpriteAnimation(tileSpriteEntity, &tileSpriteAnimationConfiguration);
+	shovelerViewEntityAddMaterial(tileSpriteEntity, &tileSpriteMaterialConfiguration);
 	shovelerViewEntityAddPosition(tileSpriteEntity, shovelerVector3(3.0, 4.0, 0.0));
 
 	ShovelerViewCanvasConfiguration canvasConfiguration;
@@ -357,7 +361,7 @@ int main(int argc, char *argv[])
 	tilemapMaterialModelConfiguration.visible = true;
 	tilemapMaterialModelConfiguration.emitter = false;
 	tilemapMaterialModelConfiguration.castsShadow = true;
-	tilemapMaterialModelConfiguration.polygonMode = GL_FILL;
+	tilemapMaterialModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewMaterialConfiguration tilemapMaterialConfiguration;
 	tilemapMaterialConfiguration.type = SHOVELER_COMPONENT_MATERIAL_TYPE_TILEMAP;
 	tilemapMaterialConfiguration.tilemapEntityId = 12;
@@ -376,7 +380,7 @@ int main(int argc, char *argv[])
 	canvasMaterialModelConfiguration.visible = true;
 	canvasMaterialModelConfiguration.emitter = false;
 	canvasMaterialModelConfiguration.castsShadow = true;
-	canvasMaterialModelConfiguration.polygonMode = GL_FILL;
+	canvasMaterialModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewMaterialConfiguration canvasMaterialConfiguration;
 	canvasMaterialConfiguration.type = SHOVELER_COMPONENT_MATERIAL_TYPE_CANVAS;
 	canvasMaterialConfiguration.canvasRegionPosition = shovelerVector2(5.0f, 5.0f);
@@ -397,7 +401,7 @@ int main(int argc, char *argv[])
 	chunkMaterialModelConfiguration.visible = true;
 	chunkMaterialModelConfiguration.emitter = false;
 	chunkMaterialModelConfiguration.castsShadow = true;
-	chunkMaterialModelConfiguration.polygonMode = GL_FILL;
+	chunkMaterialModelConfiguration.polygonMode = SHOVELER_COMPONENT_MODEL_POLYGON_MODE_FILL;
 	ShovelerViewMaterialConfiguration chunkMaterialConfiguration;
 	chunkMaterialConfiguration.type = SHOVELER_COMPONENT_MATERIAL_TYPE_CHUNK;
 	chunkMaterialConfiguration.chunkEntityId = 19;
