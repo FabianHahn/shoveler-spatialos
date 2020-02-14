@@ -23,6 +23,7 @@ void registerTileSpriteCallbacks(worker::Dispatcher& dispatcher, ShovelerView *v
 
 		ShovelerViewTileSpriteConfiguration configuration;
 		configuration.positionEntityId = op.Data.position();
+		configuration.materialEntityId = op.Data.material();
 		configuration.tilesetEntityId = op.Data.tileset();
 		configuration.tilesetColumn = op.Data.tileset_column();
 		configuration.tilesetRow = op.Data.tileset_row();
@@ -43,6 +44,10 @@ void registerTileSpriteCallbacks(worker::Dispatcher& dispatcher, ShovelerView *v
 
 		if(op.Update.position()) {
 			configuration.positionEntityId = *op.Update.position();
+		}
+
+		if(op.Update.material()) {
+			configuration.materialEntityId = *op.Update.material();
 		}
 
         if(op.Update.tileset()) {

@@ -42,6 +42,8 @@ enum MaterialType {
 	TILEMAP = 3;
 	CANVAS = 4;
 	CHUNK = 5;
+	TILE_SPRITE = 6;
+	TEXT = 7;
 }
 
 /** Specifies an OpenGL polygon mode for rendering geometry. */
@@ -256,18 +258,20 @@ component TileSprite {
 	id = 1342;
 	/** Dependency entity ID containing a Position component referenced by this tile sprite. */
     EntityId position = 1;
+    /** Dependency entity ID containing a Material component referenced by this tile sprite. */
+    EntityId material = 2;
 	/** Dependency entity ID containing a Tileset component referenced by this tile sprite. */
-	EntityId tileset = 2;
+	EntityId tileset = 3;
 	/** The column index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_column = 3;
+	int32 tileset_column = 4;
 	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_row = 4;
+	int32 tileset_row = 5;
 	/** The mapping to use from the entity position to the 2d x coodinate. */
-	CoordinateMapping position_mapping_x = 5;
+	CoordinateMapping position_mapping_x = 6;
 	/** The mapping to use from the entity position to the 2d y coodinate. */
-	CoordinateMapping position_mapping_y = 6;
+	CoordinateMapping position_mapping_y = 7;
 	/** The size of the sprite when rendered onto a canvas. */
-	Vector2 size = 7;
+	Vector2 size = 8;
 }
 
 /**

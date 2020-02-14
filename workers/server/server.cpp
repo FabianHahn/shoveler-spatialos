@@ -323,7 +323,7 @@ int main(int argc, char **argv) {
 				tilesetEntityId = character4AnimationTilesetEntityId;
 			}
 
-			clientEntity.Add<TileSprite>({0, tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
+			clientEntity.Add<TileSprite>({0, canvasEntityId, tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
 			clientEntity.Add<TileSpriteAnimation>({0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, 0.5});
 		} else {
 			hue = (float) rand() / RAND_MAX;
