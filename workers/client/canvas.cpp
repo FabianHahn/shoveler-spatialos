@@ -20,19 +20,9 @@ void registerCanvasCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewCanvasConfiguration configuration;
-		configuration.numTileSprites = op.Data.tile_sprites().size();
-        long long int *tileSpriteEntityIds = new long long int[configuration.numTileSprites];
-		{
-			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Data.tile_sprites().begin(); iter != op.Data.tile_sprites().end(); ++iter, ++i) {
-				tileSpriteEntityIds[i] = *iter;
-			}
-		}
-		configuration.tileSpriteEntityIds = tileSpriteEntityIds;
+		configuration.numLayers = op.Data.num_layers();
 
 		shovelerViewEntityAddCanvas(entity, &configuration);
-
-		delete[] tileSpriteEntityIds;
 	});
 
 	dispatcher.OnComponentUpdate<Canvas>([&, view](const worker::ComponentUpdateOp<Canvas>& op) {
@@ -42,23 +32,11 @@ void registerCanvasCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view)
         ShovelerViewCanvasConfiguration configuration;
 		shovelerViewEntityGetCanvasConfiguration(entity, &configuration);
 
-        long long int *tileSpriteEntityIds = NULL;
-		if(op.Update.tile_sprites()) {
-			configuration.numTileSprites = op.Update.tile_sprites()->size();
-            tileSpriteEntityIds = new long long int[configuration.numTileSprites];
-			int i = 0;
-			for(List<EntityId>::const_iterator iter = op.Update.tile_sprites()->begin(); iter != op.Update.tile_sprites()->end(); ++iter, ++i) {
-				tileSpriteEntityIds[i] = *iter;
-			}
-			configuration.tileSpriteEntityIds = tileSpriteEntityIds;
+		if(op.Update.num_layers()) {
+			configuration.numLayers = *op.Update.num_layers();
 		}
 
 		shovelerViewEntityUpdateCanvas(entity, &configuration);
-
-		if(tileSpriteEntityIds != NULL) {
-            delete[] tileSpriteEntityIds;
-        }
-
 		shovelerComponentActivate(component);
 	});
 

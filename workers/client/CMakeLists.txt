@@ -31,6 +31,8 @@ set(SHOVELER_CLIENT_SRC
 	resource.h
 	sampler.cpp
 	sampler.h
+	sprite.cpp
+	sprite.h
 	texture.cpp
 	texture.h
 	tile_sprite.cpp

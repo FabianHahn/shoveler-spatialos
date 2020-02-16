@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
 	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
-	canvasEntity.Add<Canvas>({{}});
+	canvasEntity.Add<Canvas>({1});
 	canvasEntity.Add<ChunkLayer>({ChunkLayerType::CANVAS, {canvasEntityId}, {}});
 	worker::Map<std::uint32_t, WorkerRequirementSet> canvasComponentAclMap;
 	canvasComponentAclMap.insert({{Canvas::ComponentId, serverRequirementSet}});

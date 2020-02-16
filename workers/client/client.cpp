@@ -19,6 +19,7 @@
 #include "position.h"
 #include "resource.h"
 #include "sampler.h"
+#include "sprite.h"
 #include "texture.h"
 #include "tile_sprite.h"
 #include "tile_sprite_animation.h"
@@ -64,6 +65,7 @@ using shoveler::Material;
 using shoveler::Model;
 using shoveler::Resource;
 using shoveler::Sampler;
+using shoveler::Sprite;
 using shoveler::Texture;
 using shoveler::Tilemap;
 using shoveler::TilemapColliders;
@@ -147,6 +149,7 @@ int main(int argc, char **argv) {
 		Position,
 		Resource,
 		Sampler,
+		Sprite,
 		Texture,
 		Tilemap,
 		TilemapColliders,
@@ -339,6 +342,7 @@ int main(int argc, char **argv) {
 	registerMetadataCallbacks(dispatcher, view);
 	registerResourceCallbacks(dispatcher, view);
 	registerSamplerCallbacks(dispatcher, view);
+	registerSpriteCallbacks(dispatcher, view);
 	registerTextureCallbacks(dispatcher, view);
 	registerTilesetCallbacks(dispatcher, view);
 	registerTilemapCollidersCallbacks(dispatcher, view);

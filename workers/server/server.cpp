@@ -51,6 +51,7 @@ using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Resource;
 using shoveler::ResourceData;
+using shoveler::Sprite;
 using shoveler::TilemapTiles;
 using shoveler::TilemapTilesData;
 using shoveler::TileSprite;
@@ -94,7 +95,6 @@ const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
-static void refreshCanvas(worker::Connection &connection, worker::View &view, worker::EntityId canvasEntityId, const std::set<worker::EntityId> &connectedClients);
 static Vector3 colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
@@ -161,6 +161,7 @@ int main(int argc, char **argv) {
 		Persistence,
 		Position,
 		Resource,
+		Sprite,
 		TilemapTiles,
 		TileSprite,
 		TileSpriteAnimation>{};
@@ -234,7 +235,6 @@ int main(int argc, char **argv) {
 	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat> &op) {
 		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
 		connectedClients.insert(op.EntityId);
-		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
 	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat> &op) {
@@ -259,7 +259,6 @@ int main(int argc, char **argv) {
 	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp &op) {
 		shovelerLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
 		connectedClients.erase(op.EntityId);
-		refreshCanvas(connection, view, canvasEntityId, connectedClients);
 	});
 
 	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp &op) {
@@ -323,7 +322,8 @@ int main(int argc, char **argv) {
 				tilesetEntityId = character4AnimationTilesetEntityId;
 			}
 
-			clientEntity.Add<TileSprite>({0, canvasEntityId, tilesetEntityId, 0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {1.0f, 1.0f}});
+			clientEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, canvasEntityId, 0, {1.0f, 1.0f}, 0});
+			clientEntity.Add<TileSprite>({canvasEntityId, tilesetEntityId, 0, 0});
 			clientEntity.Add<TileSpriteAnimation>({0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, 0.5});
 		} else {
 			hue = (float) rand() / RAND_MAX;
@@ -567,24 +567,6 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer) {
 		if(diff > 1000 * context->maxHeartbeatTimeoutMs) {
 			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
 			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId.Id, workerId.c_str(), context->maxHeartbeatTimeoutMs);
-		}
-	}
-}
-
-static void refreshCanvas(worker::Connection &connection, worker::View &view, worker::EntityId canvasEntityId, const std::set<worker::EntityId> &connectedClients) {
-	const worker::Map<worker::EntityId, worker::Entity>::iterator &query = view.Entities.find(canvasEntityId);
-	if(query != view.Entities.end()) {
-		const worker::Entity &entity = query->second;
-		const worker::Map<worker::ComponentId, Authority> &entityAuthority = view.ComponentAuthority[canvasEntityId];
-
-		if(entity.Get<Canvas>() && entityAuthority.find(Canvas::ComponentId)->second == Authority::kAuthoritative) {
-			worker::List<worker::EntityId> tileSpriteEntityIds{connectedClients.begin(), connectedClients.end()};
-
-			Canvas::Update canvasUpdate;
-			canvasUpdate.set_tile_sprites(tileSpriteEntityIds);
-			connection.SendComponentUpdate<Canvas>(canvasEntityId, canvasUpdate);
-
-			shovelerLogInfo("Sent component update to refresh canvas entity %lld's tile sprites list.", canvasEntityId);
 		}
 	}
 }

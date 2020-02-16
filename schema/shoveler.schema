@@ -253,25 +253,36 @@ component Tilemap {
 	list<EntityId> tilesets = 3;
 }
 
+/** Represents a 2D sprite that is rendered on a canvas. */
+component Sprite {
+	id = 13422;
+	/** Dependency entity ID containing a Position component referenced by this sprite. */
+	EntityId position = 1;
+	/** The mapping to use from the entity position to the 2d x coodinate. */
+	CoordinateMapping position_mapping_x = 2;
+	/** The mapping to use from the entity position to the 2d y coodinate. */
+	CoordinateMapping position_mapping_y = 3;
+	/** Dependency entity ID containing a Canvas component referenced by this sprite. */
+	EntityId canvas = 4;
+	/** The layer index of the referenced canvas. */
+	int32 layer = 5;
+	/** The size of the sprite when rendered onto a canvas. */
+	Vector2 size = 6;
+	/** Dependency entity ID containing a TileSprite component referenced by this sprite. */
+	EntityId tile_sprite = 7;
+}
+
 /** Represents a sprite that is rendered as a single tile from a tileset. */
 component TileSprite {
 	id = 1342;
-	/** Dependency entity ID containing a Position component referenced by this tile sprite. */
-    EntityId position = 1;
     /** Dependency entity ID containing a Material component referenced by this tile sprite. */
-    EntityId material = 2;
+	EntityId material = 1;
 	/** Dependency entity ID containing a Tileset component referenced by this tile sprite. */
-	EntityId tileset = 3;
+	EntityId tileset = 2;
 	/** The column index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_column = 4;
+	int32 tileset_column = 3;
 	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
-	int32 tileset_row = 5;
-	/** The mapping to use from the entity position to the 2d x coodinate. */
-	CoordinateMapping position_mapping_x = 6;
-	/** The mapping to use from the entity position to the 2d y coodinate. */
-	CoordinateMapping position_mapping_y = 7;
-	/** The size of the sprite when rendered onto a canvas. */
-	Vector2 size = 8;
+	int32 tileset_row = 4;
 }
 
 /**
@@ -294,11 +305,11 @@ component TileSpriteAnimation {
 	float move_amount_threshold = 5;
 }
 
-/** Represents an infinite 2d canvas onto which tile sprites can be drawn. */
+/** Represents an infinite 2d canvas onto which sprites can be drawn. */
 component Canvas {
 	id = 1344;
-	/** List of dependency entity IDs each containing a TileSprite component. */
-	list<EntityId> tile_sprites = 1;
+	/** Number of layers of the canvas. */
+	int32 num_layers = 1;
 }
 
 component ChunkLayer {
