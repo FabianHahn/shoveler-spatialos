@@ -48,9 +48,9 @@ enum MaterialType {
 
 /** Specifies an OpenGL polygon mode for rendering geometry. */
 enum PolygonMode {
-	FILL = 0;
+	POINT = 0;
 	LINE = 1;
-	POINT = 2;
+	FILL = 2;
 }
 
 /** Specifies the type of a light source. */
