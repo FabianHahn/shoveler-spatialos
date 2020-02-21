@@ -23,6 +23,8 @@ typedef struct {
 	ShovelerGame *game;
 	ShovelerClientConfiguration *clientConfiguration;
 	long long int clientEntityId;
+	bool disconnected;
+	ShovelerExecutorCallback *clientPingTickCallback;
 } ClientContext;
 
 static const long long int bootstrapEntityId = 1;
@@ -30,7 +32,10 @@ static const long long int bootstrapComponentId = 1334;
 static const long long int clientComponentId = 1335;
 static const int64_t clientPingTimeoutMs = 1000;
 
-static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected);
+static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected);
+static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
+static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
+static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
 static void updateGame(ShovelerGame *game, double dt);
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value);
 static void clientPingTick(void *clientContextPointer);
@@ -113,6 +118,8 @@ int main(int argc, char **argv) {
 	context.connection = connection;
 	context.game = game;
 	context.clientConfiguration = &clientConfiguration;
+	context.disconnected = false;
+	context.clientPingTickCallback = NULL;
 
 	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
 	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
@@ -120,26 +127,23 @@ int main(int argc, char **argv) {
 	game->controller->lockTiltX = clientConfiguration.controllerLockTiltX;
 	game->controller->lockTiltY = clientConfiguration.controllerLockTiltY;
 
-	bool disconnected = false;
-	ShovelerExecutorCallback *clientPingTickCallback = NULL;
-
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
 
-	while(shovelerGameIsRunning(game) && !disconnected) {
+	while(shovelerGameIsRunning(game) && !context.disconnected) {
 		Worker_OpList *opList = Worker_Connection_GetOpList(connection, 0);
 		for(size_t i = 0; i < opList->op_count; ++i) {
 			Worker_Op *op = &opList->ops[i];
 			switch(op->op_type) {
 				case WORKER_OP_TYPE_DISCONNECT:
 					shovelerLogInfo("Disconnected from SpatialOS with code %d: %s", op->op.disconnect.reason, op->op.disconnect.connection_status_code);
-					disconnected = true;
+					context.disconnected = true;
 					break;
 				case WORKER_OP_TYPE_FLAG_UPDATE:
 					shovelerLogTrace("WORKER_OP_TYPE_FLAG_UPDATE");
 					break;
 				case WORKER_OP_TYPE_LOG_MESSAGE:
-					handleLogMessageOp(&op->op.log_message, &disconnected);
+					onLogMessage(&op->op.log_message, &context.disconnected);
 					break;
 				case WORKER_OP_TYPE_METRICS:
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
@@ -165,108 +169,18 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE:
 					shovelerLogInfo("WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE");
 					break;
-				case WORKER_OP_TYPE_ADD_COMPONENT: {
-					Worker_AddComponentOp *addComponentOp = &op->op.add_component;
-
-					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) addComponentOp->data.component_id);
-					if(componentTypeId == NULL) {
-						shovelerLogWarning("Received add for unknown component ID %d on entity %lld, ignoring.", addComponentOp->data.component_id, addComponentOp->entity_id);
-						break;
-					}
-
-					ShovelerViewEntity *entity = shovelerViewGetEntity(view, addComponentOp->entity_id);
-					if(entity == NULL) {
-						shovelerLogWarning("Received add component %d (%s) for unknown entity %lld, ignoring.", addComponentOp->data.component_id, componentTypeId, addComponentOp->entity_id);
-						break;
-					}
-
-					ShovelerComponent *component = shovelerViewEntityAddComponent(entity, componentTypeId);
-					if(component == NULL) {
-						shovelerLogWarning("Failed to add component %d (%s) to entity %lld.", addComponentOp->data.component_id, componentTypeId, addComponentOp->entity_id);
-						break;
-					}
-
-					shovelerLogInfo("Adding entity %lld component %d (%s).", addComponentOp->entity_id, addComponentOp->data.component_id, componentTypeId);
-					shovelerClientApplyComponentData(
-						view,
-						component,
-						op->op.add_component.data.schema_type,
-						clientConfiguration.positionMappingX,
-						clientConfiguration.positionMappingY,
-						clientConfiguration.positionMappingZ);
-
-					shovelerComponentActivate(component);
-				} break;
+				case WORKER_OP_TYPE_ADD_COMPONENT:
+					onAddComponent(&context, &op->op.add_component);
+					break;
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
 					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_COMPONENT");
 					break;
-				case WORKER_OP_TYPE_AUTHORITY_CHANGE: {
-					Worker_AuthorityChangeOp *authorityChangeOp = &op->op.authority_change;
-
-					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) authorityChangeOp->component_id);
-					if(componentTypeId == NULL) {
-						shovelerLogWarning("Received authority change for unknown component ID %d on entity %lld, ignoring.", authorityChangeOp->component_id, authorityChangeOp->entity_id);
-						break;
-					}
-
-					ShovelerViewEntity *entity = shovelerViewGetEntity(view, authorityChangeOp->entity_id);
-					if (entity == NULL) {
-						shovelerLogWarning("Received authority change for unknown entity %lld, ignoring.", authorityChangeOp->entity_id);
-						break;
-					}
-
-					if(authorityChangeOp->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-						shovelerLogInfo("Gained authority over entity %lld component %d (%s).", authorityChangeOp->entity_id, authorityChangeOp->component_id, componentTypeId);
-						shovelerViewEntityDelegate(entity, componentTypeId);
-
-						if(authorityChangeOp->component_id == clientComponentId) {
-							shovelerLogInfo("Gained client authority over entity %lld.", authorityChangeOp->entity_id);
-							context.clientEntityId = authorityChangeOp->entity_id;
-							clientPingTickCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, &context);
-						}
-					} else if(authorityChangeOp->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
-						shovelerLogInfo("Lost authority over entity %lld component %d (%s).", authorityChangeOp->entity_id, authorityChangeOp->component_id, componentTypeId);
-						shovelerViewEntityUndelegate(entity, componentTypeId);
-
-						if(authorityChangeOp->component_id == clientComponentId) {
-							shovelerLogWarning("Lost client authority over entity %lld.", authorityChangeOp->entity_id);
-							context.clientEntityId = 0;
-							shovelerExecutorRemoveCallback(game->updateExecutor, clientPingTickCallback);
-						}
-					}
-				} break;
-				case WORKER_OP_TYPE_COMPONENT_UPDATE: {
-					Worker_ComponentUpdateOp *updateComponentOp = &op->op.component_update;
-
-					const char *componentTypeId = shovelerClientResolveComponentTypeId((int) updateComponentOp->update.component_id);
-					if(componentTypeId == NULL) {
-						shovelerLogWarning("Received update for unknown component ID %d on entity %lld, ignoring.", updateComponentOp->update.component_id, updateComponentOp->entity_id);
-						break;
-					}
-
-					ShovelerViewEntity *entity = shovelerViewGetEntity(view, updateComponentOp->entity_id);
-					if(entity == NULL) {
-						shovelerLogWarning("Received update component %d (%s) for unknown entity %lld, ignoring.", updateComponentOp->update.component_id, componentTypeId, updateComponentOp->entity_id);
-						break;
-					}
-
-					ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
-					if(component == NULL) {
-						shovelerLogWarning("Received update for non-existing component %d (%s) on unknown entity %lld, ignoring.", updateComponentOp->update.component_id, componentTypeId, updateComponentOp->entity_id);
-						break;
-					}
-
-					shovelerLogInfo("Updating entity %lld component %d (%s).", updateComponentOp->entity_id, updateComponentOp->update.component_id, componentTypeId);
-					shovelerClientApplyComponentUpdate(
-						view,
-						component,
-						op->op.component_update.update.schema_type,
-						clientConfiguration.positionMappingX,
-						clientConfiguration.positionMappingY,
-						clientConfiguration.positionMappingZ);
-
-					shovelerComponentActivate(component);
-				} break;
+				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
+					onAuthorityChange(&context, &op->op.authority_change);
+					break;
+				case WORKER_OP_TYPE_COMPONENT_UPDATE:
+					onUpdateComponent(&context, &op->op.component_update);
+					break;
 				case WORKER_OP_TYPE_COMMAND_REQUEST:
 					shovelerLogInfo("WORKER_OP_TYPE_COMMAND_REQUEST");
 					break;
@@ -304,7 +218,7 @@ int main(int argc, char **argv) {
 	return EXIT_SUCCESS;
 }
 
-static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected)
+static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected)
 {
 	switch(op->level) {
 		case WORKER_LOG_LEVEL_DEBUG:
@@ -324,6 +238,109 @@ static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected
 			*disconnected = true;
 			break;
 	}
+}
+
+static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op)
+{
+	ShovelerView *view = context->game->view;
+
+	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->data.component_id);
+	if(componentTypeId == NULL) {
+		shovelerLogWarning("Received add for unknown component ID %d on entity %lld, ignoring.", op->data.component_id, op->entity_id);
+		return;
+	}
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning("Received add component %d (%s) for unknown entity %lld, ignoring.", op->data.component_id, componentTypeId, op->entity_id);
+		return;
+	}
+
+	ShovelerComponent *component = shovelerViewEntityAddComponent(entity, componentTypeId);
+	if(component == NULL) {
+		shovelerLogWarning("Failed to add component %d (%s) to entity %lld.", op->data.component_id, componentTypeId, op->entity_id);
+		return;
+	}
+
+	shovelerLogInfo("Adding entity %lld component %d (%s).", op->entity_id, op->data.component_id, componentTypeId);
+	shovelerClientApplyComponentData(
+		view,
+		component,
+		op->data.schema_type,
+		context->clientConfiguration->positionMappingX,
+		context->clientConfiguration->positionMappingY,
+		context->clientConfiguration->positionMappingZ);
+
+	shovelerComponentActivate(component);
+}
+
+static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op)
+{
+	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->component_id);
+	if(componentTypeId == NULL) {
+		shovelerLogWarning("Received authority change for unknown component ID %d on entity %lld, ignoring.", op->component_id, op->entity_id);
+		return;
+	}
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(context->game->view, op->entity_id);
+	if (entity == NULL) {
+		shovelerLogWarning("Received authority change for unknown entity %lld, ignoring.", op->entity_id);
+		return;
+	}
+
+	if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+		shovelerLogInfo("Gained authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+		shovelerViewEntityDelegate(entity, componentTypeId);
+
+		if(op->component_id == clientComponentId) {
+			shovelerLogInfo("Gained client authority over entity %lld.", op->entity_id);
+			context->clientEntityId = op->entity_id;
+			context->clientPingTickCallback = shovelerExecutorSchedulePeriodic(context->game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, context);
+		}
+	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
+		shovelerLogInfo("Lost authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+		shovelerViewEntityUndelegate(entity, componentTypeId);
+
+		if(op->component_id == clientComponentId) {
+			shovelerLogWarning("Lost client authority over entity %lld.", op->entity_id);
+			context->clientEntityId = 0;
+			shovelerExecutorRemoveCallback(context->game->updateExecutor, context->clientPingTickCallback);
+		}
+	}
+}
+
+static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op)
+{
+	ShovelerView *view = context->game->view;
+
+	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->update.component_id);
+	if(componentTypeId == NULL) {
+		shovelerLogWarning("Received update for unknown component ID %d on entity %lld, ignoring.", op->update.component_id, op->entity_id);
+		return;
+	}
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning("Received update component %d (%s) for unknown entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
+		return;
+	}
+
+	ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+	if(component == NULL) {
+		shovelerLogWarning("Received update for non-existing component %d (%s) on unknown entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
+		return;
+	}
+
+	shovelerLogInfo("Updating entity %lld component %d (%s).", op->entity_id, op->update.component_id, componentTypeId);
+	shovelerClientApplyComponentUpdate(
+		view,
+		component,
+		op->update.schema_type,
+		context->clientConfiguration->positionMappingX,
+		context->clientConfiguration->positionMappingY,
+		context->clientConfiguration->positionMappingZ);
+
+	shovelerComponentActivate(component);
 }
 
 static void updateGame(ShovelerGame *game, double dt)
