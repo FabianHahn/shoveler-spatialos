@@ -11,7 +11,7 @@ set(SHOVELER_C_CLIENT_SRC
 )
 
 add_executable(ShovelerCClient ${SHOVELER_C_CLIENT_SRC})
-target_link_libraries(ShovelerCClient shoveler_opengl schema worker_sdk::c_worker_sdk)
+target_link_libraries(ShovelerCClient shoveler_opengl worker_sdk::c_worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerCClient
