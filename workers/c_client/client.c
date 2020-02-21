@@ -31,6 +31,8 @@ static const long long int bootstrapEntityId = 1;
 static const long long int bootstrapComponentId = 1334;
 static const long long int clientComponentId = 1335;
 static const int64_t clientPingTimeoutMs = 1000;
+// TODO: remove
+static ClientContext context;
 
 static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected);
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
@@ -114,7 +116,7 @@ int main(int argc, char **argv) {
 	ShovelerView *view = game->view;
 	shovelerClientRegisterViewComponentTypes(view);
 
-	ClientContext context;
+	// ClientContext context;
 	context.connection = connection;
 	context.game = game;
 	context.clientConfiguration = &clientConfiguration;
@@ -350,7 +352,17 @@ static void updateGame(ShovelerGame *game, double dt)
 
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
 {
+	Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, configurationOption, value, context.clientConfiguration->positionMappingX, context.clientConfiguration->positionMappingY, context.clientConfiguration->positionMappingZ);
 
+	Worker_ComponentUpdate update;
+	update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
+	update.schema_type = componentUpdate;
+
+	Worker_UpdateParameters updateParameters;
+	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+
+	Worker_Connection_SendComponentUpdate(context.connection, component->entityId, &update, &updateParameters);
+	Schema_DestroyComponentUpdate(componentUpdate);
 }
 
 static void clientPingTick(void *clientContextPointer)
