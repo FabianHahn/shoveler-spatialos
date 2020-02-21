@@ -1,6 +1,7 @@
 #include <limits.h> // INT_MAX
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h> // strlen memcpy
 
 #include <shoveler/component/canvas.h>
 #include <shoveler/component/chunk.h>
@@ -83,6 +84,65 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 	}
 }
 
+int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
+{
+	if(componentTypeId == shovelerComponentTypeIdPosition) {
+		return 54;
+	}
+	if(componentTypeId == shovelerComponentTypeIdClient) {
+		return 1335;
+	}
+	if(componentTypeId == shovelerComponentTypeIdResource) {
+		return 1337;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTexture) {
+		return 1338;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTileset) {
+		return 1339;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTilemapTiles) {
+		return 1340;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTilemap) {
+		return 1341;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTileSprite) {
+		return 1342;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTileSpriteAnimation) {
+		return 1343;
+	}
+	if(componentTypeId == shovelerComponentTypeIdCanvas) {
+		return 1344;
+	}
+	if(componentTypeId == shovelerComponentTypeIdChunkLayer) {
+		return 1345;
+	}
+	if(componentTypeId == shovelerComponentTypeIdDrawable) {
+		return 1346;
+	}
+	if(componentTypeId == shovelerComponentTypeIdMaterial) {
+		return 1347;
+	}
+	if(componentTypeId == shovelerComponentTypeIdModel) {
+		return 1348;
+	}
+	if(componentTypeId == shovelerComponentTypeIdLight) {
+		return 1349;
+	}
+	if(componentTypeId == shovelerComponentTypeIdSampler) {
+		return 13381;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTilemapColliders) {
+		return 134132;
+	}
+	if(componentTypeId == shovelerComponentTypeIdChunk) {
+		return 13451337;
+	}
+	return 0;
+}
+
 void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 {
 	shovelerViewAddComponentType(view, shovelerComponentCreateCanvasType());
@@ -156,6 +216,155 @@ void shovelerClientApplyComponentUpdate(ShovelerView *view, ShovelerComponent *c
 
 		updateComponentConfigurationOption(component, configurationOption, optionId, fields, fieldId, /* clear_if_not_set */ false);
 	}
+}
+
+Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
+{
+	Schema_ComponentUpdate *update = Schema_CreateComponentUpdate();
+	Schema_Object *fields = Schema_GetComponentUpdateFields(update);
+
+	// special case position updates
+	if(component->type->id == shovelerComponentTypeIdPosition) {
+		assert(configurationOption->type == SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3);
+
+		// TODO: inverse mapping here?
+		ShovelerVector3 coordinatesValue = shovelerVector3(
+			shovelerCoordinateMap(value->vector3Value, mappingX),
+			shovelerCoordinateMap(value->vector3Value, mappingY),
+			shovelerCoordinateMap(value->vector3Value, mappingZ));
+
+		Schema_Object *coordinates = Schema_AddObject(fields, /* fieldId */ 1);
+		Schema_AddDouble(coordinates, /* fieldId */ 1, coordinatesValue.values[0]);
+		Schema_AddDouble(coordinates, /* fieldId */ 2, coordinatesValue.values[1]);
+		Schema_AddDouble(coordinates, /* fieldId */ 3, coordinatesValue.values[2]);
+
+		return update;
+	}
+
+	Schema_FieldId fieldId = 0;
+	for(int optionId = 0; optionId < component->type->numConfigurationOptions; optionId++) {
+		if(&component->type->configurationOptions[optionId] == configurationOption) {
+			fieldId = optionId + 1;
+			break;
+		}
+	}
+
+	if(fieldId == 0) {
+		shovelerLogWarning("Tried to update entity %lld component %s configuration option %s which couldn't be found.", component->entityId, component->type->id, configurationOption->name);
+		return update;
+	}
+
+	switch(configurationOption->type) {
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_ENTITY_ID: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_AddEntityId(fields, fieldId, value->entityIdValue);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_ENTITY_ID_ARRAY: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_AddEntityIdList(fields, fieldId, (const Schema_EntityId *) value->entityIdArrayValue.entityIds, value->entityIdArrayValue.size);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_FLOAT: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_AddFloat(fields, fieldId, value->floatValue);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_BOOL: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_AddBool(fields, fieldId, value->boolValue);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_INT: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_AddInt32(fields, fieldId, value->intValue);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_STRING: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				size_t valueLength = strlen(value->stringValue);
+				uint32_t bufferSize = (uint32_t) valueLength * sizeof(char);
+				if(valueLength > UINT_MAX || bufferSize > (uint32_t) valueLength) {
+					shovelerLogWarning("Serializing entity %lld component %s field %s update of length %zu would cause overflow, ignoring.", component->entityId, component->type->id, valueLength);
+					break;
+				}
+
+				uint8_t *buffer = Schema_AllocateBuffer(fields, bufferSize);
+				memcpy(buffer, value->stringValue, bufferSize);
+				Schema_AddBytes(fields, fieldId, buffer, bufferSize);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR2: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_Object *vector2 = Schema_AddObject(fields, fieldId);
+				Schema_AddFloat(vector2, /* fieldId */ 1, value->vector2Value.values[0]);
+				Schema_AddFloat(vector2, /* fieldId */ 2, value->vector2Value.values[1]);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_Object *vector3 = Schema_AddObject(fields, fieldId);
+				Schema_AddFloat(vector3, /* fieldId */ 1, value->vector3Value.values[0]);
+				Schema_AddFloat(vector3, /* fieldId */ 2, value->vector3Value.values[1]);
+				Schema_AddFloat(vector3, /* fieldId */ 3, value->vector3Value.values[2]);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR4: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				Schema_Object *vector4 = Schema_AddObject(fields, fieldId);
+				Schema_AddFloat(vector4, /* fieldId */ 1, value->vector4Value.values[0]);
+				Schema_AddFloat(vector4, /* fieldId */ 2, value->vector4Value.values[1]);
+				Schema_AddFloat(vector4, /* fieldId */ 3, value->vector4Value.values[2]);
+				Schema_AddFloat(vector4, /* fieldId */ 4, value->vector4Value.values[3]);
+			}
+		} break;
+		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_BYTES: {
+			if(configurationOption->isOptional && value == NULL) {
+				Schema_AddComponentUpdateClearedField(update, fieldId);
+			} else {
+				assert(value != NULL);
+				size_t valueLength = strlen(value->stringValue);
+				uint32_t bufferSize = (uint32_t) valueLength * sizeof(char);
+				if(valueLength > UINT_MAX || bufferSize > (uint32_t) valueLength) {
+					shovelerLogWarning("Serializing entity %lld component %s field %s update of length %zu would cause overflow, ignoring.", component->entityId, component->type->id, valueLength);
+					break;
+				}
+
+				uint8_t *buffer = Schema_AllocateBuffer(fields, bufferSize);
+				memcpy(buffer, value->stringValue, bufferSize);
+				Schema_AddBytes(fields, fieldId, buffer, bufferSize);
+			}
+		} break;
+	}
+
+	return update;
 }
 
 static void updatePositionCoordinates(ShovelerComponent *component, Schema_Object *fields, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)

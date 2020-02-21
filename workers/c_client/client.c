@@ -292,6 +292,12 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 		shovelerLogInfo("Gained authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
 		shovelerViewEntityDelegate(entity, componentTypeId);
 
+		// If the component exists, we might be able to activate it now.
+		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+		if(component != NULL) {
+			shovelerComponentActivate(component);
+		}
+
 		if(op->component_id == clientComponentId) {
 			shovelerLogInfo("Gained client authority over entity %lld.", op->entity_id);
 			context->clientEntityId = op->entity_id;
@@ -351,6 +357,17 @@ static void updateGame(ShovelerGame *game, double dt)
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, configurationOption, value, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
+
+	Worker_ComponentUpdate update;
+	update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
+	update.schema_type = componentUpdate;
+
+	Worker_UpdateParameters updateParameters;
+	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+
+	Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
 }
 
 static void clientPingTick(void *clientContextPointer)
