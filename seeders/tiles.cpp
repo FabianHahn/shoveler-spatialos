@@ -35,6 +35,8 @@ using shoveler::Client;
 using shoveler::CoordinateMapping;
 using shoveler::Drawable;
 using shoveler::DrawableType;
+using shoveler::Image;
+using shoveler::ImageFormat;
 using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
@@ -91,6 +93,7 @@ int main(int argc, char **argv) {
 		Client,
 		Drawable,
 		EntityAcl,
+		Image,
 		Interest,
 		Metadata,
 		Material,
@@ -155,7 +158,8 @@ int main(int argc, char **argv) {
 	tilesetEntity.Add<Metadata>({"tileset"});
 	tilesetEntity.Add<Persistence>({});
 	tilesetEntity.Add<Position>({{-100, -100, -100}});
-	tilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{imageData->str, imageData->len}});
+	tilesetEntity.Add<Resource>({std::string{imageData->str, imageData->len}});
+	tilesetEntity.Add<Image>({ImageFormat::PNG, 3});
 	tilesetEntity.Add<Sampler>({true, false, true});
 	tilesetEntity.Add<Texture>({3});
 	tilesetEntity.Add<Tileset>({3, tilesetColumns, tilesetRows, 1});
@@ -170,7 +174,8 @@ int main(int argc, char **argv) {
 	tilesetPngEntity.Add<Metadata>({"tileset"});
 	tilesetPngEntity.Add<Persistence>({});
 	tilesetPngEntity.Add<Position>({{-100, -100, -100}});
-	tilesetPngEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{tilesetPngData->str, tilesetPngData->len}});
+	tilesetPngEntity.Add<Resource>({std::string{tilesetPngData->str, tilesetPngData->len}});
+	tilesetPngEntity.Add<Image>({ImageFormat::PNG, 4});
 	tilesetPngEntity.Add<Sampler>({true, false, true});
 	tilesetPngEntity.Add<Texture>({4});
 	tilesetPngEntity.Add<Tileset>({4, tilesetPngColumns, tilesetPngRows, 1});
@@ -187,7 +192,8 @@ int main(int argc, char **argv) {
 	characterAnimationTilesetEntity.Add<Metadata>({"tileset"});
 	characterAnimationTilesetEntity.Add<Persistence>({});
 	characterAnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
-	characterAnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{characterAnimationTilesetPngData->str, characterAnimationTilesetPngData->len}});
+	characterAnimationTilesetEntity.Add<Resource>({std::string{characterAnimationTilesetPngData->str, characterAnimationTilesetPngData->len}});
+	characterAnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 5});
 	characterAnimationTilesetEntity.Add<Sampler>({true, false, true});
 	characterAnimationTilesetEntity.Add<Texture>({5});
 	characterAnimationTilesetEntity.Add<Tileset>({5, 4, 3, 1});
@@ -204,7 +210,8 @@ int main(int argc, char **argv) {
 	character2AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character2AnimationTilesetEntity.Add<Persistence>({});
 	character2AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
-	character2AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character2AnimationTilesetPngData->str, character2AnimationTilesetPngData->len}});
+	character2AnimationTilesetEntity.Add<Resource>({std::string{character2AnimationTilesetPngData->str, character2AnimationTilesetPngData->len}});
+	character2AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 6});
 	character2AnimationTilesetEntity.Add<Sampler>({true, false, true});
 	character2AnimationTilesetEntity.Add<Texture>({6});
 	character2AnimationTilesetEntity.Add<Tileset>({6, 4, 3, 1});
@@ -221,7 +228,8 @@ int main(int argc, char **argv) {
 	character3AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character3AnimationTilesetEntity.Add<Persistence>({});
 	character3AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
-	character3AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
+	character3AnimationTilesetEntity.Add<Resource>({std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
+	character3AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 7});
 	character3AnimationTilesetEntity.Add<Sampler>({true, false, true});
 	character3AnimationTilesetEntity.Add<Texture>({7});
 	character3AnimationTilesetEntity.Add<Tileset>({7, 4, 3, 1});
@@ -238,7 +246,8 @@ int main(int argc, char **argv) {
 	character4AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character4AnimationTilesetEntity.Add<Persistence>({});
 	character4AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
-	character4AnimationTilesetEntity.Add<Resource>({shovelerResourcesImagePngTypeId, std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
+	character4AnimationTilesetEntity.Add<Resource>({std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
+	character4AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 8});
 	character4AnimationTilesetEntity.Add<Sampler>({true, false, true});
 	character4AnimationTilesetEntity.Add<Texture>({8});
 	character4AnimationTilesetEntity.Add<Tileset>({8, 4, 3, 1});

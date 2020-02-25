@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
 					std::string contentsString{(char *) contents, contentsSize};
 					free(contents);
 
-					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {});
+					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, contentsString}, {});
 					if(!updateRequest) {
 						shovelerLogError("Failed to send resource update request for entity %lld (%zu bytes): %s", resourceEntityId, contentsString.size(), updateRequest.GetErrorMessage().c_str());
 						disconnected = true;
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 					shovelerImageFree(characterPngImage);
 					shovelerImageFree(characterAnimationTilesetImage);
 
-					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, "image/png", contentsString}, {});
+					Result<RequestId<OutgoingCommandRequest<UpdateResource>>> updateRequest = connection.SendCommandRequest<UpdateResource>(bootstrapEntityId, {resourceEntityId, contentsString}, {});
 					if(!updateRequest) {
 						shovelerLogError("Failed to send resource animation update request for entity %lld (%zu bytes): %s", resourceEntityId, contentsString.size(), updateRequest.GetErrorMessage().c_str());
 						disconnected = true;

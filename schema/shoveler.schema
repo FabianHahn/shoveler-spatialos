@@ -105,8 +105,7 @@ type DigHoleResponse {
 
 type UpdateResourceRequest {
 	EntityId resource = 1;
-	string type_id = 2;
-	bytes content = 3;
+	bytes content = 2;
 }
 
 type UpdateResourceResponse {
@@ -157,20 +156,30 @@ component ClientHeartbeat {
 /** Represents a resource that is loaded as an asset into the game engine from a binary representation. */
 component Resource {
 	id = 1337;
-	/**
-	 * The type ID of the asset.
-	 * The only currently supported value is the string "image/png".
-	 */
-	string type_id = 1;
 	/** Bytestring representation of the resource. */
-	bytes content = 2;
+	bytes buffer = 1;
+}
+
+/** Specifies the image format. */
+enum ImageFormat {
+	PNG = 0;
+	PPM = 1;
+}
+
+/** Represents an image loaded from a resource. */
+component Image {
+	id = 13377;
+	/** The image format in which to interpret the resource buffer. */
+	ImageFormat format = 1;
+	/** Dependency entity ID containing a Resource component with the image buffer data. */
+	EntityId resource = 2;
 }
 
 /** Represents a texture that can be used within a material. */
 component Texture {
 	id = 1338;
-	/** Dependency entity ID containing a Resource component with the image for the texture. */
-	EntityId image_resource = 1;
+	/** Dependency entity ID containing an Image component with the image for the texture. */
+	EntityId image = 1;
 }
 
 
@@ -188,8 +197,8 @@ component Sampler {
 /** Represents a tileset that can be added to a tilemap and be referenced by tilemap tiles. */
 component Tileset {
 	id = 1339;
-	/** Dependency entity ID containing a Resource component with the image for the tileset. */
-	EntityId image_resource = 1;
+	/** Dependency entity ID containing an Image component with the image for the tileset. */
+	EntityId image = 1;
 	/** Number of tile columns in the tileset, must be in [0, 255]. */
 	int32 num_columns = 2;
 	/** Number of tile rows in the tileset, must be in [0, 255]. */
@@ -207,14 +216,14 @@ component Tileset {
 component TilemapTiles {
 	id = 1340;
 	/**
-	 * If set, specifies dependency entity ID containing a Resource component with the image for the tilemap.
+	 * If set, specifies dependency entity ID containing an Image component with the image for the tilemap.
 	 * The image needs to have three channels (rgb), each pixel of which represents a tile:
 	 *  - r channel: Column index of the referenced tile in the tileset.
 	 *  - g channel: Row index of the referenced tile in the tileset.
 	 *  - b channel: ID of the tileset in the tilemap these tiles are rendered on.
 	 *    Tileset IDs start with 1, where 0 denotes a blank tile that isn't rendered on these tiles.
 	 */
-	option<EntityId> image_resource = 1;
+	option<EntityId> image = 1;
 	/** Number of tile columns in the tilemap tiles, must be in [0, 255]. */
 	option<uint32> num_columns = 2;
 	/** Number of tile rows in the tilemap tiles, must be in [0, 255]. */

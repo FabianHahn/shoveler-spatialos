@@ -18,6 +18,7 @@ extern "C" {
 #include <shoveler/view/chunk.h>
 #include <shoveler/view/chunk_layer.h>
 #include <shoveler/view/drawable.h>
+#include <shoveler/view/image.h>
 #include <shoveler/view/material.h>
 #include <shoveler/view/model.h>
 #include <shoveler/view/position.h>
@@ -44,6 +45,7 @@ using shoveler::Chunk;
 using shoveler::ChunkLayer;
 using shoveler::Client;
 using shoveler::Drawable;
+using shoveler::Image;
 using shoveler::Material;
 using shoveler::Model;
 using shoveler::Resource;
@@ -74,6 +76,7 @@ static const unordered_map<string, ComponentId> COMPONENT_IDS = {
     {shovelerComponentTypeIdChunkLayer,				ChunkLayer::ComponentId},
 	{shovelerComponentTypeIdClient,				    Client::ComponentId},
 	{shovelerComponentTypeIdDrawable,				Drawable::ComponentId},
+	{shovelerComponentTypeIdImage,					Image::ComponentId},
 	{shovelerComponentTypeIdMaterial,				Material::ComponentId},
 	{shovelerComponentTypeIdModel,				    Model::ComponentId},
 	{shovelerComponentTypeIdPosition,				Position::ComponentId},

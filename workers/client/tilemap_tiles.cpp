@@ -19,7 +19,7 @@ void registerTilemapTilesCallbacks(worker::Dispatcher& dispatcher, ShovelerView 
 	dispatcher.OnAddComponent<TilemapTiles>([&, view](const worker::AddComponentOp<TilemapTiles>& op) {
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
-		bool isImageResourceDefinition = bool(op.Data.image_resource());
+		bool isImageResourceDefinition = bool(op.Data.image());
 		bool isConfigurationOptionDefinition =
 			bool(op.Data.num_columns()) &&
 			bool(op.Data.num_rows()) &&
@@ -40,7 +40,7 @@ void registerTilemapTilesCallbacks(worker::Dispatcher& dispatcher, ShovelerView 
 		unsigned char *tilesetIds = NULL;
 
 		if(configuration.isImageResourceEntityDefinition) {
-			configuration.imageResourceEntityId = *op.Data.image_resource();
+			configuration.imageEntityId = *op.Data.image();
 		} else {
 			configuration.numColumns = *op.Data.num_columns();
 			configuration.numRows = *op.Data.num_rows();
@@ -82,11 +82,11 @@ void registerTilemapTilesCallbacks(worker::Dispatcher& dispatcher, ShovelerView 
 		ShovelerViewTilemapTilesConfiguration configuration;
 		shovelerViewEntityGetTilemapTilesConfiguration(entity, &configuration);
 
-		if(op.Update.image_resource()) {
-			if(*op.Update.image_resource()) {
-				shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, SHOVELER_COMPONENT_TILEMAP_TILES_OPTION_IMAGE_RESOURCE, **op.Update.image_resource());
+		if(op.Update.image()) {
+			if(*op.Update.image()) {
+				shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, SHOVELER_COMPONENT_TILEMAP_TILES_OPTION_IMAGE, **op.Update.image());
 			} else {
-				shovelerComponentClearConfigurationOption(component, SHOVELER_COMPONENT_TILEMAP_TILES_OPTION_IMAGE_RESOURCE, /* isCanonical */ true);
+				shovelerComponentClearConfigurationOption(component, SHOVELER_COMPONENT_TILEMAP_TILES_OPTION_IMAGE, /* isCanonical */ true);
 			}
 		}
 

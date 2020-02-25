@@ -17,7 +17,7 @@ void registerTilesetCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view
 		ShovelerViewEntity *entity = shovelerViewGetEntity(view, op.EntityId);
 
 		ShovelerViewTilesetConfiguration configuration;
-		configuration.imageResourceEntityId = op.Data.image_resource();
+		configuration.imageEntityId = op.Data.image();
 		configuration.numColumns = op.Data.num_columns();
 		configuration.numRows = op.Data.num_rows();
 		configuration.padding = op.Data.padding();
@@ -31,8 +31,8 @@ void registerTilesetCallbacks(worker::Dispatcher& dispatcher, ShovelerView *view
 		ShovelerViewTilesetConfiguration configuration;
 		shovelerViewEntityGetTilesetConfiguration(entity, &configuration);
 
-		if(op.Update.image_resource()) {
-			configuration.imageResourceEntityId = *op.Update.image_resource();
+		if(op.Update.image()) {
+			configuration.imageEntityId = *op.Update.image();
 		}
 
 		if(op.Update.num_columns()) {

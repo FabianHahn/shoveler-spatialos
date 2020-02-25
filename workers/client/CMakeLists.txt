@@ -15,6 +15,8 @@ set(SHOVELER_CLIENT_SRC
 	coordinate_mapping.h
 	drawable.cpp
 	drawable.h
+	image.cpp
+	image.h
 	interest.cpp
 	interest.h
 	light.cpp

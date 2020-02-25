@@ -523,8 +523,7 @@ int main(int argc, char **argv) {
 		}
 
 		Resource::Update resourceUpdate;
-		resourceUpdate.set_type_id(op.Request.type_id());
-		resourceUpdate.set_content(op.Request.content());
+		resourceUpdate.set_buffer(op.Request.content());
 		connection.SendComponentUpdate<Resource>(resourceEntityId, resourceUpdate);
 
 		Result<None> commandResponseSent = connection.SendCommandResponse<UpdateResource>(op.RequestId, {});

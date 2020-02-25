@@ -32,7 +32,7 @@ static const int64_t clientPingTimeoutMs = 1000;
 
 static void handleLogMessageOp(const Worker_LogMessageOp *op, bool *disconnected);
 static void updateGame(ShovelerGame *game, double dt);
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value);
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
 
 int main(int argc, char **argv) {
@@ -102,17 +102,17 @@ int main(int argc, char **argv) {
 	cameraSettings.projection.nearClippingPlane = 0.01;
 	cameraSettings.projection.farClippingPlane = 1000;
 
-	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
+	ClientContext context;
+	context.connection = connection;
+	context.clientConfiguration = &clientConfiguration;
+
+	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &context, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
+	context.game = game;
 	ShovelerView *view = game->view;
 	shovelerClientRegisterViewComponentTypes(view);
-
-	ClientContext context;
-	context.connection = connection;
-	context.game = game;
-	context.clientConfiguration = &clientConfiguration;
 
 	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
 	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
@@ -331,9 +331,9 @@ static void updateGame(ShovelerGame *game, double dt)
 	shovelerCameraUpdateView(game->camera);
 }
 
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
 {
-
+	ClientContext *context = (ClientContext *) clientContextPointer;
 }
 
 static void clientPingTick(void *clientContextPointer)

@@ -11,6 +11,7 @@
 #include "configuration.h"
 #include "connect.h"
 #include "drawable.h"
+#include "image.h"
 #include "interest.h"
 #include "light.h"
 #include "material.h"
@@ -59,6 +60,7 @@ using shoveler::Client;
 using shoveler::ClientHeartbeat;
 using shoveler::ClientInfo;
 using shoveler::Drawable;
+using shoveler::Image;
 using shoveler::Light;
 using shoveler::LightType;
 using shoveler::Material;
@@ -100,10 +102,9 @@ struct ClientContext {
 };
 
 static const int64_t clientPingTimeoutMs = 1000;
-static const char *const shovelerComponentViewTargetClientContext = "client_context";
 
 static void updateGame(ShovelerGame *game, double dt);
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value);
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
@@ -140,6 +141,7 @@ int main(int argc, char **argv) {
 		ClientInfo,
 		Drawable,
 		EntityAcl,
+		Image,
 		Interest,
 		Light,
 		Metadata,
@@ -184,15 +186,8 @@ int main(int argc, char **argv) {
 	cameraSettings.projection.nearClippingPlane = 0.01;
 	cameraSettings.projection.farClippingPlane = 1000;
 
-	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
-	if(game == NULL) {
-		return EXIT_FAILURE;
-	}
-	ShovelerView *view = game->view;
-
 	ClientContext context;
 	context.connection = &connection;
-	context.game = game;
 	context.clientConfiguration = &clientConfiguration;
 	context.bootstrapEntityId = 0;
 	context.clientEntityId = 0;
@@ -202,7 +197,12 @@ int main(int argc, char **argv) {
 	context.lastInterestUpdatePositionY = 0.0f;
 	context.edgeLength = 20.5f;
 
-	shovelerViewSetTarget(view, shovelerComponentViewTargetClientContext, &context);
+	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &context, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
+	if(game == NULL) {
+		return EXIT_FAILURE;
+	}
+	context.game = game;
+	ShovelerView *view = game->view;
 
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 
@@ -357,6 +357,7 @@ int main(int argc, char **argv) {
 	registerMaterialCallbacks(dispatcher, view);
 	registerModelCallbacks(dispatcher, view);
 	registerLightCallbacks(dispatcher, view);
+	registerImageCallbacks(dispatcher, view);
 
 	while(shovelerGameIsRunning(game) && !disconnected) {
 		context.viewDependenciesUpdated = false;
@@ -387,9 +388,9 @@ static void updateGame(ShovelerGame *game, double dt) {
 	shovelerCameraUpdateView(game->camera);
 }
 
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
+static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
 {
-	ClientContext *context = (ClientContext *) shovelerViewGetTarget(game->view, shovelerComponentViewTargetClientContext);
+	ClientContext *context = (ClientContext *) clientContextPointer;
 
 	if(component->type->id == shovelerComponentTypeIdPosition) {
 		requestPositionUpdate(*context->connection, game->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, component, configurationOption, value);
