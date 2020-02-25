@@ -1,5 +1,6 @@
 set(SHOVELER_BASE_SRC
 	src/component/colliders.c
+	src/component/image.c
 	src/component/position.c
 	src/component/resource.c
 	src/component/resources.c
@@ -7,6 +8,7 @@ set(SHOVELER_BASE_SRC
 	src/image/ppm.c
 	src/resources/image_png.c
 	src/view/colliders.c
+	src/view/image.c
 	src/view/position.c
 	src/view/resource.c
 	src/view/resources.c
@@ -20,12 +22,14 @@ set(SHOVELER_BASE_SRC
 	src/font_atlas.c
 	src/frustum.c
 	src/image.c
+	src/input_stream.c
 	src/log.c
 	src/projection.c
 	src/resources.c
 	src/view.c
 	include/shoveler/collider/box.h
 	include/shoveler/component/colliders.h
+	include/shoveler/component/image.h
 	include/shoveler/component/position.h
 	include/shoveler/component/resource.h
 	include/shoveler/component/resources.h
@@ -33,6 +37,7 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/image/ppm.h
 	include/shoveler/resources/image_png.h
 	include/shoveler/view/colliders.h
+	include/shoveler/view/image.h
 	include/shoveler/view/position.h
 	include/shoveler/view/resource.h
 	include/shoveler/view/resources.h
@@ -49,6 +54,7 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/frustum.h
 	include/shoveler/hash.h
 	include/shoveler/image.h
+	include/shoveler/input_stream.h
 	include/shoveler/log.h
 	include/shoveler/projection.h
 	include/shoveler/resources.h
@@ -58,8 +64,8 @@ set(SHOVELER_BASE_SRC
 
 set(SHOVELER_BASE_TEST_SRC
 	src/image/png_test.cpp
+	src/image/ppm_test.cpp
 	src/resources/image_png_test.cpp
-	src/view/resource_test.cpp
 	src/colliders_test.cpp
 	src/color_test.cpp
 	src/component_test.cpp
