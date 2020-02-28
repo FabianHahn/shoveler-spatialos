@@ -6,6 +6,8 @@ set(SHOVELER_C_CLIENT_SRC
 	configuration.h
 	connect.c
 	connect.h
+	interest.c
+	interest.h
 	schema.c
 	schema.h
 )

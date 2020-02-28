@@ -6,6 +6,8 @@
 #include <improbable/c_worker.h>
 #include <shoveler/constants.h>
 #include <shoveler/component.h>
+#include <shoveler/component/client.h>
+#include <shoveler/component/position.h>
 #include <shoveler/game.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
@@ -16,6 +18,7 @@
 
 #include "configuration.h"
 #include "connect.h"
+#include "interest.h"
 #include "schema.h"
 
 typedef struct {
@@ -25,6 +28,12 @@ typedef struct {
 	long long int clientEntityId;
 	bool disconnected;
 	ShovelerExecutorCallback *clientPingTickCallback;
+	bool clientInterestAuthoritative;
+	bool absoluteInterest;
+	bool restrictController;
+	bool viewDependenciesUpdated;
+	double lastInterestUpdatePositionY;
+	double edgeLength;
 } ClientContext;
 
 static const long long int bootstrapEntityId = 1;
@@ -39,6 +48,10 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 static void updateGame(ShovelerGame *game, double dt);
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
+static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
+static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength);
+static void updateEdgeLength(ClientContext *context, ShovelerVector3 position);
+static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId);
 
 int main(int argc, char **argv) {
 	srand(time(NULL));
@@ -63,7 +76,7 @@ int main(int argc, char **argv) {
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerCClient";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_TCP;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_UDP;
 	connectionParameters.default_component_vtable = &componentVtable;
 
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());
@@ -112,6 +125,12 @@ int main(int argc, char **argv) {
 	context.clientConfiguration = &clientConfiguration;
 	context.disconnected = false;
 	context.clientPingTickCallback = NULL;
+	context.clientInterestAuthoritative = false;
+	context.absoluteInterest = false;
+	context.restrictController = true;
+	context.viewDependenciesUpdated = false;
+	context.lastInterestUpdatePositionY = 0.0f;
+	context.edgeLength = 20.5f;
 
 	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &context, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
@@ -130,7 +149,11 @@ int main(int argc, char **argv) {
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
 
+	shovelerViewAddDependencyCallback(view, viewDependencyCallbackFunction, &context);
+
 	while(shovelerGameIsRunning(game) && !context.disconnected) {
+		context.viewDependenciesUpdated = false;
+
 		Worker_OpList *opList = Worker_Connection_GetOpList(connection, 0);
 		for(size_t i = 0; i < opList->op_count; ++i) {
 			Worker_Op *op = &opList->ops[i];
@@ -205,6 +228,13 @@ int main(int argc, char **argv) {
 		Worker_OpList_Destroy(opList);
 
 		shovelerGameRenderFrame(game);
+
+		ShovelerVector3 position = getEntitySpatialOsPosition(view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ, context.clientEntityId);
+		updateEdgeLength(&context, position);
+
+		if(context.clientInterestAuthoritative && context.viewDependenciesUpdated) {
+			updateInterest(&context, context.absoluteInterest, position, context.edgeLength);
+		}
 	}
 	shovelerLogInfo("Exiting main loop, goodbye.");
 
@@ -276,6 +306,19 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 
 static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op)
 {
+	// special case interest
+	if (op->component_id == 58) {
+		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+			shovelerLogInfo("Received authority over interest component of client entity %lld.", op->entity_id);
+			context->clientInterestAuthoritative = true;
+			context->viewDependenciesUpdated = true;
+		} else {
+			shovelerLogWarning("Lost interest authority over client entity %lld.", op->entity_id);
+			context->clientInterestAuthoritative = false;
+		}
+		return;
+	}
+
 	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->component_id);
 	if(componentTypeId == NULL) {
 		shovelerLogWarning("Received authority change for unknown component ID %d on entity %lld, ignoring.", op->component_id, op->entity_id);
@@ -392,4 +435,71 @@ static void clientPingTick(void *clientContextPointer)
 		shovelerLogWarning("Failed to send client ping command.");
 	}
 	shovelerLogTrace("Sent client ping command request %lld.", clientPingCommandRequestId);
+}
+
+static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer) {
+	ClientContext *context = (ClientContext *) contextPointer;
+	context->viewDependenciesUpdated = true;
+}
+
+static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength)
+{
+	Schema_ComponentUpdate *componentUpdate = Schema_CreateComponentUpdate();
+	Schema_Object *interest = Schema_GetComponentUpdateFields(componentUpdate);
+	Schema_Object *interestEntry = Schema_AddObject(interest, /* fieldId */ 1);
+	Schema_AddUint32(interestEntry, /* fieldId */ 1, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdClient));
+	Schema_Object *componentInterest = Schema_AddObject(interestEntry, /* fieldId */ 2);
+
+	int numQueries = shovelerClientComputeViewInterest(context->game->view, absoluteInterest, position, edgeLength, componentInterest);
+
+	Worker_ComponentUpdate update;
+	update.component_id = 58;
+	update.schema_type = componentUpdate;
+
+	Worker_UpdateParameters updateParameters;
+	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+
+	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+
+	shovelerLogInfo("Sent interest update with %d queries.", numQueries);
+}
+
+static void updateEdgeLength(ClientContext *context, ShovelerVector3 position) {
+	if(context->absoluteInterest) {
+		return;
+	}
+
+	double positionChangeY = fabs(position.values[1] - context->lastInterestUpdatePositionY);
+	if(fabs(positionChangeY) < 0.5f) {
+		return;
+	}
+
+	context->edgeLength = 20.5f * position.values[1] / 5.0f;
+	if(context->edgeLength < 20.5f) {
+		context->edgeLength = 20.5f;
+	}
+
+	context->lastInterestUpdatePositionY = position.values[1];
+	context->viewDependenciesUpdated = true;
+}
+
+static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId)
+{
+	ShovelerVector3 spatialOsPosition = shovelerVector3(0.0f, 0.0f, 0.0f);
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, entityId);
+	if(entity != NULL) {
+		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdPosition);
+		if (component != NULL) {
+			const ShovelerVector3 *coordinates = shovelerComponentGetPositionCoordinates(component);
+
+			// TODO: inverse mapping?
+			spatialOsPosition = shovelerVector3(
+				shovelerCoordinateMap(*coordinates, mappingX),
+				shovelerCoordinateMap(*coordinates, mappingY),
+				shovelerCoordinateMap(*coordinates, mappingZ));
+		}
+	}
+
+	return spatialOsPosition;
 }

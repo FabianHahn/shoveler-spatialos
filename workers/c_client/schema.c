@@ -8,6 +8,7 @@
 #include <shoveler/component/chunk_layer.h>
 #include <shoveler/component/client.h>
 #include <shoveler/component/drawable.h>
+#include <shoveler/component/image.h>
 #include <shoveler/component/light.h>
 #include <shoveler/component/material.h>
 #include <shoveler/component/model.h>
@@ -49,6 +50,8 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdClient;
 		case 1337:
 			return shovelerComponentTypeIdResource;
+		case 13377:
+			return shovelerComponentTypeIdImage;
 		case 1338:
 			return shovelerComponentTypeIdTexture;
 		case 1339:
@@ -94,6 +97,9 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	}
 	if(componentTypeId == shovelerComponentTypeIdResource) {
 		return 1337;
+	}
+	if(componentTypeId == shovelerComponentTypeIdImage) {
+		return 13377;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTexture) {
 		return 1338;
@@ -150,6 +156,7 @@ void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 	shovelerViewAddComponentType(view, shovelerComponentCreateChunkLayerType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateClientType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateDrawableType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateImageType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateLightType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateMaterialType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateModelType());
