@@ -278,7 +278,7 @@ component Sprite {
 	/** The size of the sprite when rendered onto a canvas. */
 	Vector2 size = 6;
 	/** Dependency entity ID containing a TileSprite component referenced by this sprite. */
-	EntityId tile_sprite = 7;
+	EntityId tile_sprite = 8;
 }
 
 /** Represents a sprite that is rendered as a single tile from a tileset. */
