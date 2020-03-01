@@ -51,6 +51,7 @@ static void clientPingTick(void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
 static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength);
 static void updateEdgeLength(ClientContext *context, ShovelerVector3 position);
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer);
 static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId);
 
 int main(int argc, char **argv) {
@@ -139,6 +140,7 @@ int main(int argc, char **argv) {
 	context.game = game;
 	ShovelerView *view = game->view;
 	shovelerClientRegisterViewComponentTypes(view);
+	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 
 	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
 	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
@@ -481,6 +483,38 @@ static void updateEdgeLength(ClientContext *context, ShovelerVector3 position) {
 
 	context->lastInterestUpdatePositionY = position.values[1];
 	context->viewDependenciesUpdated = true;
+}
+
+static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer)
+{
+	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	if(key == GLFW_KEY_F7 && action == GLFW_PRESS) {
+		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
+		context->absoluteInterest = !context->absoluteInterest;
+
+		ShovelerVector3 position = getEntitySpatialOsPosition(context->game->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
+		updateEdgeLength(context, position);
+		updateInterest(context, context->absoluteInterest, position, context->edgeLength);
+	}
+
+	if(key == GLFW_KEY_F8 && action == GLFW_PRESS) {
+		shovelerLogInfo("F8 key pressed, %s controller.", context->restrictController ? "unrestricting" : "restricting");
+		context->restrictController = !context->restrictController;
+		if(context->restrictController) {
+			context->game->controller->lockMoveX = context->clientConfiguration->controllerLockMoveX;
+			context->game->controller->lockMoveY = context->clientConfiguration->controllerLockMoveY;
+			context->game->controller->lockMoveZ = context->clientConfiguration->controllerLockMoveZ;
+			context->game->controller->lockTiltX = context->clientConfiguration->controllerLockTiltX;
+			context->game->controller->lockTiltY = context->clientConfiguration->controllerLockTiltY;
+		} else {
+			context->game->controller->lockMoveX = false;
+			context->game->controller->lockMoveY = false;
+			context->game->controller->lockMoveZ = false;
+			context->game->controller->lockTiltX = false;
+			context->game->controller->lockTiltY = false;
+		}
+	}
 }
 
 static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId)
