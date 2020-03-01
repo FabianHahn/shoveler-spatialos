@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 	srand(time(NULL));
 
 	ShovelerGameWindowSettings windowSettings;
-	windowSettings.windowTitle = "ShovelerClient";
+	windowSettings.windowTitle = "ShovelerCClient";
 	windowSettings.fullscreen = false;
 	windowSettings.vsync = true;
 	windowSettings.samples = 4;
