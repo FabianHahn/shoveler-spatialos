@@ -45,6 +45,7 @@ static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected);
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
 static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
+static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op);
 static void updateGame(ShovelerGame *game, double dt);
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
@@ -198,7 +199,7 @@ int main(int argc, char **argv) {
 					onAddComponent(&context, &op->op.add_component);
 					break;
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
-					shovelerLogInfo("WORKER_OP_TYPE_REMOVE_COMPONENT");
+					onRemoveComponent(&context, &op->op.remove_component);
 					break;
 				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
 					onAuthorityChange(&context, &op->op.authority_change);
@@ -276,15 +277,37 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 {
 	ShovelerView *view = context->game->view;
 
-	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->data.component_id);
-	if(componentTypeId == NULL) {
-		shovelerLogWarning("Received add for unknown component ID %d on entity %lld, ignoring.", op->data.component_id, op->entity_id);
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning("Received add component %d for unknown entity %lld, ignoring.", op->data.component_id, op->entity_id);
 		return;
 	}
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
-	if(entity == NULL) {
-		shovelerLogWarning("Received add component %d (%s) for unknown entity %lld, ignoring.", op->data.component_id, componentTypeId, op->entity_id);
+	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->data.component_id);
+	if (specialComponentType != NULL) {
+		// special case Metadata
+		if (op->data.component_id == 53) {
+			Schema_Object *fields = Schema_GetComponentDataFields(op->data.schema_type);
+			uint32_t entityTypeLength = Schema_GetBytesLength(fields, /* fieldId */ 1);
+			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, /* fieldId */ 1);
+
+			GString *entityType = g_string_new("");
+			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
+			shovelerViewEntitySetType(entity, entityType->str);
+
+			shovelerLogInfo("Added Metadata component to entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
+			g_string_free(entityType, /* freeSegment */ true);
+
+			return;
+		}
+
+		shovelerLogInfo("Added special component %s to entity %lld.", specialComponentType, op->entity_id);
+		return;
+	}
+
+	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->data.component_id);
+	if(componentTypeId == NULL) {
+		shovelerLogWarning("Received add for unknown component ID %d on entity %lld, ignoring.", op->data.component_id, op->entity_id);
 		return;
 	}
 
@@ -364,21 +387,43 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 {
 	ShovelerView *view = context->game->view;
 
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning("Received update component %d for unknown entity %lld, ignoring.", op->update.component_id, op->entity_id);
+		return;
+	}
+
+	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->update.component_id);
+	if(specialComponentType != NULL) {
+		// special case Metadata
+		if (op->update.component_id == 53) {
+			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
+			uint32_t entityTypeLength = Schema_GetBytesLength(fields, /* fieldId */ 1);
+			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, /* fieldId */ 1);
+
+			GString *entityType = g_string_new("");
+			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
+			shovelerViewEntitySetType(entity, entityType->str);
+
+			shovelerLogInfo("Updated Metadata component on entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
+			g_string_free(entityType, /* freeSegment */ true);
+
+			return;
+		}
+
+		shovelerLogInfo("Updated special component %s on entity %lld.", specialComponentType, op->entity_id);
+		return;
+	}
+
 	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->update.component_id);
 	if(componentTypeId == NULL) {
 		shovelerLogWarning("Received update for unknown component ID %d on entity %lld, ignoring.", op->update.component_id, op->entity_id);
 		return;
 	}
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
-	if(entity == NULL) {
-		shovelerLogWarning("Received update component %d (%s) for unknown entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
-		return;
-	}
-
 	ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
 	if(component == NULL) {
-		shovelerLogWarning("Received update for non-existing component %d (%s) on unknown entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
+		shovelerLogWarning("Received update for non-existing component %d (%s) on entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
 		return;
 	}
 
@@ -392,6 +437,38 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		context->clientConfiguration->positionMappingZ);
 
 	shovelerComponentActivate(component);
+}
+
+static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op)
+{
+	ShovelerView *view = context->game->view;
+
+	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning("Received remove component %d for unknown entity %lld, ignoring.", op->component_id, op->entity_id);
+		return;
+	}
+
+	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->component_id);
+	if(specialComponentType != NULL) {
+		shovelerLogInfo("Removed special component %s from entity %lld.", specialComponentType, op->entity_id);
+		return;
+	}
+
+	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->component_id);
+	if(componentTypeId == NULL) {
+		shovelerLogWarning("Received remove for unknown component ID %d on entity %lld, ignoring.", op->component_id, op->entity_id);
+		return;
+	}
+
+	ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+	if(component == NULL) {
+		shovelerLogWarning("Received remove for non-existing component %d (%s) on entity %lld, ignoring.", op->component_id, componentTypeId, op->entity_id);
+		return;
+	}
+
+	shovelerLogInfo("Removing entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+	shovelerViewEntityRemoveComponent(entity, componentTypeId);
 }
 
 static void updateGame(ShovelerGame *game, double dt)

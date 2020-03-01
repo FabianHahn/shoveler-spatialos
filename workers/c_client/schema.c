@@ -87,6 +87,36 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 	}
 }
 
+const char *shovelerClientResolveSpecialComponentId(int componentId)
+{
+	switch(componentId) {
+		case 50:
+			return "EntityAcl";
+		case 53:
+			return "Metadata";
+		// 54: we treat position as a regular view component even though it is part of the standard library
+		case 55:
+			return "Persistence";
+		case 58:
+			return "Interest";
+		case 59:
+			return "System";
+		case 60:
+			return "Worker";
+		case 61:
+			return "PlayerClient";
+		// special shoveler components below
+		case 1334:
+			return "Bootstrap";
+		case 133742:
+			return "ClientInfo";
+		case 1336:
+			return "ClientHeartbeat";
+		default:
+			return NULL;
+	}
+}
+
 int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 {
 	if(componentTypeId == shovelerComponentTypeIdPosition) {
