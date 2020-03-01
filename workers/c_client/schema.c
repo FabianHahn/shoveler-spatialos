@@ -15,6 +15,7 @@
 #include <shoveler/component/position.h>
 #include <shoveler/component/resource.h>
 #include <shoveler/component/sampler.h>
+#include <shoveler/component/sprite.h>
 #include <shoveler/component/texture.h>
 #include <shoveler/component/tile_sprite.h>
 #include <shoveler/component/tile_sprite_animation.h>
@@ -60,6 +61,8 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdTilemapTiles;
 		case 1341:
 			return shovelerComponentTypeIdTilemap;
+		case 13422:
+			return shovelerComponentTypeIdSprite;
 		case 1342:
 			return shovelerComponentTypeIdTileSprite;
 		case 1343:
@@ -143,6 +146,9 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	if(componentTypeId == shovelerComponentTypeIdTilemap) {
 		return 1341;
 	}
+	if(componentTypeId == shovelerComponentTypeIdSprite) {
+		return 13422;
+	}
 	if(componentTypeId == shovelerComponentTypeIdTileSprite) {
 		return 1342;
 	}
@@ -194,6 +200,7 @@ void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 	shovelerViewAddComponentType(view, shovelerComponentCreateResourceType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateSamplerType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTextureType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateSpriteType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTileSpriteType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTileSpriteAnimationType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapType());
