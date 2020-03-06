@@ -4,6 +4,7 @@
 
 #include <improbable/c_schema.h>
 #include <improbable/c_worker.h>
+#include <shoveler/camera/perspective.h>
 #include <shoveler/constants.h>
 #include <shoveler/component.h>
 #include <shoveler/component/client.h>
@@ -49,6 +50,7 @@ static void onRemoveComponent(ClientContext *context, const Worker_RemoveCompone
 static void updateGame(ShovelerGame *game, double dt);
 static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
 static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength);
 static void updateEdgeLength(ClientContext *context, ShovelerVector3 position);
@@ -142,6 +144,7 @@ int main(int argc, char **argv) {
 	ShovelerView *view = game->view;
 	shovelerClientRegisterViewComponentTypes(view);
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
+	shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &context);
 
 	game->controller->lockMoveX = clientConfiguration.controllerLockMoveX;
 	game->controller->lockMoveY = clientConfiguration.controllerLockMoveY;
@@ -514,6 +517,69 @@ static void clientPingTick(void *clientContextPointer)
 		shovelerLogWarning("Failed to send client ping command.");
 	}
 	shovelerLogTrace("Sent client ping command request %lld.", clientPingCommandRequestId);
+}
+
+static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer)
+{
+	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+		if(context->clientConfiguration->gameType == SHOVELER_CLIENT_GAME_TYPE_TILES) {
+			shovelerLogInfo("Sending dig hole command...");
+
+			Worker_CommandRequest digHoleCommandRequest;
+			memset(&digHoleCommandRequest, 0, sizeof(Worker_CommandRequest));
+			digHoleCommandRequest.component_id = bootstrapComponentId;
+			digHoleCommandRequest.command_index = 4;
+			digHoleCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+			Schema_Object *digHoleRequest = Schema_GetCommandRequestObject(digHoleCommandRequest.schema_type);
+			Schema_AddEntityId(digHoleRequest, /* fieldId */ 1, context->clientEntityId);
+
+			Worker_RequestId digHoleCommandRequestId = Worker_Connection_SendCommandRequest(
+				context->connection,
+				bootstrapEntityId,
+				&digHoleCommandRequest,
+				/* timeout_millis */ NULL,
+				/* command_parameters */ NULL);
+			if(digHoleCommandRequestId < 0) {
+				shovelerLogWarning("Failed to send dig hole command.");
+			}
+			shovelerLogTrace("Sent dig hole command request %lld.", digHoleCommandRequestId);
+		} else {
+			shovelerLogInfo("Sending client cube spawn command...");
+
+			ShovelerCameraPerspective *perspectiveCamera = (ShovelerCameraPerspective *) context->game->camera->data;
+
+			Worker_CommandRequest spawnCubeCommandRequest;
+			memset(&spawnCubeCommandRequest, 0, sizeof(Worker_CommandRequest));
+			spawnCubeCommandRequest.component_id = bootstrapComponentId;
+			spawnCubeCommandRequest.command_index = 3;
+			spawnCubeCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+			Schema_Object *spawnCubeRequest = Schema_GetCommandRequestObject(spawnCubeCommandRequest.schema_type);
+			Schema_AddEntityId(spawnCubeRequest, /* fieldId */ 1, context->clientEntityId);
+			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, /* fieldId */ 2);
+			Schema_AddFloat(direction, /* fieldId */ 1, -perspectiveCamera->direction.values[0]);
+			Schema_AddFloat(direction, /* fieldId */ 2, perspectiveCamera->direction.values[1]);
+			Schema_AddFloat(direction, /* fieldId */ 3, perspectiveCamera->direction.values[2]);
+			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, /* fieldId */ 3);
+			Schema_AddFloat(rotation, /* fieldId */ 1, 0.0f);
+			Schema_AddFloat(rotation, /* fieldId */ 2, 0.0f);
+			Schema_AddFloat(rotation, /* fieldId */ 3, 0.0f);
+
+			Worker_RequestId spawnCubeCommandRequestId = Worker_Connection_SendCommandRequest(
+				context->connection,
+				bootstrapEntityId,
+				&spawnCubeCommandRequest,
+				/* timeout_millis */ NULL,
+				/* command_parameters */ NULL);
+			if(spawnCubeCommandRequestId < 0) {
+				shovelerLogWarning("Failed to send spawn cube command.");
+			}
+			shovelerLogTrace("Sent spawn cube command request %lld.", spawnCubeCommandRequestId);
+		}
+	}
 }
 
 static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer) {

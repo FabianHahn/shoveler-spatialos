@@ -10,6 +10,7 @@ static void parseFloatFlag(Worker_Connection *connection, const char *flagName, 
 static void parseVector3Flag(Worker_Connection *connection, const char *flagName, ShovelerVector3 *outputValue);
 static void parseBoolFlag(Worker_Connection *connection, const char *flagName, bool *outputValue);
 static void parseCoordinateMappingFlag(Worker_Connection *connection, const char *flagName, ShovelerCoordinateMapping *outputValue);
+static void parseGameTypeFlag(Worker_Connection *connection, const char *flagName, ShovelerClientGameType *outputValue);
 static void workerFlagCallback(void *targetPointer, const char *value);
 
 bool shovelerClientGetWorkerConfiguration(Worker_Connection *connection, ShovelerClientConfiguration *outputClientConfiguration)
@@ -30,6 +31,7 @@ bool shovelerClientGetWorkerConfiguration(Worker_Connection *connection, Shovele
 	outputClientConfiguration->positionMappingY = SHOVELER_COORDINATE_MAPPING_POSITIVE_Y;
 	outputClientConfiguration->positionMappingZ = SHOVELER_COORDINATE_MAPPING_POSITIVE_Z;
 	outputClientConfiguration->hidePlayerClientEntityModel = true;
+	outputClientConfiguration->gameType = SHOVELER_CLIENT_GAME_TYPE_LIGHTS;
 
 	parseVector3Flag(connection, "controller_frame_position", &outputClientConfiguration->controllerSettings.frame.position);
 	parseVector3Flag(connection, "controller_frame_direction", &outputClientConfiguration->controllerSettings.frame.direction);
@@ -47,6 +49,7 @@ bool shovelerClientGetWorkerConfiguration(Worker_Connection *connection, Shovele
 	parseCoordinateMappingFlag(connection, "position_mapping_y", &outputClientConfiguration->positionMappingY);
 	parseCoordinateMappingFlag(connection, "position_mapping_z", &outputClientConfiguration->positionMappingZ);
 	parseBoolFlag(connection, "hide_player_client_entity_model", &outputClientConfiguration->hidePlayerClientEntityModel);
+	parseGameTypeFlag(connection, "game_type", &outputClientConfiguration->gameType);
 
 	return true;
 }
@@ -121,10 +124,32 @@ static void parseCoordinateMappingFlag(Worker_Connection *connection, const char
 	} else if(strcmp(stringValue, "-z") == 0) {
 		*outputValue = SHOVELER_COORDINATE_MAPPING_NEGATIVE_Z;
 	} else {
+		free(stringValue);
 		return;
 	}
 
 	shovelerLogInfo("Parsed client configuration flag '%s' with value %s.", flagName, stringValue);
+	free(stringValue);
+}
+
+static void parseGameTypeFlag(Worker_Connection *connection, const char *flagName, ShovelerClientGameType *outputValue)
+{
+	char *stringValue;
+	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
+	if(stringValue == NULL) {
+		return;
+	}
+
+	if(strcmp(stringValue, "lights") == 0) {
+		*outputValue = SHOVELER_CLIENT_GAME_TYPE_LIGHTS;
+	} else if (strcmp(stringValue, "tiles") == 0) {
+		*outputValue = SHOVELER_CLIENT_GAME_TYPE_TILES;
+	} else {
+		free(stringValue);
+		return;
+	}
+
+	shovelerLogInfo("Parsed client configuration flag '%s' with value '%s'.", flagName, stringValue);
 	free(stringValue);
 }
 
