@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
 	}
-	shovelerLogInfo("Sent create entity command request %lld.", createClientEntityCommandRequestId);
+	shovelerLogTrace("Sent create entity command request %lld.", createClientEntityCommandRequestId);
 
 	ShovelerClientConfiguration clientConfiguration;
 	if(!shovelerClientGetWorkerConfiguration(connection, &clientConfiguration)) {
@@ -187,16 +187,16 @@ int main(int argc, char **argv) {
 					shovelerViewRemoveEntity(view, op->op.add_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE:
-					shovelerLogInfo("WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE");
+					shovelerLogTrace("WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE");
 					break;
 				case WORKER_OP_TYPE_CREATE_ENTITY_RESPONSE:
-					shovelerLogInfo("WORKER_OP_TYPE_CREATE_ENTITY_RESPONSE");
+					shovelerLogTrace("WORKER_OP_TYPE_CREATE_ENTITY_RESPONSE");
 					break;
 				case WORKER_OP_TYPE_DELETE_ENTITY_RESPONSE:
-					shovelerLogInfo("WORKER_OP_TYPE_DELETE_ENTITY_RESPONSE");
+					shovelerLogTrace("WORKER_OP_TYPE_DELETE_ENTITY_RESPONSE");
 					break;
 				case WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE:
-					shovelerLogInfo("WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE");
+					shovelerLogTrace("WORKER_OP_TYPE_ENTITY_QUERY_RESPONSE");
 					break;
 				case WORKER_OP_TYPE_ADD_COMPONENT:
 					onAddComponent(&context, &op->op.add_component);
@@ -211,11 +211,11 @@ int main(int argc, char **argv) {
 					onUpdateComponent(&context, &op->op.component_update);
 					break;
 				case WORKER_OP_TYPE_COMMAND_REQUEST:
-					shovelerLogInfo("WORKER_OP_TYPE_COMMAND_REQUEST");
+					shovelerLogTrace("WORKER_OP_TYPE_COMMAND_REQUEST");
 					break;
 				case WORKER_OP_TYPE_COMMAND_RESPONSE:
 					if (op->op.command_response.request_id == createClientEntityCommandRequestId) {
-						shovelerLogInfo(
+						shovelerLogTrace(
 							"Create client entity command request %lld completed with code %u: %s",
 							op->op.command_response.request_id,
 							op->op.command_response.status_code,
@@ -298,13 +298,13 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
 			shovelerViewEntitySetType(entity, entityType->str);
 
-			shovelerLogInfo("Added Metadata component to entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
+			shovelerLogTrace("Added Metadata component to entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
 			g_string_free(entityType, /* freeSegment */ true);
 
 			return;
 		}
 
-		shovelerLogInfo("Added special component %s to entity %lld.", specialComponentType, op->entity_id);
+		shovelerLogTrace("Added special component %s to entity %lld.", specialComponentType, op->entity_id);
 		return;
 	}
 
@@ -320,7 +320,7 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 		return;
 	}
 
-	shovelerLogInfo("Adding entity %lld component %d (%s).", op->entity_id, op->data.component_id, componentTypeId);
+	shovelerLogTrace("Adding entity %lld component %d (%s).", op->entity_id, op->data.component_id, componentTypeId);
 	shovelerClientApplyComponentData(
 		view,
 		component,
@@ -337,7 +337,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 	// special case interest
 	if (op->component_id == 58) {
 		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-			shovelerLogInfo("Received authority over interest component of client entity %lld.", op->entity_id);
+			shovelerLogTrace("Received authority over interest component of client entity %lld.", op->entity_id);
 			context->clientInterestAuthoritative = true;
 			context->viewDependenciesUpdated = true;
 		} else {
@@ -360,7 +360,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 	}
 
 	if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-		shovelerLogInfo("Gained authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+		shovelerLogTrace("Gained authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
 		shovelerViewEntityDelegate(entity, componentTypeId);
 
 		// If the component exists, we might be able to activate it now.
@@ -370,12 +370,12 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 		}
 
 		if(op->component_id == clientComponentId) {
-			shovelerLogInfo("Gained client authority over entity %lld.", op->entity_id);
+			shovelerLogTrace("Gained client authority over entity %lld.", op->entity_id);
 			context->clientEntityId = op->entity_id;
 			context->clientPingTickCallback = shovelerExecutorSchedulePeriodic(context->game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, context);
 		}
 	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
-		shovelerLogInfo("Lost authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+		shovelerLogTrace("Lost authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
 		shovelerViewEntityUndelegate(entity, componentTypeId);
 
 		if(op->component_id == clientComponentId) {
@@ -408,13 +408,13 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
 			shovelerViewEntitySetType(entity, entityType->str);
 
-			shovelerLogInfo("Updated Metadata component on entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
+			shovelerLogTrace("Updated Metadata component on entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
 			g_string_free(entityType, /* freeSegment */ true);
 
 			return;
 		}
 
-		shovelerLogInfo("Updated special component %s on entity %lld.", specialComponentType, op->entity_id);
+		shovelerLogTrace("Updated special component %s on entity %lld.", specialComponentType, op->entity_id);
 		return;
 	}
 
@@ -430,7 +430,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		return;
 	}
 
-	shovelerLogInfo("Updating entity %lld component %d (%s).", op->entity_id, op->update.component_id, componentTypeId);
+	shovelerLogTrace("Updating entity %lld component %d (%s).", op->entity_id, op->update.component_id, componentTypeId);
 	shovelerClientApplyComponentUpdate(
 		view,
 		component,
@@ -454,7 +454,7 @@ static void onRemoveComponent(ClientContext *context, const Worker_RemoveCompone
 
 	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->component_id);
 	if(specialComponentType != NULL) {
-		shovelerLogInfo("Removed special component %s from entity %lld.", specialComponentType, op->entity_id);
+		shovelerLogTrace("Removed special component %s from entity %lld.", specialComponentType, op->entity_id);
 		return;
 	}
 
@@ -470,7 +470,7 @@ static void onRemoveComponent(ClientContext *context, const Worker_RemoveCompone
 		return;
 	}
 
-	shovelerLogInfo("Removing entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
+	shovelerLogTrace("Removing entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
 	shovelerViewEntityRemoveComponent(entity, componentTypeId);
 }
 

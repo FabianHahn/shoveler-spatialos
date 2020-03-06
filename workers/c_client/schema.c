@@ -251,7 +251,7 @@ void shovelerClientApplyComponentUpdate(ShovelerView *view, ShovelerComponent *c
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	}
 
 	for(int optionId = 0; optionId < component->type->numConfigurationOptions; optionId++) {
@@ -431,7 +431,7 @@ static void updatePositionCoordinates(ShovelerComponent *component, Schema_Objec
 
 	shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES, mappedCoordinates);
 
-	shovelerLogInfo("Updated entity %lld component 'position' to mapped coordinates value (%f, %f, %f).", component->entityId, mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+	shovelerLogTrace("Updated entity %lld component 'position' to mapped coordinates value (%f, %f, %f).", component->entityId, mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
 }
 
 static void updateComponentConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, Schema_FieldId fieldId, bool clear_if_not_set)
@@ -478,12 +478,12 @@ static void updateEntityIdConfigurationOption(ShovelerComponent *component, Shov
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		long long int entityIdValue = Schema_GetEntityId(fields, fieldId);
 		shovelerComponentUpdateCanonicalConfigurationOptionEntityId(component, optionId, entityIdValue);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to entity ID value %lld.", component->entityId, component->type->id, configurationOption->name, entityIdValue);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to entity ID value %lld.", component->entityId, component->type->id, configurationOption->name, entityIdValue);
 	}
 }
 
@@ -500,7 +500,7 @@ static void updateEntityIdArrayConfigurationOption(ShovelerComponent *component,
 
 	free(entityIdArrayValue);
 
-	shovelerLogInfo("Updated entity %lld component '%s' option '%s' to entity ID list value with %d element(s).", component->entityId, component->type->id, configurationOption->name, numEntityIds);
+	shovelerLogTrace("Updated entity %lld component '%s' option '%s' to entity ID list value with %d element(s).", component->entityId, component->type->id, configurationOption->name, numEntityIds);
 }
 
 static void updateFloatConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, int fieldId, bool clear_if_not_set)
@@ -511,12 +511,12 @@ static void updateFloatConfigurationOption(ShovelerComponent *component, Shovele
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		float floatValue = Schema_GetFloat(fields, fieldId);
 		shovelerComponentUpdateCanonicalConfigurationOptionFloat(component, optionId, floatValue);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to float value %f.", component->entityId, component->type->id, configurationOption->name, floatValue);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to float value %f.", component->entityId, component->type->id, configurationOption->name, floatValue);
 	}
 }
 
@@ -528,12 +528,12 @@ static void updateBoolConfigurationOption(ShovelerComponent *component, Shoveler
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		bool boolValue = Schema_GetBool(fields, fieldId);
 		shovelerComponentUpdateCanonicalConfigurationOptionBool(component, optionId, boolValue);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to bool value %s.", component->entityId, component->type->id, configurationOption->name, boolValue ? "true" : "false");
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to bool value %s.", component->entityId, component->type->id, configurationOption->name, boolValue ? "true" : "false");
 	}
 }
 
@@ -545,12 +545,12 @@ static void updateIntConfigurationOption(ShovelerComponent *component, ShovelerC
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		int intValue = Schema_GetInt32(fields, fieldId);
 		shovelerComponentUpdateCanonicalConfigurationOptionInt(component, optionId, intValue);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to int value %d.", component->entityId, component->type->id, configurationOption->name, intValue);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to int value %d.", component->entityId, component->type->id, configurationOption->name, intValue);
 	}
 }
 
@@ -562,13 +562,13 @@ static void updateStringConfigurationOption(ShovelerComponent *component, Shovel
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		const char *stringValue = (const char *) Schema_GetBytes(fields, fieldId);
 
 		shovelerComponentUpdateCanonicalConfigurationOptionString(component, optionId, stringValue);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to string value '%s'.", component->entityId, component->type->id, configurationOption->name, stringValue);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to string value '%s'.", component->entityId, component->type->id, configurationOption->name, stringValue);
 	}
 }
 
@@ -580,7 +580,7 @@ static void updateVector2ConfigurationOption(ShovelerComponent *component, Shove
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector2 = Schema_GetObject(fields, fieldId);
 		float x = Schema_GetFloat(vector2, 1);
@@ -588,7 +588,7 @@ static void updateVector2ConfigurationOption(ShovelerComponent *component, Shove
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector2(component, optionId, shovelerVector2(x, y));
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to vector2 value (%f, %f).", component->entityId, component->type->id, configurationOption->name, x, y);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to vector2 value (%f, %f).", component->entityId, component->type->id, configurationOption->name, x, y);
 	}
 }
 
@@ -600,7 +600,7 @@ static void updateVector3ConfigurationOption(ShovelerComponent *component, Shove
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector3 = Schema_GetObject(fields, fieldId);
 		float x = Schema_GetFloat(vector3, 1);
@@ -609,7 +609,7 @@ static void updateVector3ConfigurationOption(ShovelerComponent *component, Shove
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, optionId, shovelerVector3(x, y, z));
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to vector3 value (%f, %f, %f).", component->entityId, component->type->id, configurationOption->name, x, y, z);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to vector3 value (%f, %f, %f).", component->entityId, component->type->id, configurationOption->name, x, y, z);
 	}
 }
 
@@ -621,7 +621,7 @@ static void updateVector4ConfigurationOption(ShovelerComponent *component, Shove
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector4 = Schema_GetObject(fields, fieldId);
 		float x = Schema_GetFloat(vector4, 1);
@@ -631,7 +631,7 @@ static void updateVector4ConfigurationOption(ShovelerComponent *component, Shove
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector4(component, optionId, shovelerVector4(x, y, z, w));
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to vector4 value (%f, %f, %f, %f).", component->entityId, component->type->id, configurationOption->name, x, y, z, w);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to vector4 value (%f, %f, %f, %f).", component->entityId, component->type->id, configurationOption->name, x, y, z, w);
 	}
 }
 
@@ -643,13 +643,13 @@ static void updateBytesConfigurationOption(ShovelerComponent *component, Shovele
 		}
 
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
-		shovelerLogInfo("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
+		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		int bytesLength = (int) Schema_GetBytesLength(fields, fieldId);
 		const unsigned char *bytesValue = Schema_GetBytes(fields, fieldId);
 
 		shovelerComponentUpdateCanonicalConfigurationOptionBytes(component, optionId, bytesValue, bytesLength);
 
-		shovelerLogInfo("Updated entity %lld component '%s' option '%s' to %d bytes value.", component->entityId, component->type->id, configurationOption->name, bytesLength);
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to %d bytes value.", component->entityId, component->type->id, configurationOption->name, bytesLength);
 	}
 }
