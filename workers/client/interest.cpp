@@ -110,6 +110,11 @@ ComponentInterest computeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 			continue;
 		}
 
+		if(g_queue_get_length(dependencySourceList) == 0) {
+			// nothing actually depends on this target
+			continue;
+		}
+
 		dependencies[dependencyTarget->entityId].insert(componentIdQuery->second);
 	}
 

@@ -20,11 +20,16 @@ int shovelerClientComputeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 	g_hash_table_iter_init(&iter, view->reverseDependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
 		int componentId = shovelerClientResolveComponentSchemaId(dependencyTarget->componentTypeId);
-		if (componentId == 0) {
+		if(componentId == 0) {
 			shovelerLogWarning(
 				"Found a dependency on component '%s' of entity %lld, but the component ID map doesn't contain an entry for this target, ignoring dependency.",
 				dependencyTarget->componentTypeId,
 				dependencyTarget->entityId);
+			continue;
+		}
+
+		if(g_queue_get_length(dependencySourceList) == 0) {
+			// nothing actually depends on this target
 			continue;
 		}
 
