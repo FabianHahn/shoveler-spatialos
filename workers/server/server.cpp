@@ -112,13 +112,9 @@ int main(int argc, char **argv) {
 
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerServer";
-	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
-	parameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kInsecure;
+	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularTcp;
+	parameters.Network.ModularTcp.SecurityType = worker::NetworkSecurityType::kInsecure;
 	parameters.Network.UseExternalIp = false;
-	worker::alpha::FlowControlParameters flowControlParameters;
-	flowControlParameters.DownstreamWindowSizeBytes = 1 << 24;
-	flowControlParameters.UpstreamWindowSizeBytes = 1 << 24;
-	parameters.Network.ModularUdp.FlowControl = {flowControlParameters};
 
 	const std::string workerId = argv[1];
 	const std::string hostname = argv[2];

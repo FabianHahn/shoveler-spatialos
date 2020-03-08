@@ -80,7 +80,8 @@ int main(int argc, char **argv) {
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerCClient";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_UDP;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_KCP;
+	connectionParameters.network.modular_kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_DTLS;
 	connectionParameters.default_component_vtable = &componentVtable;
 
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());

@@ -162,12 +162,8 @@ int main(int argc, char **argv) {
 
 	ConnectionParameters connectionParameters;
 	connectionParameters.WorkerType = "ShovelerClient";
-	connectionParameters.Network.ConnectionType = worker::NetworkConnectionType::kModularUdp;
-	connectionParameters.Network.ModularUdp.SecurityType = worker::NetworkSecurityType::kDtls;
-	worker::alpha::FlowControlParameters flowControlParameters;
-	flowControlParameters.DownstreamWindowSizeBytes = 1 << 24;
-	flowControlParameters.UpstreamWindowSizeBytes = 1 << 24;
-	connectionParameters.Network.ModularUdp.FlowControl = {flowControlParameters};
+	connectionParameters.Network.ConnectionType = worker::NetworkConnectionType::kModularKcp;
+	connectionParameters.Network.ModularKcp.SecurityType = worker::NetworkSecurityType::kDtls;
 
 	worker::Option<Connection> connectionOption = connect(argc, argv, connectionParameters, components);
 	if(!connectionOption || !connectionOption->IsConnected()) {
