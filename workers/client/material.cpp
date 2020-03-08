@@ -131,5 +131,9 @@ static ShovelerComponentMaterialType convertMaterialType(MaterialType type)
 			return SHOVELER_COMPONENT_MATERIAL_TYPE_CANVAS;
 		case MaterialType::CHUNK:
 			return SHOVELER_COMPONENT_MATERIAL_TYPE_CHUNK;
+		case MaterialType::TILE_SPRITE:
+			return SHOVELER_COMPONENT_MATERIAL_TYPE_TILE_SPRITE;
+		case MaterialType::TEXT:
+			return SHOVELER_COMPONENT_MATERIAL_TYPE_TEXT;
 	}
 }
