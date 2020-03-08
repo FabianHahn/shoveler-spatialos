@@ -45,16 +45,15 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 		}
 		const char *projectName = projectNameSplit[0];
 		const char *afterProjectName = projectNameSplit[1];
-		g_strfreev(projectNameSplit);
 
 		gchar **deploymentNameSplit = g_strsplit(afterProjectName, "?", 2);
 		if(deploymentNameSplit[0] == NULL || deploymentNameSplit[1] == NULL) {
+			g_strfreev(projectNameSplit);
 			shovelerLogError("Failed to extract deployment name from launcher string: %s", afterProjectName);
 			return NULL;
 		}
 		const char *deploymentName = deploymentNameSplit[0];
 		const char *afterDeploymentName = deploymentNameSplit[1];
-		g_strfreev(deploymentNameSplit);
 
 		gchar **afterDeploymentNameSplit = g_strsplit(afterDeploymentName, "&", 0);
 		GString *authToken = g_string_new("");
@@ -65,16 +64,19 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 				break;
 			}
 		}
-		g_strfreev(afterDeploymentNameSplit);
 
 		if(authToken->len == 0) {
 			shovelerLogError("Failed to extract auth token from launcher string: %s", afterDeploymentName);
+			g_strfreev(projectNameSplit);
+			g_strfreev(deploymentNameSplit);
+			g_strfreev(afterDeploymentNameSplit);
 			return NULL;
 		}
 
 		shovelerLogInfo("Connecting to cloud deployment...\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", projectName, deploymentName, authToken->str);
 
 		Worker_LocatorParameters locatorParameters;
+		memset(&locatorParameters, 0, sizeof(Worker_LocatorParameters));
 		locatorParameters.project_name = projectName;
 		locatorParameters.credentials_type = WORKER_LOCATOR_LOGIN_TOKEN_CREDENTIALS;
 		locatorParameters.login_token.token = authToken->str;
@@ -88,6 +90,10 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 		Worker_ConnectionFuture_Destroy(connectionFuture);
 		Worker_Locator_Destroy(locator);
 		g_string_free(authToken, true);
+
+		g_strfreev(projectNameSplit);
+		g_strfreev(deploymentNameSplit);
+		g_strfreev(afterDeploymentNameSplit);
 
 		return connection;
 	} else {
