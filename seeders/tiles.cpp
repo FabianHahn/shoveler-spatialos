@@ -278,7 +278,7 @@ int main(int argc, char **argv) {
 		chunkBackgroundEntity.Add<Metadata>({"chunk_background"});
 		chunkBackgroundEntity.Add<Persistence>({});
 		chunkBackgroundEntity.Add<Position>({chunk.position});
-		chunkBackgroundEntity.Add<TilemapColliders>({chunkSize, chunkSize, chunk.backgroundTiles.tilesetColliders});
+		chunkBackgroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.backgroundTiles.tilesetColliders});
 		chunkBackgroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.backgroundTiles.tilesetColumns}, {chunk.backgroundTiles.tilesetRows}, {chunk.backgroundTiles.tilesetIds}});
 		chunkBackgroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
 		chunkBackgroundEntity.Add<ChunkLayer>({ChunkLayerType::TILEMAP, {}, {nextEntityId}});
@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
 		chunkForegroundEntity.Add<Metadata>({"chunk_foreground"});
 		chunkForegroundEntity.Add<Persistence>({});
 		chunkForegroundEntity.Add<Position>({chunk.position});
-		chunkForegroundEntity.Add<TilemapColliders>({chunkSize, chunkSize, chunk.foregroundTiles.tilesetColliders});
+		chunkForegroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.foregroundTiles.tilesetColliders});
 		chunkForegroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.foregroundTiles.tilesetColumns}, {chunk.foregroundTiles.tilesetRows}, {chunk.foregroundTiles.tilesetIds}});
 		chunkForegroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
 		chunkForegroundEntity.Add<ChunkLayer>({ChunkLayerType::TILEMAP, {}, {nextEntityId}});
