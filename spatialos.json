@@ -7,7 +7,6 @@
     "workers/bot_client/worker.json",
     "workers/c_client/worker.json",
     "workers/c_client/worker.LauncherClient.json",
-    "workers/client/worker.json",
     "workers/updater/worker.json"
   ],
   "serverWorkers": [
