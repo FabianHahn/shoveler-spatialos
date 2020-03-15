@@ -2,8 +2,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_BOT_CLIENT_SRC
 	bot_client.cpp
-	../client/connect.cpp
-	../client/connect.h
+	connect.cpp
+	connect.h
 )
 
 add_executable(ShovelerBotClient ${SHOVELER_BOT_CLIENT_SRC})

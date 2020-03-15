@@ -12,7 +12,7 @@
 #include <improbable/worker.h>
 #include <shoveler.h>
 
-#include "../client/connect.h"
+#include "../bot_client/connect.h"
 
 extern "C" {
 #include <glib.h>

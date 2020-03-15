@@ -13,7 +13,7 @@
 #include <improbable/worker.h>
 #include <shoveler.h>
 
-#include "../client/connect.h"
+#include "connect.h"
 
 extern "C" {
 #include <glib.h>
