@@ -21,8 +21,8 @@
   },
   "upload_configuration": {
     "windows": {
-      "localBuildDirectory": "../../build/workers/client/Release/assembly",
-      "launcherCommand": "ShovelerClient.exe",
+      "localBuildDirectory": "../../build/workers/c_client/Release/assembly",
+      "launcherCommand": "ShovelerCClient.exe",
       "launcherArguments": [
         "${IMPROBABLE_LOCATOR_HOSTNAME}",
         "${IMPROBABLE_PROJECT_NAME}",
@@ -31,8 +31,8 @@
       ]
     },
     "linux": {
-      "localBuildDirectory": "../../build/workers/client/assembly",
-      "launcherCommand": "./ShovelerClient",
+      "localBuildDirectory": "../../build/workers/c_client/assembly",
+      "launcherCommand": "./ShovelerCClient",
       "launcherArguments": [
         "${IMPROBABLE_LOCATOR_HOSTNAME}",
         "${IMPROBABLE_PROJECT_NAME}",
