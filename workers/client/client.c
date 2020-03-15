@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 	srand(time(NULL));
 
 	ShovelerGameWindowSettings windowSettings;
-	windowSettings.windowTitle = "ShovelerCClient";
+	windowSettings.windowTitle = "ShovelerClient";
 	windowSettings.fullscreen = false;
 	windowSettings.vsync = true;
 	windowSettings.samples = 4;
@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 	Worker_ComponentVtable componentVtable = {0};
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
-	connectionParameters.worker_type = "ShovelerCClient";
+	connectionParameters.worker_type = "ShovelerClient";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_KCP;
 	connectionParameters.network.modular_kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_DTLS;
 	connectionParameters.default_component_vtable = &componentVtable;

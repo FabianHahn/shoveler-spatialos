@@ -1,5 +1,5 @@
 {
-  "worker_type": "ShovelerCClient",
+  "worker_type": "ShovelerClient",
   "layer": "client",
   "component_delivery": {
     "default": "RELIABLE_ORDERED",
