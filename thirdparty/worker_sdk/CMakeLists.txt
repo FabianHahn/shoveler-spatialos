@@ -60,12 +60,12 @@ else()
 	set_target_properties(worker_sdk::cpp_worker_sdk PROPERTIES
 		IMPORTED_LOCATION ${LIB_IMPROBABLE_WORKER}
 		INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_CPP_HEADERS}")
-	target_link_libraries(worker_sdk::cpp_worker_sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT} worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS})
+	target_link_libraries(worker_sdk::cpp_worker_sdk INTERFACE worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 	add_library(worker_sdk::c_worker_sdk STATIC IMPORTED GLOBAL)
 	set_target_properties(worker_sdk::c_worker_sdk PROPERTIES
 			IMPORTED_LOCATION ${LIB_IMPROBABLE_WORKER}
 			INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_C_HEADERS}")
-	target_link_libraries(worker_sdk::c_worker_sdk INTERFACE ${CMAKE_THREAD_LIBS_INIT} worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS})
+	target_link_libraries(worker_sdk::c_worker_sdk INTERFACE worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
