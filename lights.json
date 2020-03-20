@@ -42,31 +42,6 @@
       ]
     },
     {
-      "workerType": "ShovelerCClient",
-      "flags": [
-        {
-          "name": "controller_frame_position",
-          "value": "0 0 -1"
-        },
-        {
-          "name": "controller_frame_direction",
-          "value": "0 0 1"
-        },
-        {
-          "name": "controller_frame_up",
-          "value": "0 1 0"
-        },
-        {
-          "name": "position_mapping_x",
-          "value": "-x"
-        },
-        {
-          "name": "hide_player_client_entity_model",
-          "value": "true"
-        }
-      ]
-    },
-    {
       "workerType": "ShovelerServer",
       "flags": []
     }
