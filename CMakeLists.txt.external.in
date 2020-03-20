@@ -32,7 +32,7 @@ ExternalProject_Add(spatialos_worker_sdk_linux
 
 ExternalProject_Add(spatialos_worker_sdk_windows_debug
 	PREFIX worker_sdk/windows/debug
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc140_mdd-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc141_mdd-win32 ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/windows/debug
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -41,7 +41,7 @@ ExternalProject_Add(spatialos_worker_sdk_windows_debug
 
 ExternalProject_Add(spatialos_worker_sdk_windows_release
 	PREFIX worker_sdk/windows/release
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc140_md-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc141_md-win32 ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/windows/release
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""

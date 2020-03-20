@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(shoveler-spatialos)
 
-set(SPATIALOS_SDK_VERSION "14.4.1")
+set(SPATIALOS_SDK_VERSION "14.5.0")
 
 # download external dependencies at configuration time
 configure_file(CMakeLists.txt.external.in external/CMakeLists.txt)
