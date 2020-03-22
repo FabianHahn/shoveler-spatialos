@@ -18,6 +18,7 @@ extern "C" {
 #include "tiles/tileset.h"
 
 using improbable::ComponentInterest;
+using improbable::Coordinates;
 using improbable::EntityAcl;
 using improbable::Interest;
 using improbable::InterestData;
@@ -43,9 +44,11 @@ using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Resource;
 using shoveler::Sampler;
+using shoveler::Sprite;
 using shoveler::Texture;
 using shoveler::Tilemap;
 using shoveler::TilemapColliders;
+using shoveler::TilemapSprite;
 using shoveler::TilemapTiles;
 using shoveler::Tileset;
 using shoveler::TileSprite;
@@ -102,9 +105,11 @@ int main(int argc, char **argv) {
 		Position,
 		Resource,
 		Sampler,
+		Sprite,
 		Texture,
 		Tilemap,
 		TilemapColliders,
+		TilemapSprite,
 		TilemapTiles,
 		Tileset,
 		TileSprite>{};
@@ -261,27 +266,47 @@ int main(int argc, char **argv) {
 	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
-	canvasEntity.Add<Canvas>({1});
-	canvasEntity.Add<ChunkLayer>({ChunkLayerType::CANVAS, {canvasEntityId}, {}});
+	canvasEntity.Add<Canvas>({3});
 	worker::Map<std::uint32_t, WorkerRequirementSet> canvasComponentAclMap;
 	canvasComponentAclMap.insert({{Canvas::ComponentId, serverRequirementSet}});
 	canvasEntity.Add<EntityAcl>({clientOrServerRequirementSet, canvasComponentAclMap});
 	entities[canvasEntityId] = canvasEntity;
 
-	EntityId nextEntityId = 10;
+	EntityId tileSpriteMaterialEntityId = 10;
+	Entity tileSpriteMaterialEntity;
+	tileSpriteMaterialEntity.Add<Metadata>({"material"});
+	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
+	tileSpriteMaterialEntity.Add<Persistence>({});
+	tileSpriteMaterialEntity.Add<Position>({{-100, -100, -100}});
+	tileSpriteMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	entities[tileSpriteMaterialEntityId] = tileSpriteMaterialEntity;
+
+	EntityId tilemapMaterialEntityId = 11;
+	Entity tilemapMaterialEntity;
+	tilemapMaterialEntity.Add<Metadata>({"material"});
+	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}});
+	tilemapMaterialEntity.Add<Persistence>({});
+	tilemapMaterialEntity.Add<Position>({{-100, -100, -100}});
+	tilemapMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	entities[tilemapMaterialEntityId] = tilemapMaterialEntity;
+
+	EntityId nextEntityId = 12;
 
 	List<ChunkData> chunks = generateMapChunks(10);
 	for(List<ChunkData>::const_iterator iter = chunks.begin(); iter != chunks.end(); ++iter) {
 		ChunkData chunk = *iter;
 
+		Coordinates chunkCoordiantes{(double) chunk.position.values[0], 0.0, (double) chunk.position.values[1]};
+
 		Entity chunkBackgroundEntity;
 		chunkBackgroundEntity.Add<Metadata>({"chunk_background"});
 		chunkBackgroundEntity.Add<Persistence>({});
-		chunkBackgroundEntity.Add<Position>({chunk.position});
+		chunkBackgroundEntity.Add<Position>({chunkCoordiantes});
 		chunkBackgroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.backgroundTiles.tilesetColliders});
 		chunkBackgroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.backgroundTiles.tilesetColumns}, {chunk.backgroundTiles.tilesetRows}, {chunk.backgroundTiles.tilesetIds}});
 		chunkBackgroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
-		chunkBackgroundEntity.Add<ChunkLayer>({ChunkLayerType::TILEMAP, {}, {nextEntityId}});
+		chunkBackgroundEntity.Add<TilemapSprite>({tilemapMaterialEntityId, nextEntityId});
+		chunkBackgroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 0, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}});
 		worker::Map<std::uint32_t, WorkerRequirementSet> chunkBackgroundComponentAclMap;
 		chunkBackgroundComponentAclMap.insert({{TilemapTiles::ComponentId, serverRequirementSet}});
 		chunkBackgroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, chunkBackgroundComponentAclMap});
@@ -292,11 +317,12 @@ int main(int argc, char **argv) {
 		Entity chunkForegroundEntity;
 		chunkForegroundEntity.Add<Metadata>({"chunk_foreground"});
 		chunkForegroundEntity.Add<Persistence>({});
-		chunkForegroundEntity.Add<Position>({chunk.position});
+		chunkForegroundEntity.Add<Position>({chunkCoordiantes});
 		chunkForegroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.foregroundTiles.tilesetColliders});
 		chunkForegroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.foregroundTiles.tilesetColumns}, {chunk.foregroundTiles.tilesetRows}, {chunk.foregroundTiles.tilesetIds}});
 		chunkForegroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
-		chunkForegroundEntity.Add<ChunkLayer>({ChunkLayerType::TILEMAP, {}, {nextEntityId}});
+		chunkForegroundEntity.Add<TilemapSprite>({tilemapMaterialEntityId, nextEntityId});
+		chunkForegroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 2, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}});
 		chunkForegroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		EntityId foregroundEntityId = nextEntityId;
 		entities[foregroundEntityId] = chunkForegroundEntity;
@@ -305,9 +331,8 @@ int main(int argc, char **argv) {
 		Entity chunkEntity;
 		chunkEntity.Add<Metadata>({"chunk"});
 		chunkEntity.Add<Persistence>({});
-		chunkEntity.Add<Position>({chunk.position});
-		chunkEntity.Add<Chunk>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, {(float) chunkSize, (float) chunkSize}, {backgroundEntityId, canvasEntityId, foregroundEntityId}});
-		chunkEntity.Add<Material>({MaterialType::CHUNK, {}, {}, {}, {}, {nextEntityId}, {}, {}, {}});
+		chunkEntity.Add<Position>({chunkCoordiantes});
+		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {canvasEntityId}, {}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		entities[nextEntityId] = chunkEntity;

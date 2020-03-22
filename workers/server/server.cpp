@@ -89,7 +89,7 @@ struct ClientCleanupTickContext {
 const int halfMapWidth = 100;
 const int halfMapHeight = 100;
 const int chunkSize = 10;
-const EntityId firstChunkEntityId = 10;
+const EntityId firstChunkEntityId = 12;
 const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
@@ -318,7 +318,7 @@ int main(int argc, char **argv) {
 				tilesetEntityId = character4AnimationTilesetEntityId;
 			}
 
-			clientEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, canvasEntityId, 0, {1.0f, 1.0f}, 0});
+			clientEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, false, canvasEntityId, 1, {1.0f, 1.0f}, {0}, {}});
 			clientEntity.Add<TileSprite>({canvasEntityId, tilesetEntityId, 0, 0});
 			clientEntity.Add<TileSpriteAnimation>({0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, 0.5});
 		} else {

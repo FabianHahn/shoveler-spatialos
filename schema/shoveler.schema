@@ -278,14 +278,18 @@ component Sprite {
 	CoordinateMapping position_mapping_x = 2;
 	/** The mapping to use from the entity position to the 2d y coodinate. */
 	CoordinateMapping position_mapping_y = 3;
+	/** Whether to enable collisions on this sprite. */
+	bool enable_collider = 4;
 	/** Dependency entity ID containing a Canvas component referenced by this sprite. */
-	EntityId canvas = 4;
+	EntityId canvas = 5;
 	/** The layer index of the referenced canvas. */
-	int32 layer = 5;
+	int32 layer = 6;
 	/** The size of the sprite when rendered onto a canvas. */
-	Vector2 size = 6;
+	Vector2 size = 7;
 	/** Dependency entity ID containing a TileSprite component referenced by this sprite. */
-	EntityId tile_sprite = 8;
+	option<EntityId> tile_sprite = 9;
+	/** Dependency entity ID containing a TilemapSprite component referenced by this sprite. */
+	option<EntityId> tilemap_sprite = 10;
 }
 
 /** Represents a sprite that is rendered as a single tile from a tileset. */
@@ -299,6 +303,15 @@ component TileSprite {
 	int32 tileset_column = 3;
 	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
 	int32 tileset_row = 4;
+}
+
+/** Represents a sprite that is rendered as a tilemap. */
+component TilemapSprite {
+	id = 13421;
+	/** Dependency entity ID containing a Material component referenced by this tilemap sprite. */
+	EntityId material = 1;
+	/** Dependency entity ID containing a Tilemap component referenced by this tilemap sprite. */
+	EntityId tilemap = 2;
 }
 
 /**

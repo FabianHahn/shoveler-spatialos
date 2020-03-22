@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 			Worker_Op *op = &opList->ops[i];
 			switch(op->op_type) {
 				case WORKER_OP_TYPE_DISCONNECT:
-					shovelerLogInfo("Disconnected from SpatialOS with code %d: %s", op->op.disconnect.reason, op->op.disconnect.connection_status_code);
+					shovelerLogInfo("Disconnected from SpatialOS with code %d: %s", op->op.disconnect.connection_status_code, op->op.disconnect.reason);
 					context.disconnected = true;
 					break;
 				case WORKER_OP_TYPE_FLAG_UPDATE:
