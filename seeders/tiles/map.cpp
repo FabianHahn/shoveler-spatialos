@@ -40,7 +40,7 @@ List<ChunkData> generateMapChunks(int chunkSize)
 static ChunkData createStartingAreaBottomLeft(int chunkSize)
 {
 	ChunkData chunk;
-	chunk.position = {-chunkSize / 2.0, 0.0, -chunkSize / 2.0};
+	chunk.position = shovelerVector2(-chunkSize / 2.0f, -chunkSize / 2.0f);
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
@@ -87,7 +87,7 @@ static ChunkData createStartingAreaBottomLeft(int chunkSize)
 static ChunkData createStartingAreaBottomRight(int chunkSize)
 {
 	ChunkData chunk;
-	chunk.position = {chunkSize / 2.0, 0.0, -chunkSize / 2.0};
+	chunk.position = shovelerVector2(chunkSize / 2.0f, -chunkSize / 2.0f);
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
@@ -139,7 +139,7 @@ static ChunkData createStartingAreaBottomRight(int chunkSize)
 static ChunkData createStartingAreaTopLeft(int chunkSize)
 {
 	ChunkData chunk;
-	chunk.position = {-chunkSize / 2.0, 0.0, chunkSize / 2.0};
+	chunk.position = shovelerVector2(-chunkSize / 2.0f, chunkSize / 2.0f);
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
@@ -191,7 +191,7 @@ static ChunkData createStartingAreaTopLeft(int chunkSize)
 static ChunkData createStartingAreaTopRight(int chunkSize)
 {
 	ChunkData chunk;
-	chunk.position = {chunkSize / 2.0, 0.0, chunkSize / 2.0};
+	chunk.position = shovelerVector2(chunkSize / 2.0f, chunkSize / 2.0f);
 
 	for(int i = 0; i < chunkSize; i++) {
 		for(int j = 0; j < chunkSize; j++) {
@@ -243,7 +243,7 @@ static ChunkData createStartingAreaTopRight(int chunkSize)
 static ChunkData createChunk(int x, int z, int chunkSize)
 {
 	ChunkData chunk;
-	chunk.position = {x + chunkSize / 2.0, 0.0, z + chunkSize / 2.0};
+	chunk.position = shovelerVector2(x + chunkSize / 2.0f, z + chunkSize / 2.0f);
 
 	int rockSeedModulo = 5 + (rand() % 100);
 	int bushSeedModulo = 5 + (rand() % 25);

@@ -6,6 +6,10 @@
 #include <improbable/standard_library.h>
 #include <improbable/worker.h>
 
+extern "C" {
+#include <shoveler/types.h>
+}
+
 struct TilesData {
 	std::string tilesetColumns;
 	std::string tilesetRows;
@@ -14,7 +18,7 @@ struct TilesData {
 };
 
 struct ChunkData {
-	improbable::Coordinates position;
+	ShovelerVector2 position;
 	TilesData backgroundTiles;
 	TilesData foregroundTiles;
 };

@@ -278,7 +278,9 @@ component Sprite {
 	/** The size of the sprite when rendered onto a canvas. */
 	Vector2 size = 6;
 	/** Dependency entity ID containing a TileSprite component referenced by this sprite. */
-	EntityId tile_sprite = 8;
+	option<EntityId> tile_sprite = 8;
+	/** Dependency entity ID containing a TilemapSprite component referenced by this sprite. */
+	option<EntityId> tilemap_sprite = 9;
 }
 
 /** Represents a sprite that is rendered as a single tile from a tileset. */
@@ -292,6 +294,15 @@ component TileSprite {
 	int32 tileset_column = 3;
 	/** The row index of the referenced tile in the tileset, must be in [0, 255]. */
 	int32 tileset_row = 4;
+}
+
+/** Represents a sprite that is rendered as a tilemap. */
+component TilemapSprite {
+	id = 13421;
+	/** Dependency entity ID containing a Material component referenced by this tilemap sprite. */
+	EntityId material = 1;
+	/** Dependency entity ID containing a Tilemap component referenced by this tilemap sprite. */
+	EntityId tilemap = 2;
 }
 
 /**
