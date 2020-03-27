@@ -69,8 +69,15 @@ type PerspectiveCamera {
 	float far_clipping_plane = 6;
 }
 
-type CreateClientEntityRequest {
+type ChunkRegion {
+    int32 min_x = 1;
+    int32 min_z = 2;
+    int32 size_x = 3;
+    int32 size_z = 4;
+}
 
+type CreateClientEntityRequest {
+    option<ChunkRegion> starting_chunk_region = 1;
 }
 
 type CreateClientEntityResponse {

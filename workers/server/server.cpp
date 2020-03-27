@@ -100,7 +100,7 @@ static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ)
 static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
-static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view);
+static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view, const CreateClientEntityRequest& request);
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet);
 
 int main(int argc, char **argv) {
@@ -274,7 +274,7 @@ int main(int argc, char **argv) {
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity> &op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
-		Coordinates playerPosition = getNewPlayerPosition(connection, view);
+		Coordinates playerPosition = getNewPlayerPosition(connection, view, op.Request);
 
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
@@ -614,15 +614,27 @@ static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection,
 	return {{*tilemapTilesComponent->tileset_columns(), *tilemapTilesComponent->tileset_rows(), *tilemapTilesComponent->tileset_ids()}};
 }
 
-static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view) {
+static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view, const CreateClientEntityRequest& request) {
 	const Option<std::string> &flagOption = connection.GetWorkerFlag("game_type");
 	if(!(flagOption && *flagOption == "tiles")) {
 		return {0, 5, 0};
 	}
 
 	for(int i = 0; i < numPlayerPositionAttempts; i++) {
-		int startingChunkX = 9 + (rand() % 2);
-		int startingChunkZ = 9 + (rand() % 2);
+		int minX = 9;
+		int minZ = 9;
+		int sizeX = 2;
+		int sizeZ = 2;
+		if(request.starting_chunk_region()) {
+			minX = request.starting_chunk_region()->min_x();
+			minZ = request.starting_chunk_region()->min_z();
+			sizeX = request.starting_chunk_region()->size_x();
+			sizeZ = request.starting_chunk_region()->size_z();
+			shovelerLogInfo("Overriding starting chunk region to min (%d, %d) and size (%d, %d).", minX, minZ, sizeX, sizeZ);
+		}
+
+		int startingChunkX = minX + (rand() % sizeX);
+		int startingChunkZ = minZ + (rand() % sizeZ);
 
 		EntityId backgroundChunkEntityId = getChunkBackgroundEntityId(startingChunkX, startingChunkZ);
 		Option<TilesData> tiles = getChunkBackgroundTiles(connection, view, backgroundChunkEntityId);

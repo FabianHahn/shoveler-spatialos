@@ -35,6 +35,7 @@ using improbable::PositionData;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::Chunk;
+using shoveler::ChunkRegion;
 using shoveler::Client;
 using shoveler::ClientHeartbeat;
 using shoveler::Drawable;
@@ -165,7 +166,26 @@ int main(int argc, char **argv) {
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	ShovelerExecutorCallback *clientDirectionChangeCallback = shovelerExecutorSchedulePeriodic(executor, 0, clientDirectionChangeTimeoutMs, clientDirectionChange, &context);
 
-	Result<RequestId<OutgoingCommandRequest<CreateClientEntity>>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {}, {});
+	worker::Option<ChunkRegion> startingChunkRegion;
+	auto minXFlag = connection.GetWorkerFlag("starting_chunk_min_x");
+	auto minZFlag = connection.GetWorkerFlag("starting_chunk_min_z");
+	auto sizeXFlag = connection.GetWorkerFlag("starting_chunk_size_x");
+	auto sizeZFlag = connection.GetWorkerFlag("starting_chunk_size_z");
+	if(minXFlag && minZFlag && sizeXFlag && sizeZFlag) {
+		int minX = std::atoi(minXFlag->c_str());
+		int minZ = std::atoi(minXFlag->c_str());
+		int sizeX = std::atoi(sizeXFlag->c_str());
+		int sizeZ = std::atoi(sizeZFlag->c_str());
+		
+		startingChunkRegion = ChunkRegion{};
+		startingChunkRegion->set_min_x(minX);
+		startingChunkRegion->set_min_z(minZ);
+		startingChunkRegion->set_size_x(sizeX);
+		startingChunkRegion->set_size_z(sizeZ);
+		shovelerLogInfo("Overriding starting chunk region to min (%d, %d) and size (%d, %d).", minX, minZ, sizeX, sizeZ);
+	}
+
+	Result<RequestId<OutgoingCommandRequest<CreateClientEntity>>> createClientEntityRequestId = connection.SendCommandRequest<CreateClientEntity>(bootstrapEntityId, {startingChunkRegion}, {});
 	if(!createClientEntityRequestId) {
 		shovelerLogError("Failed to send create client entity request: %s", createClientEntityRequestId.GetErrorMessage().c_str());
 		return EXIT_FAILURE;
