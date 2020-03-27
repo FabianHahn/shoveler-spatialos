@@ -250,7 +250,29 @@ static ChunkData createChunk(int x, int z, int chunkSize)
 	int treeSeedModulo = 5 + (rand() % 50);
 
 	for(int i = 0; i < chunkSize; i++) {
+		bool isBottomBorder = z == -halfMapHeight && i == 0;
+		bool isTopBorder = z == halfMapHeight - chunkSize && i == chunkSize - 1;
 		for(int j = 0; j < chunkSize; j++) {
+			bool isLeftBorder = x == -halfMapWidth && j == 0;
+			bool isRightBorder = x == halfMapWidth - chunkSize && j == chunkSize - 1;
+
+			// map borders
+			if(isLeftBorder || isRightBorder || isBottomBorder || isTopBorder) {
+				// rock
+				chunk.backgroundTiles.tilesetColumns += (char) 5;
+				chunk.backgroundTiles.tilesetRows += (char) 0;
+				chunk.backgroundTiles.tilesetIds += (char) 2;
+				chunk.backgroundTiles.tilesetColliders += (char) true;
+
+				// nothing
+				chunk.foregroundTiles.tilesetColumns += (char) 0;
+				chunk.foregroundTiles.tilesetRows += (char) 0;
+				chunk.foregroundTiles.tilesetIds += (char) 0;
+				chunk.foregroundTiles.tilesetColliders += (char) false;
+
+				continue;
+			}
+
 			char backgroundTileColumn = 0;
 			char backgroundTileRow = 0;
 			char backgroundTileId = 0;
