@@ -131,7 +131,7 @@ int main(int argc, char **argv) {
 	grayColorMaterialEntity.Add<Metadata>({"material"});
 	grayColorMaterialEntity.Add<Persistence>({});
 	grayColorMaterialEntity.Add<Position>({{0, 0, 0}});
-	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, grayColor, {}, {}});
+	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, grayColor, {}, {}});
 	grayColorMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId grayColorMaterialEntityId = 5;
 	entities[grayColorMaterialEntityId] = grayColorMaterialEntity;
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 	whiteParticleMaterialEntity.Add<Metadata>({"material"});
 	whiteParticleMaterialEntity.Add<Persistence>({});
 	whiteParticleMaterialEntity.Add<Position>({{0, 0, 0}});
-	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, whiteColor, {}, {}});
+	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, whiteColor, {}, {}});
 	whiteParticleMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId whiteParticleMaterialEntityId = 6;
 	entities[whiteParticleMaterialEntityId] = whiteParticleMaterialEntity;

@@ -4,8 +4,6 @@
 #include <string.h> // strlen memcpy
 
 #include <shoveler/component/canvas.h>
-#include <shoveler/component/chunk.h>
-#include <shoveler/component/chunk_layer.h>
 #include <shoveler/component/client.h>
 #include <shoveler/component/drawable.h>
 #include <shoveler/component/image.h>
@@ -72,8 +70,6 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdTileSpriteAnimation;
 		case 1344:
 			return shovelerComponentTypeIdCanvas;
-		case 1345:
-			return shovelerComponentTypeIdChunkLayer;
 		case 1346:
 			return shovelerComponentTypeIdDrawable;
 		case 1347:
@@ -86,8 +82,6 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdSampler;
 		case 134132:
 			return shovelerComponentTypeIdTilemapColliders;
-		case 13451337:
-			return shovelerComponentTypeIdChunk;
 		default:
 			return NULL;
 	}
@@ -164,9 +158,6 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	if(componentTypeId == shovelerComponentTypeIdCanvas) {
 		return 1344;
 	}
-	if(componentTypeId == shovelerComponentTypeIdChunkLayer) {
-		return 1345;
-	}
 	if(componentTypeId == shovelerComponentTypeIdDrawable) {
 		return 1346;
 	}
@@ -185,17 +176,12 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	if(componentTypeId == shovelerComponentTypeIdTilemapColliders) {
 		return 134132;
 	}
-	if(componentTypeId == shovelerComponentTypeIdChunk) {
-		return 13451337;
-	}
 	return 0;
 }
 
 void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 {
 	shovelerViewAddComponentType(view, shovelerComponentCreateCanvasType());
-	shovelerViewAddComponentType(view, shovelerComponentCreateChunkType());
-	shovelerViewAddComponentType(view, shovelerComponentCreateChunkLayerType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateClientType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateDrawableType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateImageType());

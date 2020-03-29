@@ -29,9 +29,6 @@ using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
-using shoveler::Chunk;
-using shoveler::ChunkLayer;
-using shoveler::ChunkLayerType;
 using shoveler::Client;
 using shoveler::CoordinateMapping;
 using shoveler::Drawable;
@@ -91,8 +88,6 @@ int main(int argc, char **argv) {
 	const ComponentRegistry& components = Components<
 		Bootstrap,
 		Canvas,
-		Chunk,
-		ChunkLayer,
 		Client,
 		Drawable,
 		EntityAcl,
@@ -263,7 +258,7 @@ int main(int argc, char **argv) {
 	EntityId canvasEntityId = 9;
 	Entity canvasEntity;
 	canvasEntity.Add<Metadata>({"canvas"});
-	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
+	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
 	canvasEntity.Add<Canvas>({3});
@@ -275,7 +270,7 @@ int main(int argc, char **argv) {
 	EntityId tileSpriteMaterialEntityId = 10;
 	Entity tileSpriteMaterialEntity;
 	tileSpriteMaterialEntity.Add<Metadata>({"material"});
-	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
+	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
 	tileSpriteMaterialEntity.Add<Persistence>({});
 	tileSpriteMaterialEntity.Add<Position>({{-100, -100, -100}});
 	tileSpriteMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
@@ -284,7 +279,7 @@ int main(int argc, char **argv) {
 	EntityId tilemapMaterialEntityId = 11;
 	Entity tilemapMaterialEntity;
 	tilemapMaterialEntity.Add<Metadata>({"material"});
-	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}});
+	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}});
 	tilemapMaterialEntity.Add<Persistence>({});
 	tilemapMaterialEntity.Add<Position>({{-100, -100, -100}});
 	tilemapMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
@@ -332,7 +327,7 @@ int main(int argc, char **argv) {
 		chunkEntity.Add<Metadata>({"chunk"});
 		chunkEntity.Add<Persistence>({});
 		chunkEntity.Add<Position>({chunkCoordiantes});
-		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {canvasEntityId}, {}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
+		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		entities[nextEntityId] = chunkEntity;

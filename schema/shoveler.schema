@@ -11,12 +11,6 @@ type Vector3 {
 	float z = 3;
 }
 
-/** Layer type of this chunk layer. */
-enum ChunkLayerType {
-	CANVAS = 0;
-	TILEMAP = 1;
-}
-
 /** Represents a coordinate mapping from a 3d position onto another single coordinate dimension. */
 enum CoordinateMapping {
 	POSITIVE_X = 0;
@@ -41,9 +35,8 @@ enum MaterialType {
 	PARTICLE = 2;
 	TILEMAP = 3;
 	CANVAS = 4;
-	CHUNK = 5;
-	TILE_SPRITE = 6;
-	TEXT = 7;
+	TILE_SPRITE = 5;
+	TEXT = 6;
 }
 
 /** Specifies an OpenGL polygon mode for rendering geometry. */
@@ -341,34 +334,6 @@ component Canvas {
 	int32 num_layers = 1;
 }
 
-component ChunkLayer {
-    id = 1345;
-    ChunkLayerType type = 1;
-    option<EntityId> canvas = 2;
-    option<EntityId> tilemap = 3;
-}
-
-/** Represents a chunk with multiple layers. */
-component Chunk {
-	id = 13451337;
-	/** Dependency entity id of the position to use for the chunk. */
-	EntityId position = 1;
-	/** The mapping to use from the entity position to the chunk center's 2d x coodinate. */
-	CoordinateMapping position_mapping_x = 2;
-	/** The mapping to use from the entity position to the chunk center's 2d y coodinate. */
-	CoordinateMapping position_mapping_y = 3;
-	/**
-	 * Denotes the 2d size of this chunk.
-	 * For each canvas layer in the chunk, only this chunk's region will be rendered.
-	 */
-	Vector2 size = 4;
-	/**
-	 * List of dependency entity IDs each containing a ChunkLayer component to be rendered.
-	 * Layers will be rendered in the order they appear in the list, later ones drawing over earlier ones.
-	 */
-	list<EntityId> layers = 5;
-}
-
 /** Represents drawable geometry that can be rendered. */
 component Drawable {
 	id = 1346;
@@ -385,13 +350,12 @@ component Material {
 	option<EntityId> texture_sampler = 3;
 	option<EntityId> tilemap = 4;
 	option<EntityId> canvas = 5;
-	option<EntityId> chunk = 6;
 	/** If type is set to COLOR, specifies the color of the material. */
-	option<Vector3> color = 7;
+	option<Vector3> color = 6;
 	/** If type is set to CANVAS, specifies the position of the region to render by the material. */
-	option<Vector2> canvas_region_position = 8;
+	option<Vector2> canvas_region_position = 7;
 	/** If type is set to CANVAS, specifies the size of the region to render by the material. */
-	option<Vector2> canvas_region_size = 9;
+	option<Vector2> canvas_region_size = 8;
 }
 
 /**

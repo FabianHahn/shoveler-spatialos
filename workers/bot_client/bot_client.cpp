@@ -34,7 +34,6 @@ using improbable::Position;
 using improbable::PositionData;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
-using shoveler::Chunk;
 using shoveler::ChunkRegion;
 using shoveler::Client;
 using shoveler::ClientHeartbeat;
@@ -100,7 +99,7 @@ static const int tickRateHz = 30;
 static const int halfMapWidth = 100;
 static const int halfMapHeight = 100;
 static const int chunkSize = 10;
-static const EntityId firstChunkEntityId = 10;
+static const EntityId firstChunkEntityId = 12;
 static const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 static const int numChunkRows = 2 * halfMapHeight / chunkSize;
 static const double characterSize = 0.9;
@@ -118,7 +117,6 @@ int main(int argc, char **argv) {
 	auto components = worker::Components<
 		Bootstrap,
 		Canvas,
-		Chunk,
 		Client,
 		ClientHeartbeat,
 		Drawable,
