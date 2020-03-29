@@ -19,6 +19,7 @@ typedef struct ShovelerSpriteStruct {
 	ShovelerVector2 position;
 	ShovelerVector2 size;
 	ShovelerCollider2 collider;
+	bool enableCollider;
 	ShovelerMaterial *material;
 	ShovelerSpriteRenderFunction *render;
 	ShovelerSpriteFreeFunction *free;
@@ -27,6 +28,8 @@ typedef struct ShovelerSpriteStruct {
 
 void shovelerSpriteInit(ShovelerSprite *sprite, ShovelerMaterial *material, ShovelerCollider2IntersectFunction *interesect, ShovelerSpriteRenderFunction *render, ShovelerSpriteFreeFunction *free, void *data);
 void shovelerSpriteUpdatePosition(ShovelerSprite *sprite, ShovelerVector2 position);
+void shovelerSpriteUpdateSize(ShovelerSprite *sprite, ShovelerVector2 size);
+void shovelerSpriteSetEnableCollider(ShovelerSprite *sprite, bool enableCollider);
 
 static inline bool shovelerSpriteRender(ShovelerSprite *sprite, ShovelerVector2 regionPosition, ShovelerVector2 regionSize, ShovelerScene *scene, ShovelerCamera *camera, ShovelerLight *light, ShovelerModel *model, ShovelerRenderState *renderState)
 {
