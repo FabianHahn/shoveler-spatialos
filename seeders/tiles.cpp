@@ -24,7 +24,7 @@ using improbable::Interest;
 using improbable::InterestData;
 using improbable::Metadata;
 using improbable::Persistence;
-using improbable::Position;
+using ImprobablePosition = improbable::Position;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
@@ -39,6 +39,7 @@ using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
+using shoveler::Position;
 using shoveler::Resource;
 using shoveler::Sampler;
 using shoveler::Sprite;
@@ -92,6 +93,7 @@ int main(int argc, char **argv) {
 		Drawable,
 		EntityAcl,
 		Image,
+		ImprobablePosition,
 		Interest,
 		Metadata,
 		Material,
@@ -123,6 +125,7 @@ int main(int argc, char **argv) {
 	Entity bootstrapEntity;
 	bootstrapEntity.Add<Metadata>({"bootstrap"});
 	bootstrapEntity.Add<Persistence>({});
+	bootstrapEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	bootstrapEntity.Add<Position>({{-100, -100, -100}});
 	bootstrapEntity.Add<Bootstrap>({});
 	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
@@ -143,6 +146,7 @@ int main(int argc, char **argv) {
 	Entity quadDrawableEntity;
 	quadDrawableEntity.Add<Metadata>({"drawable"});
 	quadDrawableEntity.Add<Persistence>({});
+	quadDrawableEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	quadDrawableEntity.Add<Position>({{-100, -100, -100}});
 	quadDrawableEntity.Add<Drawable>({DrawableType::QUAD, {}, {}});
 	quadDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
@@ -157,6 +161,7 @@ int main(int argc, char **argv) {
 	Entity tilesetEntity;
 	tilesetEntity.Add<Metadata>({"tileset"});
 	tilesetEntity.Add<Persistence>({});
+	tilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tilesetEntity.Add<Position>({{-100, -100, -100}});
 	tilesetEntity.Add<Resource>({std::string{imageData->str, imageData->len}});
 	tilesetEntity.Add<Image>({ImageFormat::PNG, 3});
@@ -173,6 +178,7 @@ int main(int argc, char **argv) {
 	Entity tilesetPngEntity;
 	tilesetPngEntity.Add<Metadata>({"tileset"});
 	tilesetPngEntity.Add<Persistence>({});
+	tilesetPngEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tilesetPngEntity.Add<Position>({{-100, -100, -100}});
 	tilesetPngEntity.Add<Resource>({std::string{tilesetPngData->str, tilesetPngData->len}});
 	tilesetPngEntity.Add<Image>({ImageFormat::PNG, 4});
@@ -191,6 +197,7 @@ int main(int argc, char **argv) {
 	Entity characterAnimationTilesetEntity;
 	characterAnimationTilesetEntity.Add<Metadata>({"tileset"});
 	characterAnimationTilesetEntity.Add<Persistence>({});
+	characterAnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	characterAnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
 	characterAnimationTilesetEntity.Add<Resource>({std::string{characterAnimationTilesetPngData->str, characterAnimationTilesetPngData->len}});
 	characterAnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 5});
@@ -209,6 +216,7 @@ int main(int argc, char **argv) {
 	Entity character2AnimationTilesetEntity;
 	character2AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character2AnimationTilesetEntity.Add<Persistence>({});
+	character2AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	character2AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
 	character2AnimationTilesetEntity.Add<Resource>({std::string{character2AnimationTilesetPngData->str, character2AnimationTilesetPngData->len}});
 	character2AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 6});
@@ -227,6 +235,7 @@ int main(int argc, char **argv) {
 	Entity character3AnimationTilesetEntity;
 	character3AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character3AnimationTilesetEntity.Add<Persistence>({});
+	character3AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	character3AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
 	character3AnimationTilesetEntity.Add<Resource>({std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
 	character3AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 7});
@@ -245,6 +254,7 @@ int main(int argc, char **argv) {
 	Entity character4AnimationTilesetEntity;
 	character4AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character4AnimationTilesetEntity.Add<Persistence>({});
+	character4AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	character4AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
 	character4AnimationTilesetEntity.Add<Resource>({std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
 	character4AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 8});
@@ -260,6 +270,7 @@ int main(int argc, char **argv) {
 	canvasEntity.Add<Metadata>({"canvas"});
 	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
+	canvasEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
 	canvasEntity.Add<Canvas>({3});
 	worker::Map<std::uint32_t, WorkerRequirementSet> canvasComponentAclMap;
@@ -272,6 +283,7 @@ int main(int argc, char **argv) {
 	tileSpriteMaterialEntity.Add<Metadata>({"material"});
 	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
 	tileSpriteMaterialEntity.Add<Persistence>({});
+	tileSpriteMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tileSpriteMaterialEntity.Add<Position>({{-100, -100, -100}});
 	tileSpriteMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[tileSpriteMaterialEntityId] = tileSpriteMaterialEntity;
@@ -281,6 +293,7 @@ int main(int argc, char **argv) {
 	tilemapMaterialEntity.Add<Metadata>({"material"});
 	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}});
 	tilemapMaterialEntity.Add<Persistence>({});
+	tilemapMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tilemapMaterialEntity.Add<Position>({{-100, -100, -100}});
 	tilemapMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[tilemapMaterialEntityId] = tilemapMaterialEntity;
@@ -291,12 +304,14 @@ int main(int argc, char **argv) {
 	for(List<ChunkData>::const_iterator iter = chunks.begin(); iter != chunks.end(); ++iter) {
 		ChunkData chunk = *iter;
 
-		Coordinates chunkCoordiantes{(double) chunk.position.values[0], 0.0, (double) chunk.position.values[1]};
+		Coordinates chunkImprobablePosition{(double) chunk.position.values[0], 0.0, (double) chunk.position.values[1]};
+		ShovelerVector3 chunkPosition = shovelerVector3(chunk.position.values[0], chunk.position.values[1], 0.0f);
 
 		Entity chunkBackgroundEntity;
 		chunkBackgroundEntity.Add<Metadata>({"chunk_background"});
 		chunkBackgroundEntity.Add<Persistence>({});
-		chunkBackgroundEntity.Add<Position>({chunkCoordiantes});
+		chunkBackgroundEntity.Add<ImprobablePosition>({chunkImprobablePosition});
+		chunkBackgroundEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
 		chunkBackgroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.backgroundTiles.tilesetColliders});
 		chunkBackgroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.backgroundTiles.tilesetColumns}, {chunk.backgroundTiles.tilesetRows}, {chunk.backgroundTiles.tilesetIds}});
 		chunkBackgroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
@@ -312,7 +327,8 @@ int main(int argc, char **argv) {
 		Entity chunkForegroundEntity;
 		chunkForegroundEntity.Add<Metadata>({"chunk_foreground"});
 		chunkForegroundEntity.Add<Persistence>({});
-		chunkForegroundEntity.Add<Position>({chunkCoordiantes});
+		chunkForegroundEntity.Add<ImprobablePosition>({chunkImprobablePosition});
+		chunkForegroundEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
 		chunkForegroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.foregroundTiles.tilesetColliders});
 		chunkForegroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.foregroundTiles.tilesetColumns}, {chunk.foregroundTiles.tilesetRows}, {chunk.foregroundTiles.tilesetIds}});
 		chunkForegroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
@@ -326,7 +342,8 @@ int main(int argc, char **argv) {
 		Entity chunkEntity;
 		chunkEntity.Add<Metadata>({"chunk"});
 		chunkEntity.Add<Persistence>({});
-		chunkEntity.Add<Position>({chunkCoordiantes});
+		chunkEntity.Add<ImprobablePosition>({chunkImprobablePosition});
+		chunkEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
 		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});

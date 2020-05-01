@@ -35,12 +35,15 @@ typedef struct {
 	bool viewDependenciesUpdated;
 	double lastInterestUpdatePositionY;
 	double edgeLength;
+	ShovelerVector3 lastImprobablePosition;
+	bool improbablePositionAuthoritative;
 } ClientContext;
 
 static const long long int bootstrapEntityId = 1;
 static const long long int bootstrapComponentId = 1334;
 static const long long int clientComponentId = 1335;
 static const int64_t clientPingTimeoutMs = 1000;
+static const float improbablePositionUpdateDistance = 1.0f;
 
 static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected);
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
@@ -136,6 +139,8 @@ int main(int argc, char **argv) {
 	context.viewDependenciesUpdated = false;
 	context.lastInterestUpdatePositionY = 0.0f;
 	context.edgeLength = 20.5f;
+	context.lastImprobablePosition = shovelerVector3(0.0f, 0.0f, 0.0f);
+	context.improbablePositionAuthoritative = false;
 
 	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &context, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
@@ -304,6 +309,26 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 
 			return;
 		}
+		// special case improbable position for client entity
+		if (op->data.component_id == 54 && op->entity_id == context->clientEntityId) {
+			Schema_Object *fields = Schema_GetComponentDataFields(op->data.schema_type);
+			Schema_Object *coordinatesField = Schema_GetObject(fields, /* fieldId */ 1);
+
+			double coordinatesX = Schema_GetDouble(coordinatesField, /* fieldId */ 1);
+			double coordinatesY = Schema_GetDouble(coordinatesField, /* fieldId */ 2);
+			double coordinatesZ = Schema_GetDouble(coordinatesField, /* fieldId */ 3);
+
+			ShovelerVector3 coordinates = shovelerVector3((float) coordinatesX, (float) coordinatesY, (float) coordinatesZ);
+
+			float mappedCoordinatesX = shovelerCoordinateMap(coordinates, context->clientConfiguration->positionMappingX);
+			float mappedCoordinatesY = shovelerCoordinateMap(coordinates, context->clientConfiguration->positionMappingY);
+			float mappedCoordinatesZ = shovelerCoordinateMap(coordinates, context->clientConfiguration->positionMappingZ);
+			context->lastImprobablePosition = shovelerVector3(mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+
+			shovelerLogTrace("Added Improbable Position component to client entity %lld with mapped coordinates (%.2f, %.2f, %.2f).", op->entity_id, mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+
+			return;
+		}
 
 		shovelerLogTrace("Added special component %s to entity %lld.", specialComponentType, op->entity_id);
 		return;
@@ -344,6 +369,17 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 		} else {
 			shovelerLogWarning("Lost interest authority over client entity %lld.", op->entity_id);
 			context->clientInterestAuthoritative = false;
+		}
+		return;
+	}
+	// special case improbable position
+	if (op->component_id == 54) {
+		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
+			shovelerLogTrace("Received authority over Improbable position component of client entity %lld.", op->entity_id);
+			context->improbablePositionAuthoritative = true;
+		} else {
+			shovelerLogWarning("Lost Improbable position authority over client entity %lld.", op->entity_id);
+			context->improbablePositionAuthoritative = false;
 		}
 		return;
 	}
@@ -484,16 +520,40 @@ static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, Shovele
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
-	Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, configurationOption, value, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
+	{
+		Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, configurationOption, value);
 
-	Worker_ComponentUpdate update;
-	update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
-	update.schema_type = componentUpdate;
+		Worker_ComponentUpdate update;
+		update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
+		update.schema_type = componentUpdate;
 
-	Worker_UpdateParameters updateParameters;
-	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+		Worker_UpdateParameters updateParameters;
+		updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
 
-	Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
+		Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
+	}
+
+	// check if we also need to update our Improbable position
+	if(component->type->id == shovelerComponentTypeIdPosition && context->improbablePositionAuthoritative) {
+		ShovelerVector3 coordinates = shovelerComponentGetConfigurationValueVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES);
+		ShovelerVector3 difference = shovelerVector3LinearCombination(1.0f, coordinates, -1.0f, context->lastImprobablePosition);
+		float distance2 = shovelerVector3Dot(difference, difference);
+
+		if(distance2 > improbablePositionUpdateDistance * improbablePositionUpdateDistance) {
+			Schema_ComponentUpdate *componentUpdate = shovelerClientCreateImprobablePositionUpdate(coordinates, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
+
+			Worker_ComponentUpdate update;
+			update.component_id = 54;
+			update.schema_type = componentUpdate;
+
+			Worker_UpdateParameters updateParameters;
+			updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+
+			Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
+
+			context->lastImprobablePosition = coordinates;
+		}
+	}
 }
 
 static void clientPingTick(void *clientContextPointer)
@@ -561,7 +621,7 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 			Schema_Object *spawnCubeRequest = Schema_GetCommandRequestObject(spawnCubeCommandRequest.schema_type);
 			Schema_AddEntityId(spawnCubeRequest, /* fieldId */ 1, context->clientEntityId);
 			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, /* fieldId */ 2);
-			Schema_AddFloat(direction, /* fieldId */ 1, -perspectiveCamera->direction.values[0]);
+			Schema_AddFloat(direction, /* fieldId */ 1, perspectiveCamera->direction.values[0]);
 			Schema_AddFloat(direction, /* fieldId */ 2, perspectiveCamera->direction.values[1]);
 			Schema_AddFloat(direction, /* fieldId */ 3, perspectiveCamera->direction.values[2]);
 			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, /* fieldId */ 3);

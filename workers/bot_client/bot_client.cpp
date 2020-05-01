@@ -25,13 +25,13 @@ extern "C" {
 #include <shoveler/log.h>
 }
 
-using improbable::Coordinates;
+using Coordinates = improbable::Coordinates;
 using improbable::EntityAcl;
 using improbable::Interest;
 using improbable::Metadata;
 using improbable::Persistence;
-using improbable::Position;
-using improbable::PositionData;
+using ImprobablePosition = improbable::Position;
+using ImprobablePositionData = improbable::PositionData;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::ChunkRegion;
@@ -41,6 +41,8 @@ using shoveler::Drawable;
 using shoveler::Light;
 using shoveler::Material;
 using shoveler::Model;
+using shoveler::Position;
+using shoveler::PositionData;
 using shoveler::Resource;
 using shoveler::Texture;
 using shoveler::Tilemap;
@@ -49,6 +51,7 @@ using shoveler::TilemapTilesData;
 using shoveler::Tileset;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
+using shoveler::Vector3;
 using worker::Connection;
 using worker::ConnectionParameters;
 using worker::EntityId;
@@ -78,11 +81,12 @@ struct ClientContext {
 		kLeft,
 		kRight
 	} direction;
+	Coordinates lastImprobablePosition;
 };
 
 static void move(ClientContext *context, const PositionData& positionData, int tickPeriodMs);
-static bool validatePosition(ClientContext *context, const Coordinates& coordinates);
-static bool validatePoint(ClientContext *context, const Coordinates& coordinates);
+static bool validatePosition(ClientContext *context, const Vector3& coordinates);
+static bool validatePoint(ClientContext *context, const Vector3& coordinates);
 static void clientPingTick(void *clientContextPointer);
 static void clientDirectionChange(void *clientContextPointer);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
@@ -93,7 +97,7 @@ static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection,
 static const long long int bootstrapEntityId = 1;
 static const int64_t clientPingTimeoutMs = 1000;
 static const int64_t clientDirectionChangeTimeoutMs = 250;
-static const double velocity = 1.5;
+static const float velocity = 1.5;
 static const int directionChangeChancePercent = 10;
 static const int tickRateHz = 30;
 static const int halfMapWidth = 100;
@@ -103,6 +107,7 @@ static const EntityId firstChunkEntityId = 12;
 static const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 static const int numChunkRows = 2 * halfMapHeight / chunkSize;
 static const double characterSize = 0.9;
+static const float improbablePositionUpdateDistance = 1.0f;
 
 int main(int argc, char **argv) {
 	srand(g_get_monotonic_time() % INT64_MAX);
@@ -121,6 +126,7 @@ int main(int argc, char **argv) {
 		ClientHeartbeat,
 		Drawable,
 		EntityAcl,
+		ImprobablePosition,
 		Interest,
 		Light,
 		Metadata,
@@ -160,6 +166,7 @@ int main(int argc, char **argv) {
 	context.view = &view;
 	context.clientEntityId = 0;
 	context.direction = ClientContext::kUp;
+	context.lastImprobablePosition = Coordinates{0.0, 0.0, 0.0};
 
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	ShovelerExecutorCallback *clientDirectionChangeCallback = shovelerExecutorSchedulePeriodic(executor, 0, clientDirectionChangeTimeoutMs, clientDirectionChange, &context);
@@ -294,16 +301,16 @@ int main(int argc, char **argv) {
 }
 
 static void move(ClientContext *context, const PositionData& positionData, int tickPeriodMs) {
-	Coordinates coordinates = positionData.coords();
+	Vector3 coordinates = positionData.coordinates();
 
-	double s = 0.001 * tickPeriodMs * velocity;
+	float s = 0.001f * tickPeriodMs * velocity;
 
 	switch(context->direction) {
 		case ClientContext::kUp:
-			coordinates.z() += s;
+			coordinates.y() += s;
 			break;
 		case ClientContext::kDown:
-			coordinates.z() -= s;
+			coordinates.y() -= s;
 			break;
 		case ClientContext::kLeft:
 			coordinates.x() -= s;
@@ -319,37 +326,50 @@ static void move(ClientContext *context, const PositionData& positionData, int t
 	}
 
 	Position::Update positionUpdate;
-	positionUpdate.set_coords(coordinates);
+	positionUpdate.set_coordinates(coordinates);
 	context->connection->SendComponentUpdate<Position>(context->clientEntityId, positionUpdate);
 
 	shovelerLogTrace("Sent position update for client entity %lld to (%.2f, %.2f, %.2f).", context->clientEntityId, coordinates.x(), coordinates.y(), coordinates.z());
+
+	Coordinates improbablePosition{coordinates.x(), coordinates.z(), coordinates.y()};
+	float dx = improbablePosition.x() - context->lastImprobablePosition.x();
+	float dy = improbablePosition.y() - context->lastImprobablePosition.y();
+	float dz = improbablePosition.z() - context->lastImprobablePosition.z();
+	float difference2 = dx * dx + dy * dy + dz * dz;
+	if(difference2 > improbablePositionUpdateDistance) {
+		ImprobablePosition::Update improbablePositionUpdate;
+		improbablePositionUpdate.set_coords(improbablePosition);
+		context->connection->SendComponentUpdate<ImprobablePosition>(context->clientEntityId, improbablePositionUpdate);
+
+		context->lastImprobablePosition = improbablePosition;
+	}
 }
 
-static bool validatePosition(ClientContext *context, const Coordinates& coordinates) {
-	Coordinates topRight = coordinates;
+static bool validatePosition(ClientContext *context, const Vector3& coordinates) {
+	Vector3 topRight = coordinates;
 	topRight.x() += 0.5 * characterSize;
-	topRight.z() += 0.5 * characterSize;
+	topRight.y() += 0.5 * characterSize;
 	if(!validatePoint(context, topRight)) {
 		return false;
 	}
 
-	Coordinates topLeft = coordinates;
+	Vector3 topLeft = coordinates;
 	topLeft.x() -= 0.5 * characterSize;
-	topLeft.z() += 0.5 * characterSize;
+	topLeft.y() += 0.5 * characterSize;
 	if(!validatePoint(context, topLeft)) {
 		return false;
 	}
 
-	Coordinates bottomRight = coordinates;
+	Vector3 bottomRight = coordinates;
 	bottomRight.x() += 0.5 * characterSize;
-	bottomRight.z() -= 0.5 * characterSize;
+	bottomRight.y() -= 0.5 * characterSize;
 	if(!validatePoint(context, bottomRight)) {
 		return false;
 	}
 
-	Coordinates bottomLeft = coordinates;
+	Vector3 bottomLeft = coordinates;
 	bottomLeft.x() -= 0.5 * characterSize;
-	bottomLeft.z() -= 0.5 * characterSize;
+	bottomLeft.y() -= 0.5 * characterSize;
 	if(!validatePoint(context, bottomLeft)) {
 		return false;
 	}
@@ -357,9 +377,9 @@ static bool validatePosition(ClientContext *context, const Coordinates& coordina
 	return true;
 }
 
-static bool validatePoint(ClientContext *context, const Coordinates& coordinates) {
+static bool validatePoint(ClientContext *context, const Vector3& coordinates) {
 	double x = coordinates.x();
-	double z = coordinates.z();
+	double z = coordinates.y();
 	int chunkX, chunkZ, tileX, tileZ;
 	worldToTile(x, z, chunkX, chunkZ, tileX, tileZ);
 

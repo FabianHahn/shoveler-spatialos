@@ -28,7 +28,6 @@
 
 #include "schema.h"
 
-static void updatePositionCoordinates(ShovelerComponent *component, Schema_Object *fields, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ);
 static void updateComponentConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, Schema_FieldId fieldId, bool clear_if_not_set);
 static void updateEntityIdConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, int fieldId, bool clear_if_not_set);
 static void updateEntityIdArrayConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, int fieldId);
@@ -44,7 +43,7 @@ static void updateBytesConfigurationOption(ShovelerComponent *component, Shovele
 const char *shovelerClientResolveComponentTypeId(int componentId)
 {
 	switch(componentId) {
-		case 54:
+		case 5454:
 			return shovelerComponentTypeIdPosition;
 		case 1335:
 			return shovelerComponentTypeIdClient;
@@ -94,7 +93,8 @@ const char *shovelerClientResolveSpecialComponentId(int componentId)
 			return "EntityAcl";
 		case 53:
 			return "Metadata";
-		// 54: we treat position as a regular view component even though it is part of the standard library
+		case 54:
+			return "Position";
 		case 55:
 			return "Persistence";
 		case 58:
@@ -120,7 +120,7 @@ const char *shovelerClientResolveSpecialComponentId(int componentId)
 int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 {
 	if(componentTypeId == shovelerComponentTypeIdPosition) {
-		return 54;
+		return 5454;
 	}
 	if(componentTypeId == shovelerComponentTypeIdClient) {
 		return 1335;
@@ -206,12 +206,6 @@ void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *com
 {
 	Schema_Object *fields = Schema_GetComponentDataFields(componentData);
 
-	// special case position updates
-	if (component->type->id == shovelerComponentTypeIdPosition) {
-		updatePositionCoordinates(component, fields, mappingX, mappingY, mappingZ);
-		return;
-	}
-
 	for(int optionId = 0; optionId < component->type->numConfigurationOptions; optionId++) {
 		Schema_FieldId fieldId = optionId + 1;
 		ShovelerComponentTypeConfigurationOption *configurationOption = &component->type->configurationOptions[optionId];
@@ -223,12 +217,6 @@ void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *com
 void shovelerClientApplyComponentUpdate(ShovelerView *view, ShovelerComponent *component, Schema_ComponentUpdate *componentUpdate, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
 	Schema_Object *fields = Schema_GetComponentUpdateFields(componentUpdate);
-
-	// special case position updates
-	if(component->type->id == shovelerComponentTypeIdPosition) {
-		updatePositionCoordinates(component, fields, mappingX, mappingY, mappingZ);
-		return;
-	}
 
 	uint32_t cleared_field_count = Schema_GetComponentUpdateClearedFieldCount(componentUpdate);
 	assert(cleared_field_count <= INT_MAX);
@@ -255,28 +243,10 @@ void shovelerClientApplyComponentUpdate(ShovelerView *view, ShovelerComponent *c
 	}
 }
 
-Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
+Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value)
 {
 	Schema_ComponentUpdate *update = Schema_CreateComponentUpdate();
 	Schema_Object *fields = Schema_GetComponentUpdateFields(update);
-
-	// special case position updates
-	if(component->type->id == shovelerComponentTypeIdPosition) {
-		assert(configurationOption->type == SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3);
-
-		// TODO: inverse mapping here?
-		ShovelerVector3 coordinatesValue = shovelerVector3(
-			shovelerCoordinateMap(value->vector3Value, mappingX),
-			shovelerCoordinateMap(value->vector3Value, mappingY),
-			shovelerCoordinateMap(value->vector3Value, mappingZ));
-
-		Schema_Object *coordinates = Schema_AddObject(fields, /* fieldId */ 1);
-		Schema_AddDouble(coordinates, /* fieldId */ 1, coordinatesValue.values[0]);
-		Schema_AddDouble(coordinates, /* fieldId */ 2, coordinatesValue.values[1]);
-		Schema_AddDouble(coordinates, /* fieldId */ 3, coordinatesValue.values[2]);
-
-		return update;
-	}
 
 	Schema_FieldId fieldId = 0;
 	for(int optionId = 0; optionId < component->type->numConfigurationOptions; optionId++) {
@@ -404,27 +374,22 @@ Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *c
 	return update;
 }
 
-static void updatePositionCoordinates(ShovelerComponent *component, Schema_Object *fields, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
+Schema_ComponentUpdate *shovelerClientCreateImprobablePositionUpdate(ShovelerVector3 position, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
 {
-	if(Schema_GetObjectCount(fields, /* fieldId */ 1) != 1) {
-		shovelerLogWarning("Received entity %lld component 'position' update without coordinates value, ignoring.", component->entityId);
-		return;
-	}
+	Schema_ComponentUpdate *update = Schema_CreateComponentUpdate();
+	Schema_Object *fields = Schema_GetComponentUpdateFields(update);
 
-	Schema_Object *coordinatesField = Schema_GetObject(fields, /* fieldId */ 1);
-	double coordinatesX = Schema_GetDouble(coordinatesField, /* fieldId */ 1);
-	double coordinatesY = Schema_GetDouble(coordinatesField, /* fieldId */ 2);
-	double coordinatesZ = Schema_GetDouble(coordinatesField, /* fieldId */ 3);
-	ShovelerVector3 coordinates = shovelerVector3((float) coordinatesX, (float) coordinatesY, (float) coordinatesZ);
+	ShovelerVector3 coordinatesValue = shovelerVector3(
+		shovelerCoordinateMap(position, mappingX),
+		shovelerCoordinateMap(position, mappingY),
+		shovelerCoordinateMap(position, mappingZ));
 
-	float mappedCoordinatesX = shovelerCoordinateMap(coordinates, mappingX);
-	float mappedCoordinatesY = shovelerCoordinateMap(coordinates, mappingY);
-	float mappedCoordinatesZ = shovelerCoordinateMap(coordinates, mappingZ);
-	ShovelerVector3 mappedCoordinates = shovelerVector3(mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+	Schema_Object *coordinates = Schema_AddObject(fields, /* fieldId */ 1);
+	Schema_AddDouble(coordinates, /* fieldId */ 1, coordinatesValue.values[0]);
+	Schema_AddDouble(coordinates, /* fieldId */ 2, coordinatesValue.values[1]);
+	Schema_AddDouble(coordinates, /* fieldId */ 3, coordinatesValue.values[2]);
 
-	shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES, mappedCoordinates);
-
-	shovelerLogTrace("Updated entity %lld component 'position' to mapped coordinates value (%f, %f, %f).", component->entityId, mappedCoordinatesX, mappedCoordinatesY, mappedCoordinatesZ);
+	return update;
 }
 
 static void updateComponentConfigurationOption(ShovelerComponent *component, ShovelerComponentTypeConfigurationOption *configurationOption, int optionId, Schema_Object *fields, Schema_FieldId fieldId, bool clear_if_not_set)

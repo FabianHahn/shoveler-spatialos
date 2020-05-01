@@ -112,6 +112,12 @@ type UpdateResourceResponse {
 
 }
 
+/** High frequency position component. */
+component Position {
+    id = 5454;
+    Vector3 coordinates = 1;
+}
+
 /** Bootstrap component authoritative on the server worker that acts as client-facing server API. */
 component Bootstrap {
 	id = 1334;

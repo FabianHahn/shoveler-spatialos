@@ -28,8 +28,7 @@ using improbable::EntityAclData;
 using improbable::Interest;
 using improbable::Metadata;
 using improbable::Persistence;
-using improbable::Position;
-using improbable::PositionData;
+using ImprobablePosition = improbable::Position;
 using improbable::WorkerAttributeSet;
 using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
@@ -49,6 +48,8 @@ using shoveler::Material;
 using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
+using shoveler::Position;
+using shoveler::PositionData;
 using shoveler::Resource;
 using shoveler::ResourceData;
 using shoveler::Sprite;
@@ -102,6 +103,8 @@ static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
 static Coordinates getNewPlayerPosition(worker::Connection &connection, worker::View &view, const CreateClientEntityRequest& request);
 static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::string> attributeSet);
+static ShovelerVector3 remapImprobablePosition(const Coordinates& coordinates, bool isTiles);
+static Coordinates remapPosition(const ShovelerVector3& coordinates, bool isTiles);
 
 int main(int argc, char **argv) {
 	if(argc != 5) {
@@ -149,6 +152,7 @@ int main(int argc, char **argv) {
 		ClientInfo,
 		Drawable,
 		EntityAcl,
+		ImprobablePosition,
 		Interest,
 		Light,
 		Material,
@@ -166,6 +170,9 @@ int main(int argc, char **argv) {
 	bool disconnected = false;
 	worker::View view{components};
 	worker::Dispatcher &dispatcher = view;
+
+	const Option<std::string>& flagOption = connection.GetWorkerFlag("game_type");
+	bool isTiles = flagOption && *flagOption == "tiles";
 
 	ShovelerExecutor *tickExecutor = shovelerExecutorCreateDirect();
 	std::map<worker::EntityId, std::pair<std::string, int64_t>> lastHeartbeatMicrosMap;
@@ -274,14 +281,16 @@ int main(int argc, char **argv) {
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity> &op) {
 		shovelerLogInfo("Received create client entity request from: %s", op.CallerWorkerId.c_str());
 
-		Coordinates playerPosition = getNewPlayerPosition(connection, view, op.Request);
+		Coordinates playerImprobablePosition = getNewPlayerPosition(connection, view, op.Request);
+		ShovelerVector3 playerPosition = remapImprobablePosition(playerImprobablePosition, isTiles);
 
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({});
 		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Persistence>({});
-		clientEntity.Add<Position>({playerPosition});
+		clientEntity.Add<ImprobablePosition>(playerImprobablePosition);
+		clientEntity.Add<Position>({{playerPosition.values[0], playerPosition.values[1], playerPosition.values[2]}});
 
 		QueryConstraint relativeConstraint;
 		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
@@ -300,6 +309,7 @@ int main(int argc, char **argv) {
 		clientEntityComponentAclMap.insert({{Client::ComponentId, specificClientRequirementSet}});
 		clientEntityComponentAclMap.insert({{ClientHeartbeat::ComponentId, serverRequirementSet}});
 		clientEntityComponentAclMap.insert({{Interest::ComponentId, specificClientRequirementSet}});
+		clientEntityComponentAclMap.insert({{ImprobablePosition::ComponentId, specificClientRequirementSet}});
 		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
 		EntityAclData clientEntityAclData(clientAndServerRequirementSet, clientEntityComponentAclMap);
 		clientEntity.Add<EntityAcl>(clientEntityAclData);
@@ -407,13 +417,16 @@ int main(int argc, char **argv) {
 		}
 
 		ShovelerVector3 normalizedDirection = shovelerVector3Normalize(shovelerVector3(op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z()));
-		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(positionComponent->coords().x(), positionComponent->coords().y(), positionComponent->coords().z()), 0.5f, normalizedDirection);
+		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(positionComponent->coordinates().x(), positionComponent->coordinates().y(), positionComponent->coordinates().z()), 0.5f, normalizedDirection);
+
+		Coordinates cubeImprobablePosition = remapPosition(cubePosition, isTiles);
 
 		Vector3 cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
 
 		worker::Entity cubeEntity;
 		cubeEntity.Add<Metadata>({"cube"});
 		cubeEntity.Add<Persistence>({});
+		cubeEntity.Add<ImprobablePosition>({cubeImprobablePosition});
 		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
 		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, cubeColor, {}, {}});
 		cubeEntity.Add<Model>({0, cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
@@ -454,8 +467,12 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		double x = positionComponent->coords().x();
-		double z = positionComponent->coords().z();
+		Coordinates improbablePosition = remapPosition(
+			shovelerVector3(positionComponent->coordinates().x(), positionComponent->coordinates().y(), positionComponent->coordinates().z()),
+			isTiles);
+
+		double x = improbablePosition.x();
+		double z = improbablePosition.z();
 		int chunkX, chunkZ, tileX, tileZ;
 		worldToTile(x, z, chunkX, chunkZ, tileX, tileZ);
 
@@ -673,4 +690,22 @@ static WorkerRequirementSet getSpecificWorkerRequirementSet(worker::List<std::st
 	}
 
 	return {{{{"workerId:unknown"}}}};
+}
+
+static ShovelerVector3 remapImprobablePosition(const Coordinates& coordinates, bool isTiles)
+{
+	if(isTiles) {
+		return shovelerVector3((float) coordinates.x(), (float) coordinates.z(), (float) coordinates.y());
+	} else {
+		return shovelerVector3((float) -coordinates.x(), (float) coordinates.y(), (float) coordinates.z());
+	}
+}
+
+static Coordinates remapPosition(const ShovelerVector3& coordinates, bool isTiles)
+{
+	if(isTiles) {
+		return {coordinates.values[0], coordinates.values[2], coordinates.values[1]};
+	} else {
+		return {-coordinates.values[0], coordinates.values[1], coordinates.values[2]};
+	}
 }
