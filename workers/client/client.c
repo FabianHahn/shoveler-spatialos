@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
 	ShovelerClientConfiguration clientConfiguration;
 	if(!shovelerClientGetWorkerConfiguration(connection, &clientConfiguration)) {
-		shovelerLogError("Failed to retreive client configuration.");
+		shovelerLogError("Failed to retrieve client configuration.");
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
 	}
