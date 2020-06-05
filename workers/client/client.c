@@ -45,7 +45,7 @@ static const long long int clientComponentId = 1335;
 static const int64_t clientPingTimeoutMs = 1000;
 static const float improbablePositionUpdateDistance = 1.0f;
 
-static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected);
+static void onLogMessage(void *user_data, const Worker_LogData *message);
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
 static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
@@ -81,16 +81,30 @@ int main(int argc, char **argv) {
 
 	Worker_ComponentVtable componentVtable = {0};
 
+	Worker_LogsinkParameters logsink;
+	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
+	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
+	logsink.filter_parameters.level = WORKER_LOG_LEVEL_INFO;
+	logsink.filter_parameters.callback = NULL;
+	logsink.filter_parameters.user_data = NULL;
+	logsink.log_callback_parameters.log_callback = onLogMessage;
+	logsink.log_callback_parameters.user_data = NULL;
+
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerClient";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_KCP;
 	connectionParameters.network.modular_kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_DTLS;
 	connectionParameters.default_component_vtable = &componentVtable;
+	connectionParameters.logsink_count = 1;
+	connectionParameters.logsinks = &logsink;
+	connectionParameters.enable_logging_at_startup = true;
 
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());
 	Worker_Connection *connection = shovelerClientConnect(argc, argv, &connectionParameters);
-	if(connection == NULL) {
-		shovelerLogError("Failed to connect to SpatialOS deployment.");
+	assert(connection != NULL);
+	if(!Worker_Connection_IsConnected(connection)) {
+		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
+		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
 	}
 	shovelerLogInfo("Connected to SpatialOS deployment!");
@@ -178,7 +192,7 @@ int main(int argc, char **argv) {
 					shovelerLogTrace("WORKER_OP_TYPE_FLAG_UPDATE");
 					break;
 				case WORKER_OP_TYPE_LOG_MESSAGE:
-					onLogMessage(&op->op.log_message, &context.disconnected);
+					// deprecated and can be ignored, we receive all log messages through logsink already.
 					break;
 				case WORKER_OP_TYPE_METRICS:
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
@@ -260,24 +274,23 @@ int main(int argc, char **argv) {
 	return EXIT_SUCCESS;
 }
 
-static void onLogMessage(const Worker_LogMessageOp *op, bool *disconnected)
+static void onLogMessage(void *user_data, const Worker_LogData *message)
 {
-	switch(op->level) {
+	switch(message->log_level) {
 		case WORKER_LOG_LEVEL_DEBUG:
-			shovelerLogTrace("[Worker SDK] %s", op->message);
+			shovelerLogTrace("[Worker SDK] %s", message->content);
 			break;
 		case WORKER_LOG_LEVEL_INFO:
-			shovelerLogInfo("[Worker SDK] %s", op->message);
+			shovelerLogInfo("[Worker SDK] %s", message->content);
 			break;
 		case WORKER_LOG_LEVEL_WARN:
-			shovelerLogWarning("[Worker SDK] %s", op->message);
+			shovelerLogWarning("[Worker SDK] %s", message->content);
 			break;
 		case WORKER_LOG_LEVEL_ERROR:
-			shovelerLogError("[Worker SDK] %s", op->message);
+			shovelerLogError("[Worker SDK] %s", message->content);
 			break;
 		case WORKER_LOG_LEVEL_FATAL:
-			shovelerLogError("Disconnecting due to fatal Worker SDK error: %s", op->message);
-			*disconnected = true;
+			shovelerLogError("[Worker SDK] [FATAL] %s", message->content);
 			break;
 	}
 }
