@@ -44,6 +44,7 @@ using shoveler::Resource;
 using shoveler::Sampler;
 using shoveler::Sprite;
 using shoveler::Texture;
+using shoveler::TextureType;
 using shoveler::Tilemap;
 using shoveler::TilemapColliders;
 using shoveler::TilemapSprite;
@@ -166,7 +167,7 @@ int main(int argc, char **argv) {
 	tilesetEntity.Add<Resource>({std::string{imageData->str, imageData->len}});
 	tilesetEntity.Add<Image>({ImageFormat::PNG, 3});
 	tilesetEntity.Add<Sampler>({true, false, true});
-	tilesetEntity.Add<Texture>({3});
+	tilesetEntity.Add<Texture>({TextureType::IMAGE, {3}, {}, {}});
 	tilesetEntity.Add<Tileset>({3, tilesetColumns, tilesetRows, 1});
 	tilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(imageData, true);
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
 	tilesetPngEntity.Add<Resource>({std::string{tilesetPngData->str, tilesetPngData->len}});
 	tilesetPngEntity.Add<Image>({ImageFormat::PNG, 4});
 	tilesetPngEntity.Add<Sampler>({true, false, true});
-	tilesetPngEntity.Add<Texture>({4});
+	tilesetPngEntity.Add<Texture>({TextureType::IMAGE, {4}, {}, {}});
 	tilesetPngEntity.Add<Tileset>({4, tilesetPngColumns, tilesetPngRows, 1});
 	tilesetPngEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(tilesetPngData, true);
@@ -202,7 +203,7 @@ int main(int argc, char **argv) {
 	characterAnimationTilesetEntity.Add<Resource>({std::string{characterAnimationTilesetPngData->str, characterAnimationTilesetPngData->len}});
 	characterAnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 5});
 	characterAnimationTilesetEntity.Add<Sampler>({true, false, true});
-	characterAnimationTilesetEntity.Add<Texture>({5});
+	characterAnimationTilesetEntity.Add<Texture>({TextureType::IMAGE, {5}, {}, {}});
 	characterAnimationTilesetEntity.Add<Tileset>({5, 4, 3, 1});
 	characterAnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(characterAnimationTilesetPngData, true);
@@ -221,7 +222,7 @@ int main(int argc, char **argv) {
 	character2AnimationTilesetEntity.Add<Resource>({std::string{character2AnimationTilesetPngData->str, character2AnimationTilesetPngData->len}});
 	character2AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 6});
 	character2AnimationTilesetEntity.Add<Sampler>({true, false, true});
-	character2AnimationTilesetEntity.Add<Texture>({6});
+	character2AnimationTilesetEntity.Add<Texture>({TextureType::IMAGE, {6}, {}, {}});
 	character2AnimationTilesetEntity.Add<Tileset>({6, 4, 3, 1});
 	character2AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(character2AnimationTilesetPngData, true);
@@ -240,7 +241,7 @@ int main(int argc, char **argv) {
 	character3AnimationTilesetEntity.Add<Resource>({std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
 	character3AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 7});
 	character3AnimationTilesetEntity.Add<Sampler>({true, false, true});
-	character3AnimationTilesetEntity.Add<Texture>({7});
+	character3AnimationTilesetEntity.Add<Texture>({TextureType::IMAGE, {7}, {}, {}});
 	character3AnimationTilesetEntity.Add<Tileset>({7, 4, 3, 1});
 	character3AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(character3AnimationTilesetPngData, true);
@@ -259,7 +260,7 @@ int main(int argc, char **argv) {
 	character4AnimationTilesetEntity.Add<Resource>({std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
 	character4AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 8});
 	character4AnimationTilesetEntity.Add<Sampler>({true, false, true});
-	character4AnimationTilesetEntity.Add<Texture>({8});
+	character4AnimationTilesetEntity.Add<Texture>({TextureType::IMAGE, {8}, {}, {}});
 	character4AnimationTilesetEntity.Add<Tileset>({8, 4, 3, 1});
 	character4AnimationTilesetEntity.Add<EntityAcl>({clientOrServerRequirementSet, resourceToServerAclMap});
 	g_string_free(character4AnimationTilesetPngData, true);
@@ -268,7 +269,7 @@ int main(int argc, char **argv) {
 	EntityId canvasEntityId = 9;
 	Entity canvasEntity;
 	canvasEntity.Add<Metadata>({"canvas"});
-	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
+	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	canvasEntity.Add<Position>({{-100, -100, -100}});
@@ -281,7 +282,7 @@ int main(int argc, char **argv) {
 	EntityId tileSpriteMaterialEntityId = 10;
 	Entity tileSpriteMaterialEntity;
 	tileSpriteMaterialEntity.Add<Metadata>({"material"});
-	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}});
+	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	tileSpriteMaterialEntity.Add<Persistence>({});
 	tileSpriteMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tileSpriteMaterialEntity.Add<Position>({{-100, -100, -100}});
@@ -291,7 +292,7 @@ int main(int argc, char **argv) {
 	EntityId tilemapMaterialEntityId = 11;
 	Entity tilemapMaterialEntity;
 	tilemapMaterialEntity.Add<Metadata>({"material"});
-	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}});
+	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}});
 	tilemapMaterialEntity.Add<Persistence>({});
 	tilemapMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tilemapMaterialEntity.Add<Position>({{-100, -100, -100}});
@@ -344,7 +345,7 @@ int main(int argc, char **argv) {
 		chunkEntity.Add<Persistence>({});
 		chunkEntity.Add<ImprobablePosition>({chunkImprobablePosition});
 		chunkEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
-		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
+		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		entities[nextEntityId] = chunkEntity;

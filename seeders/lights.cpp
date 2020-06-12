@@ -32,7 +32,7 @@ using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Position;
-using shoveler::Vector3;
+using shoveler::Vector4;
 using worker::ComponentRegistry;
 using worker::Components;
 using worker::Entity;
@@ -71,8 +71,8 @@ int main(int argc, char **argv) {
 		Persistence,
 		Position>{};
 
-	Vector3 grayColor{0.7f, 0.7f, 0.7f};
-	Vector3 whiteColor{1.0f, 1.0f, 1.0f};
+	Vector4 grayColor{0.7f, 0.7f, 0.7f, 1.0f};
+	Vector4 whiteColor{1.0f, 1.0f, 1.0f, 1.0f};
 
 	WorkerAttributeSet clientAttributeSet({"client"});
 	WorkerAttributeSet serverAttributeSet({"server"});
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 	grayColorMaterialEntity.Add<Persistence>({});
 	grayColorMaterialEntity.Add<ImprobablePosition>({{0, 0, 0}});
 	grayColorMaterialEntity.Add<Position>({{0, 0, 0}});
-	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, grayColor, {}, {}});
+	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, grayColor, {}, {}});
 	grayColorMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId grayColorMaterialEntityId = 5;
 	entities[grayColorMaterialEntityId] = grayColorMaterialEntity;
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 	whiteParticleMaterialEntity.Add<Persistence>({});
 	whiteParticleMaterialEntity.Add<ImprobablePosition>({{0, 0, 0}});
 	whiteParticleMaterialEntity.Add<Position>({{0, 0, 0}});
-	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, whiteColor, {}, {}});
+	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, whiteColor, {}, {}});
 	whiteParticleMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId whiteParticleMaterialEntityId = 6;
 	entities[whiteParticleMaterialEntityId] = whiteParticleMaterialEntity;

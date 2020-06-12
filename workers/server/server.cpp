@@ -57,7 +57,7 @@ using shoveler::TilemapTiles;
 using shoveler::TilemapTilesData;
 using shoveler::TileSprite;
 using shoveler::TileSpriteAnimation;
-using shoveler::Vector3;
+using shoveler::Vector4;
 using worker::Authority;
 using worker::CreateEntityRequest;
 using worker::EntityId;
@@ -96,7 +96,7 @@ const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
-static Vector3 colorFromHsv(float h, float s, float v);
+static Vector4 colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
@@ -334,12 +334,12 @@ int main(int argc, char **argv) {
 		} else {
 			hue = (float) rand() / RAND_MAX;
 			saturation = 0.5f + 0.5f * ((float) rand() / RAND_MAX);
-			Vector3 playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
-			Vector3 playerLightColor = colorFromHsv(hue, saturation, 0.1f);
+			Vector4 playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
+			Vector4 playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
-			clientEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {playerParticleColor}, {}, {}});
+			clientEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, {playerParticleColor}, {}, {}});
 			clientEntity.Add<Model>({0, pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, PolygonMode::FILL});
-			clientEntity.Add<Light>({0, LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, playerLightColor});
+			clientEntity.Add<Light>({0, LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {playerLightColor.x(), playerLightColor.y(), playerLightColor.z()}});
 		}
 
 		clientEntity.Add<ClientInfo>({op.CallerWorkerId, hue, saturation});
@@ -421,14 +421,14 @@ int main(int argc, char **argv) {
 
 		Coordinates cubeImprobablePosition = remapPosition(cubePosition, isTiles);
 
-		Vector3 cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
+		Vector4 cubeColor = colorFromHsv(clientInfoComponent->color_hue(), clientInfoComponent->color_saturation(), 0.7f);
 
 		worker::Entity cubeEntity;
 		cubeEntity.Add<Metadata>({"cube"});
 		cubeEntity.Add<Persistence>({});
 		cubeEntity.Add<ImprobablePosition>({cubeImprobablePosition});
 		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
-		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, cubeColor, {}, {}});
+		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, cubeColor, {}, {}});
 		cubeEntity.Add<Model>({0, cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
 
 		WorkerAttributeSet clientAttributeSet({"client"});
@@ -583,11 +583,11 @@ static void clientCleanupTick(void *clientCleanupTickContextPointer) {
 	}
 }
 
-static Vector3 colorFromHsv(float h, float s, float v) {
+static Vector4 colorFromHsv(float h, float s, float v) {
 	ShovelerColor colorRgb = shovelerColorFromHsv(h, s, v);
 	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
 
-	return Vector3{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2]};
+	return Vector4{colorFloat.values[0], colorFloat.values[1], colorFloat.values[2], 1.0f};
 }
 
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ) {

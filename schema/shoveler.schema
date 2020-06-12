@@ -11,6 +11,13 @@ type Vector3 {
 	float z = 3;
 }
 
+type Vector4 {
+	float x = 1;
+	float y = 2;
+	float z = 3;
+	float w = 4;
+}
+
 /** Represents a coordinate mapping from a 3d position onto another single coordinate dimension. */
 enum CoordinateMapping {
 	POSITIVE_X = 0;
@@ -181,11 +188,27 @@ component Image {
 	EntityId resource = 2;
 }
 
+enum TextureType {
+    IMAGE = 0;
+    TEXT = 1;
+}
+
 /** Represents a texture that can be used within a material. */
 component Texture {
 	id = 1338;
-	/** Dependency entity ID containing an Image component with the image for the texture. */
-	EntityId image = 1;
+	TextureType type = 1;
+	/**
+	 * If type is IMAGE, dependency entity ID containing an Image component with the image for the
+	 * texture.
+	 */
+	option<EntityId> image = 2;
+	/**
+     * If type is TEXT, dependency entity ID containing a text texture renderer component with the
+     * renderer to use to render the specified text.
+     */
+	option<EntityId> text_texture_renderer = 3;
+	/** If type is TEXT, specifies text string to render to the texture. */
+	option<string> text = 4;
 }
 
 
@@ -348,20 +371,29 @@ component Drawable {
 	option<int32> tiles_height = 3;
 }
 
+/** Represents the type of a texture material. */
+enum TextureMaterialType {
+	DEPTH = 0;
+	ALPHA_MASK = 1;
+	ALBEDO = 2;
+	PHONG = 3;
+}
+
 /** Represents a material containing a shader that can be used to render geometry. */
 component Material {
 	id = 1347;
 	MaterialType type = 1;
-	option<EntityId> texture = 2;
-	option<EntityId> texture_sampler = 3;
-	option<EntityId> tilemap = 4;
-	option<EntityId> canvas = 5;
-	/** If type is set to COLOR, specifies the color of the material. */
-	option<Vector3> color = 6;
+	option<TextureMaterialType> texture_type = 2;
+	option<EntityId> texture = 3;
+	option<EntityId> texture_sampler = 4;
+	option<EntityId> tilemap = 5;
+	option<EntityId> canvas = 6;
+	/** If type is set to COLOR, PARTICLE or TEXTURE (with ALPHA_MASK), specifies the color of the material. */
+	option<Vector4> color = 7;
 	/** If type is set to CANVAS, specifies the position of the region to render by the material. */
-	option<Vector2> canvas_region_position = 7;
+	option<Vector2> canvas_region_position = 8;
 	/** If type is set to CANVAS, specifies the size of the region to render by the material. */
-	option<Vector2> canvas_region_size = 8;
+	option<Vector2> canvas_region_size = 9;
 }
 
 /**
@@ -426,3 +458,36 @@ component Light {
 	Vector3 color = 8;
 }
 
+/** A font type face loaded from a TTF file. */
+component Font {
+    id = 1350;
+    /** Name of the font, doesn't have any semantic meaning. */
+    string name = 1;
+    /** Dependency entity ID with resource component from which to load the TTF font. */
+    EntityId resource = 2;
+}
+
+/** A font atlas to which glyphs are rendered. */
+component FontAtlas {
+    id = 1351;
+    /** Dependency entity ID with font component to use for this atlas. */
+    EntityId font = 1;
+    /** Font size to use for rendering glyphs. */
+    int32 font_size = 2;
+    /** Amount of padding in pixels to use between glyphs in the atlas. */
+    int32 padding = 3;
+}
+
+/** Synchronises a font atlas to a GPU texture. */
+component FontAtlasTexture {
+    id = 1352;
+    /** Dependency entity ID with font atlas component to use for this font atlas texture. */
+    EntityId font_atlas = 1;
+}
+
+/** Reusable component that can render any text string to a texture using a font atlas texture. */
+component TextTextureRenderer {
+    id = 1353;
+    /** Dependency entity ID with font atlas texture component to use for this renderer. */
+    EntityId font_atlas_texture = 1;
+}
