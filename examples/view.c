@@ -82,26 +82,6 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateCanvasType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateClientType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateDrawableType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateImageType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateLightType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateMaterialType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateModelType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreatePositionType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateResourceType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateSamplerType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTextureType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateSpriteType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTileSpriteType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTileSpriteAnimationType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTilemapType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTilemapCollidersType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTilemapSpriteType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTilemapTilesType());
-	shovelerViewAddComponentType(game->view, shovelerComponentCreateTilesetType());
-
 	ShovelerResources *resources = shovelerResourcesCreate(NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
 	shovelerViewSetTarget(game->view, shovelerComponentViewTargetIdResources, resources);
@@ -114,7 +94,7 @@ int main(int argc, char *argv[])
 	ShovelerViewEntity *grayColorMaterialEntity = shovelerViewAddEntity(game->view, 2);
 	ShovelerComponent *grayColorMaterialComponent = shovelerViewEntityAddComponent(grayColorMaterialEntity, shovelerComponentTypeIdMaterial);
 	shovelerComponentUpdateCanonicalConfigurationOptionInt(grayColorMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TYPE, SHOVELER_COMPONENT_MATERIAL_TYPE_COLOR);
-	shovelerComponentUpdateCanonicalConfigurationOptionVector3(grayColorMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_COLOR, shovelerVector3(0.7f, 0.7f, 0.7f));
+	shovelerComponentUpdateCanonicalConfigurationOptionVector4(grayColorMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_COLOR, shovelerVector4(0.7f, 0.7f, 0.7f, 1.0f));
 	shovelerComponentActivate(grayColorMaterialComponent);
 
 	ShovelerViewEntity *cubeEntity = shovelerViewAddEntity(game->view, 3);
@@ -158,7 +138,7 @@ int main(int argc, char *argv[])
 	shovelerComponentActivate(pointDrawableComponent);
 	ShovelerComponent *whiteParticleMaterialComponent = shovelerViewEntityAddComponent(pointEntity, shovelerComponentTypeIdMaterial);
 	shovelerComponentUpdateCanonicalConfigurationOptionInt(whiteParticleMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TYPE, SHOVELER_COMPONENT_MATERIAL_TYPE_PARTICLE);
-	shovelerComponentUpdateCanonicalConfigurationOptionVector3(whiteParticleMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_COLOR, shovelerVector3(1.0f, 1.0f, 1.0f));
+	shovelerComponentUpdateCanonicalConfigurationOptionVector4(whiteParticleMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_COLOR, shovelerVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	shovelerComponentActivate(whiteParticleMaterialComponent);
 	ShovelerComponent *lightModelComponent = shovelerViewEntityAddComponent(pointEntity, shovelerComponentTypeIdModel);
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(lightModelComponent, SHOVELER_COMPONENT_MODEL_OPTION_ID_POSITION, 5);
@@ -208,6 +188,7 @@ int main(int argc, char *argv[])
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(resourceImageComponent, SHOVELER_COMPONENT_IMAGE_OPTION_ID_RESOURCE, 6);
 	shovelerComponentActivate(resourceImageComponent);
 	ShovelerComponent *resourceTextureComponent = shovelerViewEntityAddComponent(resourceEntity, shovelerComponentTypeIdTexture);
+	shovelerComponentUpdateCanonicalConfigurationOptionInt(resourceTextureComponent, SHOVELER_COMPONENT_TEXTURE_OPTION_ID_TYPE, SHOVELER_COMPONENT_TEXTURE_TYPE_IMAGE);
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(resourceTextureComponent, SHOVELER_COMPONENT_TEXTURE_OPTION_ID_IMAGE, 6);
 	shovelerComponentActivate(resourceTextureComponent);
 	ShovelerComponent *resourceSamplerComponent = shovelerViewEntityAddComponent(resourceEntity, shovelerComponentTypeIdSampler);
@@ -219,6 +200,7 @@ int main(int argc, char *argv[])
 	ShovelerViewEntity *textureMaterialEntity = shovelerViewAddEntity(game->view, 7);
 	ShovelerComponent *textureMaterialComponent = shovelerViewEntityAddComponent(textureMaterialEntity, shovelerComponentTypeIdMaterial);
 	shovelerComponentUpdateCanonicalConfigurationOptionInt(textureMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TYPE, SHOVELER_COMPONENT_MATERIAL_TYPE_TEXTURE);
+	shovelerComponentUpdateCanonicalConfigurationOptionInt(textureMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TEXTURE_TYPE, SHOVELER_MATERIAL_TEXTURE_TYPE_PHONG);
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(textureMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TEXTURE, 6);
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(textureMaterialComponent, SHOVELER_COMPONENT_MATERIAL_OPTION_ID_TEXTURE_SAMPLER, 6);
 	shovelerComponentActivate(textureMaterialComponent);
@@ -302,6 +284,7 @@ int main(int argc, char *argv[])
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(animationImageComponent, SHOVELER_COMPONENT_IMAGE_OPTION_ID_RESOURCE, 11);
 	shovelerComponentActivate(animationImageComponent);
 	ShovelerComponent *animationTextureComponent = shovelerViewEntityAddComponent(animationTilesetEntity, shovelerComponentTypeIdTexture);
+	shovelerComponentUpdateCanonicalConfigurationOptionInt(animationTextureComponent, SHOVELER_COMPONENT_TEXTURE_OPTION_ID_TYPE, SHOVELER_COMPONENT_TEXTURE_TYPE_IMAGE);
 	shovelerComponentUpdateCanonicalConfigurationOptionEntityId(animationTextureComponent, SHOVELER_COMPONENT_TEXTURE_OPTION_ID_IMAGE, 11);
 	shovelerComponentActivate(animationTextureComponent);
 	ShovelerComponent *animationTilesetComponent = shovelerViewEntityAddComponent(animationTilesetEntity, shovelerComponentTypeIdTileset);

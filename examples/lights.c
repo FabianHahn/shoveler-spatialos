@@ -11,7 +11,6 @@
 #include <shoveler/light/point.h>
 #include <shoveler/material/color.h>
 #include <shoveler/material/particle.h>
-#include <shoveler/material/screenspace_texture.h>
 #include <shoveler/material/texture.h>
 #include <shoveler/constants.h>
 #include <shoveler/controller.h>
@@ -81,7 +80,7 @@ int main(int argc, char *argv[])
 	nearestNeighborSampler = shovelerSamplerCreate(false, true, true);
 	interpolatingSampler = shovelerSamplerCreate(true, true, true);
 
-	colorMaterial = shovelerMaterialColorCreate(game->shaderCache, /* screenspace */ false, shovelerVector3(0.7, 0.7, 0.7));
+	colorMaterial = shovelerMaterialColorCreate(game->shaderCache, /* screenspace */ false, shovelerVector4(0.7, 0.7, 0.7, 1.0));
 
 	ShovelerImage *image = shovelerImageCreate(2, 2, 3);
 	shovelerImageClear(image);
@@ -93,7 +92,7 @@ int main(int argc, char *argv[])
 	shovelerImageGet(image, 1, 1, 2) = 255;
 	ShovelerTexture *texture = shovelerTextureCreate2d(image, true);
 	shovelerTextureUpdate(texture);
-	textureMaterial = shovelerMaterialTextureCreate(game->shaderCache, /* screenspace */ false, texture, true, nearestNeighborSampler, false);
+	textureMaterial = shovelerMaterialTextureCreate(game->shaderCache, /* screenspace */ false, SHOVELER_MATERIAL_TEXTURE_TYPE_PHONG, texture, true, nearestNeighborSampler, false);
 
 	shovelerOpenGLCheckSuccess();
 
@@ -174,7 +173,7 @@ int main(int argc, char *argv[])
 	shovelerSceneAddLight(game->scene, pointlight2);
 
 	point = shovelerDrawablePointCreate();
-	particleMaterial = shovelerMaterialParticleCreate(game->shaderCache, shovelerVector3(1.0f, 1.0f, 1.0f));
+	particleMaterial = shovelerMaterialParticleCreate(game->shaderCache, shovelerVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	ShovelerModel *pointlightModel = shovelerModelCreate(point, particleMaterial);
 	pointlightModel->scale = shovelerVector3(0.5f, 0.5f, 0);
 	pointlightModel->castsShadow = false;
@@ -190,12 +189,12 @@ int main(int argc, char *argv[])
 	shovelerModelUpdateTransformation(pointlightModel2);
 	shovelerSceneAddModel(game->scene, pointlightModel2);
 
-	screenspaceTextureMaterial = shovelerMaterialScreenspaceTextureCreate(game->shaderCache, shovelerLightPointGetShared(pointlight)->depthFramebuffer->depthTarget, false, true, nearestNeighborSampler, false);
+	screenspaceTextureMaterial = shovelerMaterialTextureCreate(game->shaderCache, /* screenspace */ true, SHOVELER_MATERIAL_TEXTURE_TYPE_DEPTH, shovelerLightPointGetShared(pointlight)->depthFramebuffer->depthTarget, /* manageTexture */ false, nearestNeighborSampler, /* manageSampler */ false);
 	ShovelerModel *screenQuadModel = shovelerModelCreate(quad, screenspaceTextureMaterial);
-	screenQuadModel->translation.values[0] = -1.0;
-	screenQuadModel->translation.values[1] = -1.0;
-	screenQuadModel->scale.values[0] = 0.5;
-	screenQuadModel->scale.values[1] = 0.5;
+	screenQuadModel->translation.values[0] = -0.75;
+	screenQuadModel->translation.values[1] = -0.75;
+	screenQuadModel->scale.values[0] = 0.25;
+	screenQuadModel->scale.values[1] = 0.25;
 	shovelerModelUpdateTransformation(screenQuadModel);
 	shovelerSceneAddModel(game->scene, screenQuadModel);
 
