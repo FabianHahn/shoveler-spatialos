@@ -7,14 +7,17 @@ set(SHOVELER_OPENGL_SRC
 	src/component/client.c
 	src/component/controller.c
 	src/component/drawable.c
+	src/component/font_atlas_texture.c
 	src/component/light.c
 	src/component/material.c
 	src/component/model.c
+	src/component/render_state.c
 	src/component/sampler.c
 	src/component/scene.c
 	src/component/shader_cache.c
 	src/component/sprite.c
 	src/component/text_sprite.c
+	src/component/text_texture_renderer.c
 	src/component/texture.c
 	src/component/tile_sprite.c
 	src/component/tile_sprite_animation.c
@@ -41,7 +44,6 @@ set(SHOVELER_OPENGL_SRC
 	src/material/depth_texture_gaussian_filter.c
 	src/material/depth.c
 	src/material/particle.c
-	src/material/screenspace_texture.c
 	src/material/text.c
 	src/material/texture.c
 	src/material/tile_sprite.c
@@ -78,14 +80,17 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/component/client.h
 	include/shoveler/component/controller.h
 	include/shoveler/component/drawable.h
+	include/shoveler/component/font_atlas_texture.h
 	include/shoveler/component/light.h
 	include/shoveler/component/material.h
 	include/shoveler/component/model.h
+	include/shoveler/component/render_state.h
 	include/shoveler/component/sampler.h
 	include/shoveler/component/scene.h
 	include/shoveler/component/shader_cache.h
 	include/shoveler/component/sprite.h
 	include/shoveler/component/text_sprite.h
+	include/shoveler/component/text_texture_renderer.h
 	include/shoveler/component/texture.h
 	include/shoveler/component/tile_sprite.h
 	include/shoveler/component/tile_sprite_animation.h
@@ -115,7 +120,6 @@ set(SHOVELER_OPENGL_SRC
 	include/shoveler/material/depth_texture_gaussian_filter.h
 	include/shoveler/material/depth.h
 	include/shoveler/material/particle.h
-	include/shoveler/material/screenspace_texture.h
 	include/shoveler/material/text.h
 	include/shoveler/material/texture.h
 	include/shoveler/material/tile_sprite.h
@@ -153,9 +157,11 @@ set(SHOVELER_OPENGL_TEST_SRC
 	src/test.cpp
 )
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SHOVELER_OPENGL_SRC} ${SHOVELER_OPENGL_TEST_SRC})
+
 add_library(shoveler_opengl ${SHOVELER_OPENGL_SRC})
 add_library(shoveler::shoveler_opengl ALIAS shoveler_opengl)
-set_property(TARGET shoveler_opengl PROPERTY C_STANDARD 99)
+set_property(TARGET shoveler_opengl PROPERTY C_STANDARD 11)
 
 target_include_directories(shoveler_opengl
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

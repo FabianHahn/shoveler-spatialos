@@ -18,34 +18,42 @@ set(SHOVELER_EXAMPLE_VIEW_SRC
 	view.c
 )
 
+set(SHOVELER_EXAMPLE_VIEW_TEXT_SRC
+	view_text.c
+)
+
 if(SHOVELER_BUILD_EXAMPLES)
 	add_executable(shoveler_example_canvas ${SHOVELER_EXAMPLE_CANVAS_SRC})
-	set_property(TARGET shoveler_example_canvas PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_canvas PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_canvas shoveler::shoveler_opengl)
 
 	add_executable(shoveler_example_canvas_layers ${SHOVELER_EXAMPLE_CANVAS_LAYERS_SRC})
-	set_property(TARGET shoveler_example_canvas_layers PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_canvas_layers PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_canvas_layers shoveler::shoveler_opengl)
 
 	add_executable(shoveler_example_font font.c)
-	set_property(TARGET shoveler_example_font PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_font PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_font shoveler::shoveler_base)
 
 	add_executable(shoveler_example_lights ${SHOVELER_EXAMPLE_LIGHTS_SRC})
-	set_property(TARGET shoveler_example_lights PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_lights PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_lights shoveler::shoveler_opengl)
 
 	add_executable(shoveler_example_text text.c)
-	set_property(TARGET shoveler_example_text PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_text PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_text shoveler::shoveler_opengl)
 
 	add_executable(shoveler_example_tiles ${SHOVELER_EXAMPLE_TILES_SRC})
-	set_property(TARGET shoveler_example_tiles PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_tiles PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_tiles shoveler::shoveler_opengl)
 
 	add_executable(shoveler_example_view ${SHOVELER_EXAMPLE_VIEW_SRC})
-	set_property(TARGET shoveler_example_view PROPERTY C_STANDARD 99)
+	set_property(TARGET shoveler_example_view PROPERTY C_STANDARD 11)
 	target_link_libraries(shoveler_example_view shoveler::shoveler_opengl)
+
+	add_executable(shoveler_example_view_text ${SHOVELER_EXAMPLE_VIEW_TEXT_SRC})
+	set_property(TARGET shoveler_example_view_text PROPERTY C_STANDARD 11)
+	target_link_libraries(shoveler_example_view_text shoveler::shoveler_opengl)
 
 	if(SHOVELER_INSTALL)
 		install(TARGETS
@@ -56,6 +64,7 @@ if(SHOVELER_BUILD_EXAMPLES)
 				shoveler_example_text
 				shoveler_example_tiles
 				shoveler_example_view
+				shoveler_example_view_text
 			EXPORT shoveler-targets
 			LIBRARY DESTINATION lib
 			ARCHIVE DESTINATION lib

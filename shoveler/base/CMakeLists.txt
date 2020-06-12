@@ -1,5 +1,8 @@
 set(SHOVELER_BASE_SRC
 	src/component/colliders.c
+	src/component/font.c
+	src/component/font_atlas.c
+	src/component/fonts.c
 	src/component/image.c
 	src/component/position.c
 	src/component/resource.c
@@ -25,6 +28,9 @@ set(SHOVELER_BASE_SRC
 	src/view.c
 	include/shoveler/collider/box.h
 	include/shoveler/component/colliders.h
+	include/shoveler/component/font.h
+	include/shoveler/component/font_atlas.h
+	include/shoveler/component/fonts.h
 	include/shoveler/component/image.h
 	include/shoveler/component/position.h
 	include/shoveler/component/resource.h
@@ -71,9 +77,11 @@ set(SHOVELER_BASE_TEST_SRC
 	src/view_test.cpp
 )
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SHOVELER_BASE_SRC} ${SHOVELER_BASE_TEST_SRC})
+
 add_library(shoveler_base ${SHOVELER_BASE_SRC})
 add_library(shoveler::shoveler_base ALIAS shoveler_base)
-set_property(TARGET shoveler_base PROPERTY C_STANDARD 99)
+set_property(TARGET shoveler_base PROPERTY C_STANDARD 11)
 
 target_include_directories(shoveler_base
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
