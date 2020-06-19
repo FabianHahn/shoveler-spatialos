@@ -95,6 +95,7 @@ const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
 
+static void onLogMessage(const worker::LogData& logData);
 static void clientCleanupTick(void *clientCleanupTickContextPointer);
 static Vector4 colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
@@ -113,11 +114,19 @@ int main(int argc, char **argv) {
 
 	srand(time(NULL));
 
+	worker::LogsinkParameters logsinkParameters;
+	logsinkParameters.Type = worker::LogsinkType::kCallback;
+	logsinkParameters.Callback = onLogMessage;
+	logsinkParameters.FilterParameters.Categories = worker::LogCategory::kNetworkStatus | worker::LogCategory::kLogin;
+	logsinkParameters.FilterParameters.Level = worker::LogLevel::kInfo;
+
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerServer";
 	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularTcp;
 	parameters.Network.ModularTcp.SecurityType = worker::NetworkSecurityType::kInsecure;
 	parameters.Network.UseExternalIp = false;
+	parameters.Logsinks = {logsinkParameters};
+	parameters.EnableLoggingAtStartup = true;
 
 	const std::string workerId = argv[1];
 	const std::string hostname = argv[2];
@@ -187,28 +196,6 @@ int main(int argc, char **argv) {
 	dispatcher.OnMetrics([&](const worker::MetricsOp &op) {
 		auto metrics = op.Metrics;
 		connection.SendMetrics(metrics);
-	});
-
-	dispatcher.OnLogMessage([&](const worker::LogMessageOp &op) {
-		switch(op.Level) {
-			case worker::LogLevel::kDebug:
-				shovelerLogTrace(op.Message.c_str());
-				break;
-			case worker::LogLevel::kInfo:
-				shovelerLogInfo(op.Message.c_str());
-				break;
-			case worker::LogLevel::kWarn:
-				shovelerLogWarning(op.Message.c_str());
-				break;
-			case worker::LogLevel::kError:
-				shovelerLogError(op.Message.c_str());
-				break;
-			case worker::LogLevel::kFatal:
-				shovelerLogError(op.Message.c_str());
-				std::terminate();
-			default:
-				break;
-		}
 	});
 
 	dispatcher.OnAddEntity([&](const worker::AddEntityOp &op) {
@@ -565,6 +552,27 @@ int main(int argc, char **argv) {
 	}
 
 	shovelerExecutorFree(tickExecutor);
+}
+
+static void onLogMessage(const worker::LogData& logData)
+{
+	switch(logData.Level) {
+		case worker::LogLevel::kDebug:
+			shovelerLogTrace("[Worker SDK] %s", logData.Content.c_str());
+			break;
+		case worker::LogLevel::kInfo:
+			shovelerLogInfo("[Worker SDK] %s", logData.Content.c_str());
+			break;
+		case worker::LogLevel::kWarn:
+			shovelerLogWarning("[Worker SDK] %s", logData.Content.c_str());
+			break;
+		case worker::LogLevel::kError:
+			shovelerLogError("[Worker SDK] %s", logData.Content.c_str());
+			break;
+		case worker::LogLevel::kFatal:
+			shovelerLogError("[Worker SDK] [FATAL] %s", logData.Content.c_str());
+			break;
+	}
 }
 
 static void clientCleanupTick(void *clientCleanupTickContextPointer) {
