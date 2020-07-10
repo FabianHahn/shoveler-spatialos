@@ -125,8 +125,10 @@ const char *shovelerClientResolveSpecialComponentId(int componentId)
 			return "Bootstrap";
 		case 133742:
 			return "ClientInfo";
-		case 1336:
-			return "ClientHeartbeat";
+		case 13351:
+			return "ClientHeartbeatPing";
+		case 13352:
+			return "ClientHeartbeatPong";
 		default:
 			return NULL;
 	}

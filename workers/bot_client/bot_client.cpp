@@ -36,7 +36,8 @@ using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::ChunkRegion;
 using shoveler::Client;
-using shoveler::ClientHeartbeat;
+using shoveler::ClientHeartbeatPing;
+using shoveler::ClientHeartbeatPong;
 using shoveler::Drawable;
 using shoveler::Light;
 using shoveler::Material;
@@ -63,7 +64,6 @@ using worker::Result;
 using worker::View;
 
 using CreateClientEntity = Bootstrap::Commands::CreateClientEntity;
-using ClientPing = Bootstrap::Commands::ClientPing;
 
 struct TilesData {
 	std::string tilesetColumns;
@@ -82,6 +82,9 @@ struct ClientContext {
 		kRight
 	} direction;
 	Coordinates lastImprobablePosition;
+	int64_t lastHeartbeatPongTime;
+	double meanHeartbeatLatencyMs;
+	double meanTimeSinceLastHeartbeatPongMs;
 };
 
 static void onLogMessage(const worker::LogData& logData);
@@ -90,14 +93,16 @@ static bool validatePosition(ClientContext *context, const Vector3& coordinates)
 static bool validatePoint(ClientContext *context, const Vector3& coordinates);
 static void clientPingTick(void *clientContextPointer);
 static void clientDirectionChange(void *clientContextPointer);
+static void clientStatus(void *clientContextPointer);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX, int& tileZ);
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
 
 static const long long int bootstrapEntityId = 1;
-static const int64_t clientPingTimeoutMs = 1000;
+static const int64_t clientPingTimeoutMs = 999;
 static const int64_t clientDirectionChangeTimeoutMs = 250;
+static const int64_t clientStatusTimeoutMs = 2449;
 static const float velocity = 1.5;
 static const int directionChangeChancePercent = 10;
 static const int tickRateHz = 30;
@@ -109,6 +114,8 @@ static const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 static const int numChunkRows = 2 * halfMapHeight / chunkSize;
 static const double characterSize = 0.9;
 static const float improbablePositionUpdateDistance = 1.0f;
+static const double meanHeartbeatMovingExponentialFactor = 0.5f;
+static const double meanTimeSinceLastHeartbeatPongExponentialFactor = 0.05f;
 
 int main(int argc, char **argv) {
 	srand(g_get_monotonic_time() % INT64_MAX);
@@ -124,7 +131,8 @@ int main(int argc, char **argv) {
 		Bootstrap,
 		Canvas,
 		Client,
-		ClientHeartbeat,
+		ClientHeartbeatPing,
+		ClientHeartbeatPong,
 		Drawable,
 		EntityAcl,
 		ImprobablePosition,
@@ -176,9 +184,14 @@ int main(int argc, char **argv) {
 	context.clientEntityId = 0;
 	context.direction = ClientContext::kUp;
 	context.lastImprobablePosition = Coordinates{0.0, 0.0, 0.0};
+	context.clientEntityId = 0;
+	context.lastHeartbeatPongTime = g_get_monotonic_time();
+	context.meanHeartbeatLatencyMs = 0.0;
+	context.meanTimeSinceLastHeartbeatPongMs = 0.5 * (double) clientPingTimeoutMs;
 
 	ShovelerExecutorCallback *clientPingTickCallback = NULL;
 	ShovelerExecutorCallback *clientDirectionChangeCallback = shovelerExecutorSchedulePeriodic(executor, 0, clientDirectionChangeTimeoutMs, clientDirectionChange, &context);
+	ShovelerExecutorCallback *clientStatusCallback = shovelerExecutorSchedulePeriodic(executor, 0, clientStatusTimeoutMs, clientStatus, &context);
 
 	worker::Option<ChunkRegion> startingChunkRegion;
 	auto minXFlag = connection.GetWorkerFlag("starting_chunk_min_x");
@@ -245,6 +258,13 @@ int main(int argc, char **argv) {
 		shovelerLogTrace("Removing client from entity %lld.", op.EntityId);
 	});
 
+	dispatcher.OnComponentUpdate<ClientHeartbeatPong>([&](const worker::ComponentUpdateOp<ClientHeartbeatPong>& op) {
+		if(op.Update.last_updated_time()) {
+			context.lastHeartbeatPongTime = g_get_monotonic_time();
+			context.meanHeartbeatLatencyMs *= (1.0 - meanHeartbeatMovingExponentialFactor);
+			context.meanHeartbeatLatencyMs += meanHeartbeatMovingExponentialFactor * 0.001 * (double) (context.lastHeartbeatPongTime - *op.Update.last_updated_time());
+		}
+	});
 
 	dispatcher.OnCommandResponse<CreateClientEntity>([&](const worker::CommandResponseOp<CreateClientEntity>& op) {
 		shovelerLogInfo("Received create client entity command response %lld with status code %d.", op.RequestId.Id, op.StatusCode);
@@ -284,6 +304,7 @@ int main(int argc, char **argv) {
 
 	shovelerExecutorRemoveCallback(executor, clientPingTickCallback);
 	shovelerExecutorRemoveCallback(executor, clientDirectionChangeCallback);
+	shovelerExecutorRemoveCallback(executor, clientStatusCallback);
 	shovelerExecutorFree(executor);
 }
 
@@ -414,7 +435,10 @@ static bool validatePoint(ClientContext *context, const Vector3& coordinates) {
 
 static void clientPingTick(void *clientContextPointer) {
 	ClientContext *context = (ClientContext *) clientContextPointer;
-	context->connection->SendCommandRequest<ClientPing>(bootstrapEntityId, {context->clientEntityId}, {});
+
+	ClientHeartbeatPing::Update update;
+	update.set_last_updated_time(g_get_monotonic_time());
+	context->connection->SendComponentUpdate<ClientHeartbeatPing>(context->clientEntityId, update);
 }
 
 static void clientDirectionChange(void *clientContextPointer) {
@@ -428,6 +452,19 @@ static void clientDirectionChange(void *clientContextPointer) {
 	shovelerLogTrace("Changing direction to %u.", context->direction);
 }
 
+static void clientStatus(void *clientContextPointer)
+{
+	ClientContext *context = (ClientContext *) clientContextPointer;
+
+	context->meanTimeSinceLastHeartbeatPongMs *= (1.0 - meanTimeSinceLastHeartbeatPongExponentialFactor);
+	context->meanTimeSinceLastHeartbeatPongMs += meanTimeSinceLastHeartbeatPongExponentialFactor * 0.001 * (double) (g_get_monotonic_time() - context->lastHeartbeatPongTime);
+
+	shovelerLogInfo(
+		"Entities: %zu\t\tLatency: %.0fms\t\tDesync: %.0fms",
+		context->view->Entities.size(),
+		context->meanHeartbeatLatencyMs,
+		fabs(context->meanTimeSinceLastHeartbeatPongMs - 0.5 * (double) clientPingTimeoutMs));
+}
 
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ) {
 	return shovelerVector2(-halfMapWidth + chunkX * chunkSize + tileX, -halfMapHeight + chunkZ * chunkSize + tileZ);

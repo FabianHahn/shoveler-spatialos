@@ -84,14 +84,6 @@ type CreateClientEntityResponse {
 
 }
 
-type ClientPingRequest {
-	EntityId client = 1;
-}
-
-type ClientPingResponse {
-	int64 server_heartbeat = 1;
-}
-
 type ClientSpawnCubeRequest {
 	EntityId client = 1;
 	Vector3 direction = 2;
@@ -138,12 +130,6 @@ component Bootstrap {
 	id = 1334;
 	/** Requests spawning of a client entity for the calling worker. */
 	command CreateClientEntityResponse create_client_entity(CreateClientEntityRequest);
-	/**
-	 * Notifies the server worker that the calling client worker is still alive.
-	 *
-	 * Every client needs to call this regularly, or the server worker will delete the client's entity.
-	 */
-	command ClientPingResponse client_ping(ClientPingRequest);
 	/** Requests spawning of a cube entity at the calling worker's current position. */
 	command ClientSpawnCubeResponse client_spawn_cube(ClientSpawnCubeRequest);
 	/** Requests digging a hole at the player's current position. */
@@ -167,11 +153,18 @@ component ClientInfo {
 	float color_saturation = 3;
 }
 
-/** Component for the server worker to keep track of the last heartbeat sent by the client represented by this entity. */
-component ClientHeartbeat {
-	id = 1336;
-	/** Unix timestamp with the last heartbeat the client sent. */
-	int64 last_server_heartbeat = 1;
+/** Ping component regularly updated by client. */
+component ClientHeartbeatPing {
+	id = 13351;
+	/** Unix timestamp with the last ping time the client sent. */
+	int64 last_updated_time = 1;
+}
+
+/** Pong component that reflects client pings from server back to client. */
+component ClientHeartbeatPong {
+	id = 13352;
+	/** Unix timestamp with the last pong time the server sent. */
+	int64 last_updated_time = 1;
 }
 
 /** Represents a resource that is loaded as an asset into the game engine from a binary representation. */
