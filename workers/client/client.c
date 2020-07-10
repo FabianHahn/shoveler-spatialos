@@ -37,6 +37,7 @@ typedef struct {
 	double edgeLength;
 	ShovelerVector3 lastImprobablePosition;
 	bool improbablePositionAuthoritative;
+	int64_t lastHeartbeatLatency;
 } ClientContext;
 
 static const long long int bootstrapEntityId = 1;
@@ -464,6 +465,15 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 			return;
 		}
 
+		// special case ClientHeartbeatPong
+		if (op->update.component_id == 13352) {
+			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
+			int64_t lastPing = Schema_GetInt64(fields, /* fieldId */ 1);
+
+			context->lastHeartbeatLatency = g_get_monotonic_time() - lastPing;
+			shovelerLogInfo("Received heartbeat pong with latency %.1fms.", (double) context->lastHeartbeatLatency / 1000.0f);
+		}
+
 		shovelerLogTrace("Updated special component %s on entity %lld.", specialComponentType, op->entity_id);
 		return;
 	}
@@ -573,24 +583,19 @@ static void clientPingTick(void *clientContextPointer)
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
-	Worker_CommandRequest clientPingCommandRequest;
-	memset(&clientPingCommandRequest, 0, sizeof(Worker_CommandRequest));
-	clientPingCommandRequest.component_id = bootstrapComponentId;
-	clientPingCommandRequest.command_index = 2;
-	clientPingCommandRequest.schema_type = Schema_CreateCommandRequest();
-	Schema_Object *clientPingCommandRequestObject = Schema_GetCommandRequestObject(clientPingCommandRequest.schema_type);
-	Schema_AddEntityId(clientPingCommandRequestObject, 1, context->clientEntityId);
+	Schema_ComponentUpdate *componentUpdate = Schema_CreateComponentUpdate();
+	Schema_Object *fields = Schema_GetComponentUpdateFields(componentUpdate);
+	Schema_AddInt64(fields, /* fieldId */ 1, g_get_monotonic_time());
 
-	Worker_RequestId clientPingCommandRequestId = Worker_Connection_SendCommandRequest(
-		context->connection,
-		bootstrapEntityId,
-		&clientPingCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
-	if(clientPingCommandRequestId < 0) {
-		shovelerLogWarning("Failed to send client ping command.");
-	}
-	shovelerLogTrace("Sent client ping command request %lld.", clientPingCommandRequestId);
+	Worker_ComponentUpdate update;
+	update.component_id = 13351;
+	update.schema_type = componentUpdate;
+
+	Worker_UpdateParameters updateParameters;
+	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
+
+	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+	shovelerLogTrace("Sent client heartbeat ping update.");
 }
 
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer)

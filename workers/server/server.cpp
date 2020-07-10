@@ -5,6 +5,7 @@
 #include <ctime>
 #include <iostream>
 #include <map>
+#include <unordered_set>
 
 #include <improbable/standard_library.h>
 #include <improbable/view.h>
@@ -34,7 +35,8 @@ using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::Client;
-using shoveler::ClientHeartbeat;
+using shoveler::ClientHeartbeatPing;
+using shoveler::ClientHeartbeatPong;
 using shoveler::ClientInfo;
 using shoveler::ClientInfoData;
 using shoveler::CoordinateMapping;
@@ -68,7 +70,6 @@ using worker::RequestId;
 using worker::Result;
 
 using CreateClientEntity = shoveler::Bootstrap::Commands::CreateClientEntity;
-using ClientPing = shoveler::Bootstrap::Commands::ClientPing;
 using ClientSpawnCube = shoveler::Bootstrap::Commands::ClientSpawnCube;
 using DigHole = shoveler::Bootstrap::Commands::DigHole;
 using UpdateResource = shoveler::Bootstrap::Commands::UpdateResource;
@@ -81,10 +82,11 @@ struct TilesData {
 	std::string tilesetIds;
 };
 
-struct ClientCleanupTickContext {
+struct ServerContext {
 	worker::Connection *connection;
-	int64_t maxHeartbeatTimeoutMs;
-	std::map<worker::EntityId, std::pair<std::string, int64_t>> *lastHeartbeatMicrosMap;
+	worker::View *view;
+	std::unordered_set<worker::EntityId> authoritativeClients;
+	std::unordered_map<worker::EntityId, std::string> clientWorkerIds;
 };
 
 const int halfMapWidth = 100;
@@ -94,9 +96,10 @@ const EntityId firstChunkEntityId = 12;
 const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 const int numChunkRows = 2 * halfMapHeight / chunkSize;
 const int numPlayerPositionAttempts = 10;
+const int64_t maxHeartbeatTimeoutMs = 5000;
 
 static void onLogMessage(const worker::LogData& logData);
-static void clientCleanupTick(void *clientCleanupTickContextPointer);
+static void clientCleanupTick(void *contextPointer);
 static Vector4 colorFromHsv(float h, float s, float v);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int &chunkX, int &chunkZ, int &tileX, int &tileZ);
@@ -132,7 +135,7 @@ int main(int argc, char **argv) {
 	const std::string hostname = argv[2];
 	const std::uint16_t port = static_cast<std::uint16_t>(std::stoi(argv[3]));
 	const std::string logFileLocation = argv[4];
-	const int tickRateHz = 10;
+	const int tickRateHz = 100;
 	const int clientCleanupTickRateHz = 2;
 	const int64_t maxHeartbeatTimeoutMs = 5000;
 	EntityId cubeDrawableEntityId = 2;
@@ -157,7 +160,8 @@ int main(int argc, char **argv) {
 		Bootstrap,
 		Canvas,
 		Client,
-		ClientHeartbeat,
+		ClientHeartbeatPing,
+		ClientHeartbeatPong,
 		ClientInfo,
 		Drawable,
 		EntityAcl,
@@ -179,6 +183,11 @@ int main(int argc, char **argv) {
 	bool disconnected = false;
 	worker::View view{components};
 	worker::Dispatcher &dispatcher = view;
+
+	ServerContext context;
+	context.connection = &connection;
+	context.view = &view;
+	context.authoritativeClients = {};
 
 	const Option<std::string>& flagOption = connection.GetWorkerFlag("game_type");
 	bool isTiles = flagOption && *flagOption == "tiles";
@@ -222,47 +231,48 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Authority change to %d for entity %lld.", op.Authority, op.EntityId);
 	});
 
-	dispatcher.OnAddComponent<ClientHeartbeat>([&](const worker::AddComponentOp<ClientHeartbeat> &op) {
-		shovelerLogInfo("Added client heartbeat for entity %lld.", op.EntityId);
-		connectedClients.insert(op.EntityId);
-	});
-
-	dispatcher.OnComponentUpdate<ClientHeartbeat>([&](const worker::ComponentUpdateOp<ClientHeartbeat> &op) {
-		const auto &authorityQuery = view.ComponentAuthority.find(op.EntityId);
-		if(authorityQuery != view.ComponentAuthority.end()) {
-			const auto &componentAuthorityQuery = authorityQuery->second.find(ClientHeartbeat::ComponentId);
-			if(componentAuthorityQuery != authorityQuery->second.end() && componentAuthorityQuery->second == Authority::kAuthoritative) {
-				if(lastHeartbeatMicrosMap.find(op.EntityId) != lastHeartbeatMicrosMap.end()) {
-					std::string clientWorkerId = "(unknown)";
-					const auto &clientInfoComponentOption = view.Entities[op.EntityId].Get<ClientInfo>();
-					if(clientInfoComponentOption) {
-						clientWorkerId = clientInfoComponentOption->worker_id();
-					}
-
-					lastHeartbeatMicrosMap[op.EntityId] = std::make_pair(clientWorkerId, view.Entities[op.EntityId].Get<ClientHeartbeat>()->last_server_heartbeat());
-					shovelerLogTrace("Updated client heartbeat for entity %lld.", op.EntityId);
-				}
-			}
-		}
-	});
-
-	dispatcher.OnRemoveComponent<ClientHeartbeat>([&](const worker::RemoveComponentOp &op) {
-		shovelerLogInfo("Removed client heartbeat for entity %lld.", op.EntityId);
-		connectedClients.erase(op.EntityId);
-	});
-
-	dispatcher.OnAuthorityChange<ClientHeartbeat>([&](const worker::AuthorityChangeOp &op) {
-		shovelerLogInfo("Changing heartbeat authority for entity %lld to %d.", op.EntityId, op.Authority);
+	dispatcher.OnAuthorityChange<ClientHeartbeatPong>([&](const worker::AuthorityChangeOp &op) {
 		if(op.Authority == Authority::kAuthoritative) {
-			int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
-			lastHeartbeatMicrosMap[op.EntityId] = std::make_pair("(unknown)", initialHeartbeat);
-
-			ClientHeartbeat::Update heartbeatUpdate;
-			heartbeatUpdate.set_last_server_heartbeat(initialHeartbeat);
-			connection.SendComponentUpdate<ClientHeartbeat>(op.EntityId, heartbeatUpdate);
+			context.authoritativeClients.insert(op.EntityId);
+			shovelerLogInfo("Added authoritative client %lld.", op.EntityId);
 		} else if(op.Authority == Authority::kNotAuthoritative) {
-			lastHeartbeatMicrosMap.erase(op.EntityId);
+			context.authoritativeClients.erase(op.EntityId);
+			shovelerLogInfo("Removed authoritative client %lld.", op.EntityId);
 		}
+	});
+
+	dispatcher.OnAddComponent<ClientInfo>([&](const worker::AddComponentOp<ClientInfo> &op) {
+		context.clientWorkerIds[op.EntityId] = op.Data.worker_id();
+	});
+
+	dispatcher.OnRemoveComponent<ClientInfo>([&](const worker::RemoveComponentOp &op) {
+		context.clientWorkerIds.erase(op.EntityId);
+	});
+
+	dispatcher.OnComponentUpdate<ClientHeartbeatPing>([&](const worker::ComponentUpdateOp<ClientHeartbeatPing> &op) {
+		if(!op.Update.last_updated_time()) {
+			return;
+		}
+
+		const auto &authorityQuery = view.ComponentAuthority.find(op.EntityId);
+		if(authorityQuery == view.ComponentAuthority.end()) {
+			return;
+		}
+
+		const auto &componentAuthorityQuery = authorityQuery->second.find(ClientHeartbeatPong::ComponentId);
+		if(componentAuthorityQuery == authorityQuery->second.end()) {
+			return;
+		}
+
+		if(componentAuthorityQuery->second != Authority::kAuthoritative) {
+			return;
+		}
+
+		ClientHeartbeatPong::Update heartbeatPongUpdate;
+		heartbeatPongUpdate.set_last_updated_time(*op.Update.last_updated_time());
+		connection.SendComponentUpdate<ClientHeartbeatPong>(op.EntityId, heartbeatPongUpdate);
+
+		shovelerLogTrace("Reflected client %lld heartbeat pong update.", op.EntityId);
 	});
 
 	dispatcher.OnCommandRequest<CreateClientEntity>([&](const worker::CommandRequestOp<CreateClientEntity> &op) {
@@ -271,10 +281,13 @@ int main(int argc, char **argv) {
 		Coordinates playerImprobablePosition = getNewPlayerPosition(connection, view, op.Request);
 		ShovelerVector3 playerPosition = remapImprobablePosition(playerImprobablePosition, isTiles);
 
+		int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
+
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({});
-		clientEntity.Add<ClientHeartbeat>({0});
+		clientEntity.Add<ClientHeartbeatPing>({initialHeartbeat});
+		clientEntity.Add<ClientHeartbeatPong>({initialHeartbeat});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<ImprobablePosition>(playerImprobablePosition);
 		clientEntity.Add<Position>({{playerPosition.values[0], playerPosition.values[1], playerPosition.values[2]}});
@@ -294,7 +307,8 @@ int main(int argc, char **argv) {
 		WorkerRequirementSet clientAndServerRequirementSet({clientAttributeSet, serverAttributeSet});
 		worker::Map<std::uint32_t, WorkerRequirementSet> clientEntityComponentAclMap;
 		clientEntityComponentAclMap.insert({{Client::ComponentId, specificClientRequirementSet}});
-		clientEntityComponentAclMap.insert({{ClientHeartbeat::ComponentId, serverRequirementSet}});
+		clientEntityComponentAclMap.insert({{ClientHeartbeatPing::ComponentId, specificClientRequirementSet}});
+		clientEntityComponentAclMap.insert({{ClientHeartbeatPong::ComponentId, serverRequirementSet}});
 		clientEntityComponentAclMap.insert({{Interest::ComponentId, specificClientRequirementSet}});
 		clientEntityComponentAclMap.insert({{ImprobablePosition::ComponentId, specificClientRequirementSet}});
 		clientEntityComponentAclMap.insert({{Position::ComponentId, specificClientRequirementSet}});
@@ -343,42 +357,6 @@ int main(int argc, char **argv) {
 		if(!commandResponseSent) {
 			shovelerLogError("Failed to send create client entity command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
 		}
-	});
-
-	dispatcher.OnCommandRequest<ClientPing>([&](const worker::CommandRequestOp<ClientPing> &op) {
-		worker::EntityId clientEntityId = op.Request.client();
-		worker::Map<worker::EntityId, worker::Map<worker::ComponentId, Authority>>::const_iterator entityAuthorityQuery = view.ComponentAuthority.find(clientEntityId);
-		if(entityAuthorityQuery == view.ComponentAuthority.end()) {
-			shovelerLogWarning("Received client ping from %s for unknown client entity %lld, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
-			return;
-		}
-		const worker::Map<worker::ComponentId, Authority> &componentAuthorityMap = entityAuthorityQuery->second;
-
-		worker::Map<worker::ComponentId, Authority>::const_iterator componentAuthorityQuery = componentAuthorityMap.find(ClientHeartbeat::ComponentId);
-		if(componentAuthorityQuery == componentAuthorityMap.end()) {
-			shovelerLogWarning("Received client ping from %s for client entity %lld without client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
-			return;
-		}
-		const Authority &HeartbeatAuthority = componentAuthorityQuery->second;
-
-		if(HeartbeatAuthority != Authority::kAuthoritative) {
-			shovelerLogWarning("Received client ping from %s for client entity %lld without authoritative client heartbeat component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
-			return;
-		}
-
-		int64_t now = g_get_monotonic_time();
-
-		ClientHeartbeat::Update heartbeatUpdate;
-		heartbeatUpdate.set_last_server_heartbeat(now);
-		connection.SendComponentUpdate<ClientHeartbeat>(clientEntityId, heartbeatUpdate);
-
-		Result<None> commandResponseSent = connection.SendCommandResponse<ClientPing>(op.RequestId, {now});
-		if(!commandResponseSent) {
-			shovelerLogError("Failed to send client ping command %lld response: %s", op.RequestId.Id, commandResponseSent.GetErrorMessage().c_str());
-			return;
-		}
-
-		shovelerLogTrace("Received client ping from %s for client entity %lld.", op.CallerWorkerId.c_str(), clientEntityId);
 	});
 
 	dispatcher.OnCommandRequest<ClientSpawnCube>([&](const worker::CommandRequestOp<ClientSpawnCube> &op) {
@@ -541,9 +519,8 @@ int main(int argc, char **argv) {
 		shovelerLogInfo("Received delete entity response for request %lld with status code %d: %s", op.RequestId.Id, op.StatusCode, op.Message.c_str());
 	});
 
-	ClientCleanupTickContext cleanupTickContext{&connection, maxHeartbeatTimeoutMs, &lastHeartbeatMicrosMap};
 	uint32_t clientCleanupTickPeriod = (uint32_t) (1000.0 / (double) clientCleanupTickRateHz);
-	shovelerExecutorSchedulePeriodic(tickExecutor, 0, clientCleanupTickPeriod, clientCleanupTick, &cleanupTickContext);
+	shovelerExecutorSchedulePeriodic(tickExecutor, 0, clientCleanupTickPeriod, clientCleanupTick, &context);
 
 	uint32_t executorTickPeriod = (uint32_t) (1000.0 / (double) tickRateHz);
 	while(!disconnected) {
@@ -575,18 +552,34 @@ static void onLogMessage(const worker::LogData& logData)
 	}
 }
 
-static void clientCleanupTick(void *clientCleanupTickContextPointer) {
-	ClientCleanupTickContext *context = (ClientCleanupTickContext *) clientCleanupTickContextPointer;
+static void clientCleanupTick(void *contextPointer) {
+	ServerContext *context = (ServerContext *) contextPointer;
 
 	int64_t now = g_get_monotonic_time();
-	for(const auto &item: *context->lastHeartbeatMicrosMap) {
-		worker::EntityId entityId = item.first;
-		const std::string &workerId = item.second.first;
-		int64_t last = item.second.second;
+	for(const auto& authoritativeClient : context->authoritativeClients) {
+		auto entityQuery = context->view->Entities.find(authoritativeClient);
+		if(entityQuery == context->view->Entities.end()) {
+			continue;
+		}
+		auto& entity = entityQuery->second;
+
+		auto pongData = entity.Get<ClientHeartbeatPong>();
+		if(!pongData) {
+			continue;
+		}
+
+		int64_t last = pongData->last_updated_time();
 		int64_t diff = now - last;
-		if(diff > 1000 * context->maxHeartbeatTimeoutMs) {
-			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(item.first, {});
-			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", entityId, deleteEntityRequestId.Id, workerId.c_str(), context->maxHeartbeatTimeoutMs);
+		if(diff > 1000 * maxHeartbeatTimeoutMs) {
+			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(authoritativeClient, {});
+
+			std::string clientWorkerId = "(unknown)";
+			auto clientWorkerIdQuery = context->clientWorkerIds.find(authoritativeClient);
+			if(clientWorkerIdQuery != context->clientWorkerIds.end()) {
+				clientWorkerId = clientWorkerIdQuery->second;
+			}
+
+			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", authoritativeClient, deleteEntityRequestId.Id, clientWorkerId.c_str(), maxHeartbeatTimeoutMs);
 		}
 	}
 }

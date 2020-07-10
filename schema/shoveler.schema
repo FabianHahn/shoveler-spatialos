@@ -159,11 +159,18 @@ component ClientInfo {
 	float color_saturation = 3;
 }
 
-/** Component for the server worker to keep track of the last heartbeat sent by the client represented by this entity. */
-component ClientHeartbeat {
-	id = 1336;
-	/** Unix timestamp with the last heartbeat the client sent. */
-	int64 last_server_heartbeat = 1;
+/** Ping component regularly updated by client. */
+component ClientHeartbeatPing {
+	id = 13351;
+	/** Unix timestamp with the last ping time the client sent. */
+	int64 last_updated_time = 1;
+}
+
+/** Pong component that reflects client pings from server back to client. */
+component ClientHeartbeatPong {
+	id = 13352;
+	/** Unix timestamp with the last pong time the server sent. */
+	int64 last_updated_time = 1;
 }
 
 /** Represents a resource that is loaded as an asset into the game engine from a binary representation. */
