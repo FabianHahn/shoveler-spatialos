@@ -145,6 +145,7 @@ int main(int argc, char **argv) {
 	ClientContext context;
 	context.connection = connection;
 	context.clientConfiguration = &clientConfiguration;
+	context.clientEntityId = 0;
 	context.disconnected = false;
 	context.clientPingTickCallback = NULL;
 	context.clientInterestAuthoritative = false;
