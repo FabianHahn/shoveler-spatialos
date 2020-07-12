@@ -6,6 +6,9 @@
 #include <shoveler/component/canvas.h>
 #include <shoveler/component/client.h>
 #include <shoveler/component/drawable.h>
+#include <shoveler/component/font.h>
+#include <shoveler/component/font_atlas.h>
+#include <shoveler/component/font_atlas_texture.h>
 #include <shoveler/component/image.h>
 #include <shoveler/component/light.h>
 #include <shoveler/component/material.h>
@@ -14,6 +17,8 @@
 #include <shoveler/component/resource.h>
 #include <shoveler/component/sampler.h>
 #include <shoveler/component/sprite.h>
+#include <shoveler/component/texture_sprite.h>
+#include <shoveler/component/text_texture_renderer.h>
 #include <shoveler/component/texture.h>
 #include <shoveler/component/tile_sprite.h>
 #include <shoveler/component/tile_sprite_animation.h>
@@ -65,6 +70,8 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdTileSprite;
 		case 13421:
 			return shovelerComponentTypeIdTilemapSprite;
+		case 13423:
+			return shovelerComponentTypeIdTextureSprite;
 		case 1343:
 			return shovelerComponentTypeIdTileSpriteAnimation;
 		case 1344:
@@ -81,6 +88,14 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 			return shovelerComponentTypeIdSampler;
 		case 134132:
 			return shovelerComponentTypeIdTilemapColliders;
+		case 1350:
+			return shovelerComponentTypeIdFont;
+		case 1351:
+			return shovelerComponentTypeIdFontAtlas;
+		case 1352:
+			return shovelerComponentTypeIdFontAtlasTexture;
+		case 1353:
+			return shovelerComponentTypeIdTextTextureRenderer;
 		default:
 			return NULL;
 	}
@@ -152,6 +167,9 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	if(componentTypeId == shovelerComponentTypeIdTilemapSprite) {
 		return 13421;
 	}
+	if(componentTypeId == shovelerComponentTypeIdTextureSprite) {
+		return 13423;
+	}
 	if(componentTypeId == shovelerComponentTypeIdTileSpriteAnimation) {
 		return 1343;
 	}
@@ -175,6 +193,18 @@ int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 	}
 	if(componentTypeId == shovelerComponentTypeIdTilemapColliders) {
 		return 134132;
+	}
+	if(componentTypeId == shovelerComponentTypeIdFont) {
+		return 1350;
+	}
+	if(componentTypeId == shovelerComponentTypeIdFontAtlas) {
+		return 1351;
+	}
+	if(componentTypeId == shovelerComponentTypeIdFontAtlasTexture) {
+		return 1352;
+	}
+	if(componentTypeId == shovelerComponentTypeIdTextTextureRenderer) {
+		return 1353;
 	}
 	return 0;
 }
@@ -200,6 +230,11 @@ void shovelerClientRegisterViewComponentTypes(ShovelerView *view)
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapSpriteType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilemapTilesType());
 	shovelerViewAddComponentType(view, shovelerComponentCreateTilesetType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateTextureSpriteType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateFontType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateFontAtlasType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateFontAtlasTextureType());
+	shovelerViewAddComponentType(view, shovelerComponentCreateTextTextureRendererType());
 }
 
 void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *component, Schema_ComponentData *componentData, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ)
