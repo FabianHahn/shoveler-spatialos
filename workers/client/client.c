@@ -548,12 +548,12 @@ static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, Shovele
 
 	// check if we also need to update our Improbable position
 	if(component->type->id == shovelerComponentTypeIdPosition && context->improbablePositionAuthoritative) {
-		ShovelerVector3 coordinates = shovelerComponentGetConfigurationValueVector3(component, SHOVELER_COMPONENT_POSITION_OPTION_ID_COORDINATES);
-		ShovelerVector3 difference = shovelerVector3LinearCombination(1.0f, coordinates, -1.0f, context->lastImprobablePosition);
+		const ShovelerVector3 *position = shovelerComponentGetPosition(component);
+		ShovelerVector3 difference = shovelerVector3LinearCombination(1.0f, *position, -1.0f, context->lastImprobablePosition);
 		float distance2 = shovelerVector3Dot(difference, difference);
 
 		if(distance2 > improbablePositionUpdateDistance * improbablePositionUpdateDistance) {
-			Schema_ComponentUpdate *componentUpdate = shovelerClientCreateImprobablePositionUpdate(coordinates, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
+			Schema_ComponentUpdate *componentUpdate = shovelerClientCreateImprobablePositionUpdate(*position, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
 
 			Worker_ComponentUpdate update;
 			update.component_id = 54;
@@ -564,7 +564,7 @@ static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, Shovele
 
 			Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
 
-			context->lastImprobablePosition = coordinates;
+			context->lastImprobablePosition = *position;
 		}
 	}
 }
@@ -742,7 +742,7 @@ static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCo
 	if(entity != NULL) {
 		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdPosition);
 		if (component != NULL) {
-			const ShovelerVector3 *coordinates = shovelerComponentGetPositionCoordinates(component);
+			const ShovelerVector3 *coordinates = shovelerComponentGetPosition(component);
 
 			// TODO: inverse mapping?
 			spatialOsPosition = shovelerVector3(

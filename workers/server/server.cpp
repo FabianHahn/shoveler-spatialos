@@ -49,6 +49,7 @@ using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Position;
+using shoveler::PositionType;
 using shoveler::PositionData;
 using shoveler::Resource;
 using shoveler::ResourceData;
@@ -277,7 +278,7 @@ int main(int argc, char **argv) {
 		clientEntity.Add<ClientHeartbeat>({0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<ImprobablePosition>(playerImprobablePosition);
-		clientEntity.Add<Position>({{playerPosition.values[0], playerPosition.values[1], playerPosition.values[2]}});
+		clientEntity.Add<Position>({PositionType::ABSOLUTE, {playerPosition.values[0], playerPosition.values[1], playerPosition.values[2]}, {}});
 
 		QueryConstraint relativeConstraint;
 		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
@@ -315,7 +316,7 @@ int main(int argc, char **argv) {
 				tilesetEntityId = character4AnimationTilesetEntityId;
 			}
 
-			clientEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, false, canvasEntityId, 1, {1.0f, 1.0f}, {0}, {}});
+			clientEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, false, canvasEntityId, 1, {1.0f, 1.0f}, {0}, {}, {}});
 			clientEntity.Add<TileSprite>({canvasEntityId, tilesetEntityId, 0, 0});
 			clientEntity.Add<TileSpriteAnimation>({0, 0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, 0.5});
 		} else {
@@ -414,7 +415,7 @@ int main(int argc, char **argv) {
 		cubeEntity.Add<Metadata>({"cube"});
 		cubeEntity.Add<Persistence>({});
 		cubeEntity.Add<ImprobablePosition>({cubeImprobablePosition});
-		cubeEntity.Add<Position>({{cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}});
+		cubeEntity.Add<Position>({PositionType::ABSOLUTE, {cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}, {}});
 		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, cubeColor, {}, {}});
 		cubeEntity.Add<Model>({0, cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
 

@@ -32,6 +32,7 @@ using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Position;
+using shoveler::PositionType;
 using shoveler::Vector4;
 using worker::ComponentRegistry;
 using worker::Components;
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
 	bootstrapEntity.Add<Metadata>({"bootstrap"});
 	bootstrapEntity.Add<Persistence>({});
 	bootstrapEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	bootstrapEntity.Add<Position>({{0, 0, 0}});
+	bootstrapEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	bootstrapEntity.Add<Bootstrap>({});
 	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
 	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
 	cubeDrawableEntity.Add<Metadata>({"drawable"});
 	cubeDrawableEntity.Add<Persistence>({});
 	cubeDrawableEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	cubeDrawableEntity.Add<Position>({{0, 0, 0}});
+	cubeDrawableEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	cubeDrawableEntity.Add<Drawable>({DrawableType::CUBE, {}, {}});
 	cubeDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId cubeDrawableEntityId = 2;
@@ -117,7 +118,7 @@ int main(int argc, char **argv) {
 	quadDrawableEntity.Add<Metadata>({"drawable"});
 	quadDrawableEntity.Add<Persistence>({});
 	quadDrawableEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	quadDrawableEntity.Add<Position>({{0, 0, 0}});
+	quadDrawableEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	quadDrawableEntity.Add<Drawable>({DrawableType::QUAD, {}, {}});
 	quadDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId quadDrawableEntityId = 3;
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
 	pointDrawableEntity.Add<Metadata>({"drawable"});
 	pointDrawableEntity.Add<Persistence>({});
 	pointDrawableEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	pointDrawableEntity.Add<Position>({{0, 0, 0}});
+	pointDrawableEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	pointDrawableEntity.Add<Drawable>({DrawableType::POINT, {}, {}});
 	pointDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId pointDrawableEntityId = 4;
@@ -137,7 +138,7 @@ int main(int argc, char **argv) {
 	grayColorMaterialEntity.Add<Metadata>({"material"});
 	grayColorMaterialEntity.Add<Persistence>({});
 	grayColorMaterialEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	grayColorMaterialEntity.Add<Position>({{0, 0, 0}});
+	grayColorMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	grayColorMaterialEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, grayColor, {}, {}});
 	grayColorMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId grayColorMaterialEntityId = 5;
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
 	whiteParticleMaterialEntity.Add<Metadata>({"material"});
 	whiteParticleMaterialEntity.Add<Persistence>({});
 	whiteParticleMaterialEntity.Add<ImprobablePosition>({{0, 0, 0}});
-	whiteParticleMaterialEntity.Add<Position>({{0, 0, 0}});
+	whiteParticleMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 0}, {}});
 	whiteParticleMaterialEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, whiteColor, {}, {}});
 	whiteParticleMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	EntityId whiteParticleMaterialEntityId = 6;
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
 	planeEntity.Add<Metadata>({"plane"});
 	planeEntity.Add<Persistence>({});
 	planeEntity.Add<ImprobablePosition>({{0, -2, 0}});
-	planeEntity.Add<Position>({{0, -2, 0}});
+	planeEntity.Add<Position>({PositionType::ABSOLUTE, {0, -2, 0}, {}});
 	planeEntity.Add<Model>({currentEntityId, quadDrawableEntityId, grayColorMaterialEntityId, {SHOVELER_PI / 2.0f, 0.0f, 0.0f}, {25.0f, 25.0f, 1.0f}, true, false, true, PolygonMode::FILL});
 	planeEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[currentEntityId++] = planeEntity;
@@ -168,7 +169,7 @@ int main(int argc, char **argv) {
 	cubeEntity.Add<Metadata>({"cube"});
 	cubeEntity.Add<Persistence>({});
 	cubeEntity.Add<ImprobablePosition>({{0, 0, 5}});
-	cubeEntity.Add<Position>({{0, 0, 5}});
+	cubeEntity.Add<Position>({PositionType::ABSOLUTE, {0, 0, 5}, {}});
 	cubeEntity.Add<Model>({currentEntityId, cubeDrawableEntityId, grayColorMaterialEntityId, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, true, false, true, PolygonMode::FILL});
 	cubeEntity.Add<EntityAcl>({clientRequirementSet, {}});
 	entities[currentEntityId++] = cubeEntity;
@@ -177,7 +178,7 @@ int main(int argc, char **argv) {
 	lightEntity.Add<Metadata>({"light"});
 	lightEntity.Add<Persistence>({});
 	lightEntity.Add<ImprobablePosition>({{1, 5, -1}});
-	lightEntity.Add<Position>({{-1, 5, -1}});
+	lightEntity.Add<Position>({PositionType::ABSOLUTE, {-1, 5, -1}, {}});
 	lightEntity.Add<Model>({currentEntityId, pointDrawableEntityId, whiteParticleMaterialEntityId, {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.0f}, true, true, false, PolygonMode::FILL});
 	lightEntity.Add<Light>({currentEntityId, LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {1.0f, 1.0f, 1.0f}});
 	lightEntity.Add<EntityAcl>({clientRequirementSet, {}});

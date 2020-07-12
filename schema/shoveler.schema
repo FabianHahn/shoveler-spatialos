@@ -119,10 +119,18 @@ type UpdateResourceResponse {
 
 }
 
+enum PositionType {
+	ABSOLUTE = 0;
+	RELATIVE = 1;
+}
+
 /** High frequency position component. */
 component Position {
     id = 5454;
-    Vector3 coordinates = 1;
+	PositionType type = 1;
+	Vector3 coordinates = 2;
+	/** If type is relative, specifies a dependency entity ID containing a Position component parent position. */
+	option<EntityId> relative_parent_position = 3;
 }
 
 /** Bootstrap component authoritative on the server worker that acts as client-facing server API. */
@@ -312,6 +320,8 @@ component Sprite {
 	option<EntityId> tile_sprite = 9;
 	/** Dependency entity ID containing a TilemapSprite component referenced by this sprite. */
 	option<EntityId> tilemap_sprite = 10;
+	/** Dependency entity ID containing a TextureSprite component referenced by this sprite. */
+	option<EntityId> texture_sprite = 11;
 }
 
 /** Represents a sprite that is rendered as a single tile from a tileset. */
@@ -334,6 +344,15 @@ component TilemapSprite {
 	EntityId material = 1;
 	/** Dependency entity ID containing a Tilemap component referenced by this tilemap sprite. */
 	EntityId tilemap = 2;
+}
+
+/** Represents a sprite that is rendered as a single texture. */
+component TextureSprite {
+	id = 13423;
+	/** Dependency entity ID containing a Material component referenced by this texture sprite. */
+	EntityId material = 1;
+	/** Dependency entity ID containing a Texture component referenced by this texture sprite. */
+	EntityId texture = 2;
 }
 
 /**

@@ -40,6 +40,7 @@ using shoveler::MaterialType;
 using shoveler::Model;
 using shoveler::PolygonMode;
 using shoveler::Position;
+using shoveler::PositionType;
 using shoveler::Resource;
 using shoveler::Sampler;
 using shoveler::Sprite;
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
 	bootstrapEntity.Add<Metadata>({"bootstrap"});
 	bootstrapEntity.Add<Persistence>({});
 	bootstrapEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	bootstrapEntity.Add<Position>({{-100, -100, -100}});
+	bootstrapEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	bootstrapEntity.Add<Bootstrap>({});
 	Map<std::uint32_t, WorkerRequirementSet> bootstrapComponentAclMap;
 	bootstrapComponentAclMap.insert({{Bootstrap::ComponentId, serverRequirementSet}});
@@ -148,7 +149,7 @@ int main(int argc, char **argv) {
 	quadDrawableEntity.Add<Metadata>({"drawable"});
 	quadDrawableEntity.Add<Persistence>({});
 	quadDrawableEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	quadDrawableEntity.Add<Position>({{-100, -100, -100}});
+	quadDrawableEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	quadDrawableEntity.Add<Drawable>({DrawableType::QUAD, {}, {}});
 	quadDrawableEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[2] = quadDrawableEntity;
@@ -163,7 +164,7 @@ int main(int argc, char **argv) {
 	tilesetEntity.Add<Metadata>({"tileset"});
 	tilesetEntity.Add<Persistence>({});
 	tilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	tilesetEntity.Add<Position>({{-100, -100, -100}});
+	tilesetEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	tilesetEntity.Add<Resource>({std::string{imageData->str, imageData->len}});
 	tilesetEntity.Add<Image>({ImageFormat::PNG, 3});
 	tilesetEntity.Add<Sampler>({true, false, true});
@@ -180,7 +181,7 @@ int main(int argc, char **argv) {
 	tilesetPngEntity.Add<Metadata>({"tileset"});
 	tilesetPngEntity.Add<Persistence>({});
 	tilesetPngEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	tilesetPngEntity.Add<Position>({{-100, -100, -100}});
+	tilesetPngEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	tilesetPngEntity.Add<Resource>({std::string{tilesetPngData->str, tilesetPngData->len}});
 	tilesetPngEntity.Add<Image>({ImageFormat::PNG, 4});
 	tilesetPngEntity.Add<Sampler>({true, false, true});
@@ -199,7 +200,7 @@ int main(int argc, char **argv) {
 	characterAnimationTilesetEntity.Add<Metadata>({"tileset"});
 	characterAnimationTilesetEntity.Add<Persistence>({});
 	characterAnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	characterAnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	characterAnimationTilesetEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	characterAnimationTilesetEntity.Add<Resource>({std::string{characterAnimationTilesetPngData->str, characterAnimationTilesetPngData->len}});
 	characterAnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 5});
 	characterAnimationTilesetEntity.Add<Sampler>({true, false, true});
@@ -218,7 +219,7 @@ int main(int argc, char **argv) {
 	character2AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character2AnimationTilesetEntity.Add<Persistence>({});
 	character2AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	character2AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character2AnimationTilesetEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	character2AnimationTilesetEntity.Add<Resource>({std::string{character2AnimationTilesetPngData->str, character2AnimationTilesetPngData->len}});
 	character2AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 6});
 	character2AnimationTilesetEntity.Add<Sampler>({true, false, true});
@@ -237,7 +238,7 @@ int main(int argc, char **argv) {
 	character3AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character3AnimationTilesetEntity.Add<Persistence>({});
 	character3AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	character3AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character3AnimationTilesetEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	character3AnimationTilesetEntity.Add<Resource>({std::string{character3AnimationTilesetPngData->str, character3AnimationTilesetPngData->len}});
 	character3AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 7});
 	character3AnimationTilesetEntity.Add<Sampler>({true, false, true});
@@ -256,7 +257,7 @@ int main(int argc, char **argv) {
 	character4AnimationTilesetEntity.Add<Metadata>({"tileset"});
 	character4AnimationTilesetEntity.Add<Persistence>({});
 	character4AnimationTilesetEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	character4AnimationTilesetEntity.Add<Position>({{-100, -100, -100}});
+	character4AnimationTilesetEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	character4AnimationTilesetEntity.Add<Resource>({std::string{character4AnimationTilesetPngData->str, character4AnimationTilesetPngData->len}});
 	character4AnimationTilesetEntity.Add<Image>({ImageFormat::PNG, 8});
 	character4AnimationTilesetEntity.Add<Sampler>({true, false, true});
@@ -272,7 +273,7 @@ int main(int argc, char **argv) {
 	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	canvasEntity.Add<Position>({{-100, -100, -100}});
+	canvasEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	canvasEntity.Add<Canvas>({3});
 	worker::Map<std::uint32_t, WorkerRequirementSet> canvasComponentAclMap;
 	canvasComponentAclMap.insert({{Canvas::ComponentId, serverRequirementSet}});
@@ -285,7 +286,7 @@ int main(int argc, char **argv) {
 	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
 	tileSpriteMaterialEntity.Add<Persistence>({});
 	tileSpriteMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	tileSpriteMaterialEntity.Add<Position>({{-100, -100, -100}});
+	tileSpriteMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	tileSpriteMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[tileSpriteMaterialEntityId] = tileSpriteMaterialEntity;
 
@@ -295,7 +296,7 @@ int main(int argc, char **argv) {
 	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}});
 	tilemapMaterialEntity.Add<Persistence>({});
 	tilemapMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
-	tilemapMaterialEntity.Add<Position>({{-100, -100, -100}});
+	tilemapMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
 	tilemapMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[tilemapMaterialEntityId] = tilemapMaterialEntity;
 
@@ -312,12 +313,12 @@ int main(int argc, char **argv) {
 		chunkBackgroundEntity.Add<Metadata>({"chunk_background"});
 		chunkBackgroundEntity.Add<Persistence>({});
 		chunkBackgroundEntity.Add<ImprobablePosition>({chunkImprobablePosition});
-		chunkBackgroundEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
+		chunkBackgroundEntity.Add<Position>({PositionType::ABSOLUTE, {chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}, {}});
 		chunkBackgroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.backgroundTiles.tilesetColliders});
 		chunkBackgroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.backgroundTiles.tilesetColumns}, {chunk.backgroundTiles.tilesetRows}, {chunk.backgroundTiles.tilesetIds}});
 		chunkBackgroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
 		chunkBackgroundEntity.Add<TilemapSprite>({tilemapMaterialEntityId, nextEntityId});
-		chunkBackgroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 0, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}});
+		chunkBackgroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 0, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}, {}});
 		worker::Map<std::uint32_t, WorkerRequirementSet> chunkBackgroundComponentAclMap;
 		chunkBackgroundComponentAclMap.insert({{TilemapTiles::ComponentId, serverRequirementSet}});
 		chunkBackgroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, chunkBackgroundComponentAclMap});
@@ -329,12 +330,12 @@ int main(int argc, char **argv) {
 		chunkForegroundEntity.Add<Metadata>({"chunk_foreground"});
 		chunkForegroundEntity.Add<Persistence>({});
 		chunkForegroundEntity.Add<ImprobablePosition>({chunkImprobablePosition});
-		chunkForegroundEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
+		chunkForegroundEntity.Add<Position>({PositionType::ABSOLUTE, {chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}, {}});
 		chunkForegroundEntity.Add<TilemapColliders>({(int32_t) chunkSize, (int32_t) chunkSize, chunk.foregroundTiles.tilesetColliders});
 		chunkForegroundEntity.Add<TilemapTiles>({{}, {chunkSize}, {chunkSize}, {chunk.foregroundTiles.tilesetColumns}, {chunk.foregroundTiles.tilesetRows}, {chunk.foregroundTiles.tilesetIds}});
 		chunkForegroundEntity.Add<Tilemap>({nextEntityId, nextEntityId, {3, 4}});
 		chunkForegroundEntity.Add<TilemapSprite>({tilemapMaterialEntityId, nextEntityId});
-		chunkForegroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 2, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}});
+		chunkForegroundEntity.Add<Sprite>({nextEntityId, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, true, canvasEntityId, 2, {(float) chunkSize, (float) chunkSize}, {}, {nextEntityId}, {}});
 		chunkForegroundEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		EntityId foregroundEntityId = nextEntityId;
 		entities[foregroundEntityId] = chunkForegroundEntity;
@@ -344,7 +345,7 @@ int main(int argc, char **argv) {
 		chunkEntity.Add<Metadata>({"chunk"});
 		chunkEntity.Add<Persistence>({});
 		chunkEntity.Add<ImprobablePosition>({chunkImprobablePosition});
-		chunkEntity.Add<Position>({{chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}});
+		chunkEntity.Add<Position>({PositionType::ABSOLUTE, {chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}, {}});
 		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
