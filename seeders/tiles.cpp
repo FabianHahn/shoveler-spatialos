@@ -33,6 +33,9 @@ using shoveler::Client;
 using shoveler::CoordinateMapping;
 using shoveler::Drawable;
 using shoveler::DrawableType;
+using shoveler::Font;
+using shoveler::FontAtlas;
+using shoveler::FontAtlasTexture;
 using shoveler::Image;
 using shoveler::ImageFormat;
 using shoveler::Material;
@@ -45,7 +48,11 @@ using shoveler::Resource;
 using shoveler::Sampler;
 using shoveler::Sprite;
 using shoveler::Texture;
+using shoveler::TextureMaterialType;
+using shoveler::TextureSprite;
+using shoveler::TextureSpriteMaterialType;
 using shoveler::TextureType;
+using shoveler::TextTextureRenderer;
 using shoveler::Tilemap;
 using shoveler::TilemapColliders;
 using shoveler::TilemapSprite;
@@ -73,8 +80,8 @@ static const unsigned int chunkSize = 10;
 int main(int argc, char **argv) {
 	shovelerLogInit("ShovelCrest/workers/cmake/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 
-	if (argc != 10) {
-		shovelerLogError("Usage:\n\t%s <tileset png> <tileset columns> <tileset rows> <character png> <character2 png> <character3 png> <character4 png> <character shift amount> <seed snapshot file>", argv[0]);
+	if (argc != 11) {
+		shovelerLogError("Usage:\n\t%s <tileset png> <tileset columns> <tileset rows> <character png> <character2 png> <character3 png> <character4 png> <character shift amount> <font file> <seed snapshot file>", argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -86,7 +93,8 @@ int main(int argc, char **argv) {
 	std::string character3PngFilename(argv[6]);
 	std::string character4PngFilename(argv[7]);
 	int characterShiftAmount = atoi(argv[8]);
-	std::string snapshotFilename(argv[9]);
+	std::string fontFilename(argv[9]);
+	std::string snapshotFilename(argv[10]);
 
 	const ComponentRegistry& components = Components<
 		Bootstrap,
@@ -94,6 +102,9 @@ int main(int argc, char **argv) {
 		Client,
 		Drawable,
 		EntityAcl,
+		Font,
+		FontAtlas,
+		FontAtlasTexture,
 		Image,
 		ImprobablePosition,
 		Interest,
@@ -106,6 +117,8 @@ int main(int argc, char **argv) {
 		Sampler,
 		Sprite,
 		Texture,
+		TextureSprite,
+		TextTextureRenderer,
 		Tilemap,
 		TilemapColliders,
 		TilemapSprite,
@@ -300,7 +313,31 @@ int main(int argc, char **argv) {
 	tilemapMaterialEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 	entities[tilemapMaterialEntityId] = tilemapMaterialEntity;
 
-	EntityId nextEntityId = 12;
+	unsigned char *fontFileContents;
+	size_t fontFileSize;
+	if(!shovelerFileRead(fontFilename.c_str(), &fontFileContents, &fontFileSize)) {
+		return EXIT_FAILURE;
+	}
+
+	EntityId fontEntityId = 12;
+	Entity fontEntity;
+	fontEntity.Add<Metadata>({"font"});
+	fontEntity.Add<Persistence>({});
+	fontEntity.Add<ImprobablePosition>({{-100, -100, -100}});
+	fontEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
+	fontEntity.Add<Resource>({std::string{(char *) fontFileContents, fontFileSize}});
+	fontEntity.Add<Font>({"OpenSans", 0});
+	fontEntity.Add<FontAtlas>({0, 42, 1});
+	fontEntity.Add<FontAtlasTexture>({0});
+	fontEntity.Add<TextTextureRenderer>({0});
+	fontEntity.Add<Sampler>({true, false, true});
+	fontEntity.Add<Material>({MaterialType::TEXTURE_SPRITE, {}, {TextureSpriteMaterialType::ALPHA_MASK}, {}, {}, {}, {}, {{0.2f, 0.8f, 0.2f, 1.0f}}, {}, {}});
+	fontEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	entities[fontEntityId] = fontEntity;
+
+	free(fontFileContents);
+
+	EntityId nextEntityId = 13;
 
 	List<ChunkData> chunks = generateMapChunks(10);
 	for(List<ChunkData>::const_iterator iter = chunks.begin(); iter != chunks.end(); ++iter) {
@@ -352,6 +389,18 @@ int main(int argc, char **argv) {
 		entities[nextEntityId] = chunkEntity;
 		nextEntityId++;
 	}
+
+	Entity textTestEntity;
+	textTestEntity.Add<Metadata>({"text"});
+	textTestEntity.Add<Persistence>({});
+	textTestEntity.Add<ImprobablePosition>({{0.0, 0.0, 0.0}});
+	textTestEntity.Add<Position>({PositionType::ABSOLUTE, {0.0f, 0.0f, 0.0f}, {}});
+	textTestEntity.Add<Texture>({TextureType::TEXT, {}, {fontEntityId}, {"hello world"}});
+	textTestEntity.Add<Sprite>({0, CoordinateMapping::POSITIVE_X, CoordinateMapping::POSITIVE_Y, false, canvasEntityId, 1, {6.0f, 1.0f}, {}, {}, {0}});
+	textTestEntity.Add<TextureSprite>({fontEntityId, 0, fontEntityId});
+	textTestEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
+	entities[nextEntityId] = textTestEntity;
+	nextEntityId++;
 
 	Result<SnapshotOutputStream, StreamErrorCode> outputStream = SnapshotOutputStream::Create(components, snapshotFilename);
 	if(!outputStream) {

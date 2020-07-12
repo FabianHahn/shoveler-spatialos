@@ -31,6 +31,8 @@ add_custom_command(TARGET seeder_tiles POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player2} $<TARGET_FILE_DIR:seeder_tiles>/assets/characters/
 	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player3} $<TARGET_FILE_DIR:seeder_tiles>/assets/characters/
 	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player4} $<TARGET_FILE_DIR:seeder_tiles>/assets/characters/
+	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:seeder_tiles>/assets/fonts
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_fonts_opensans} $<TARGET_FILE_DIR:seeder_tiles>/assets/fonts/
 	COMMAND seeder_tiles
 		$<TARGET_FILE_DIR:seeder_tiles>/assets/tilesets/spring.png 7 2
 		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player1.png
@@ -38,6 +40,7 @@ add_custom_command(TARGET seeder_tiles POST_BUILD
 		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player3.png
 		$<TARGET_FILE_DIR:seeder_tiles>/assets/characters/player4.png
 		5
+		$<TARGET_FILE_DIR:seeder_tiles>/assets/fonts/OpenSans.ttf
 		${CMAKE_CURRENT_BINARY_DIR}/tiles.snapshot
 )
 
