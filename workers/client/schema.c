@@ -557,11 +557,17 @@ static void updateStringConfigurationOption(ShovelerComponent *component, Shovel
 		shovelerComponentClearConfigurationOption(component, optionId, /* isCanonical */ true);
 		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
-		const char *stringValue = (const char *) Schema_GetBytes(fields, fieldId);
+		int bytesLength = (int) Schema_GetBytesLength(fields, fieldId);
+		const char *bytesValue = (const char *) Schema_GetBytes(fields, fieldId);
 
-		shovelerComponentUpdateCanonicalConfigurationOptionString(component, optionId, stringValue);
+		GString *stringValue = g_string_new("");
+		g_string_append_len(stringValue, bytesValue, bytesLength);
 
-		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to string value '%s'.", component->entityId, component->type->id, configurationOption->name, stringValue);
+		shovelerComponentUpdateCanonicalConfigurationOptionString(component, optionId, stringValue->str);
+
+		shovelerLogTrace("Updated entity %lld component '%s' option '%s' to string value '%s'.", component->entityId, component->type->id, configurationOption->name, stringValue->str);
+
+		g_string_free(stringValue, /* free_segment */ true);
 	}
 }
 
