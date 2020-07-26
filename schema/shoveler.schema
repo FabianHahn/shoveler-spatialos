@@ -42,8 +42,9 @@ enum MaterialType {
 	PARTICLE = 2;
 	TILEMAP = 3;
 	CANVAS = 4;
-	TILE_SPRITE = 5;
-	TEXT = 6;
+	TEXTURE_SPRITE = 5;
+	TILE_SPRITE = 6;
+	TEXT = 7;
 }
 
 /** Specifies an OpenGL polygon mode for rendering geometry. */
@@ -346,6 +347,8 @@ component TextureSprite {
 	EntityId material = 1;
 	/** Dependency entity ID containing a Texture component referenced by this texture sprite. */
 	EntityId texture = 2;
+	/** Dependency entity ID containing a Sampler component referenced by this texture sprite. */
+	EntityId sampler = 3;
 }
 
 /**
@@ -391,21 +394,29 @@ enum TextureMaterialType {
 	PHONG = 3;
 }
 
+/** Represents the type of a texture sprite material. */
+enum TextureSpriteMaterialType {
+	DEPTH = 0;
+	ALPHA_MASK = 1;
+	ALBEDO = 2;
+}
+
 /** Represents a material containing a shader that can be used to render geometry. */
 component Material {
 	id = 1347;
 	MaterialType type = 1;
 	option<TextureMaterialType> texture_type = 2;
-	option<EntityId> texture = 3;
-	option<EntityId> texture_sampler = 4;
-	option<EntityId> tilemap = 5;
-	option<EntityId> canvas = 6;
+	option<TextureSpriteMaterialType> texture_spritetype = 3;
+	option<EntityId> texture = 4;
+	option<EntityId> texture_sampler = 5;
+	option<EntityId> tilemap = 6;
+	option<EntityId> canvas = 7;
 	/** If type is set to COLOR, PARTICLE or TEXTURE (with ALPHA_MASK), specifies the color of the material. */
-	option<Vector4> color = 7;
+	option<Vector4> color = 8;
 	/** If type is set to CANVAS, specifies the position of the region to render by the material. */
-	option<Vector2> canvas_region_position = 8;
+	option<Vector2> canvas_region_position = 9;
 	/** If type is set to CANVAS, specifies the size of the region to render by the material. */
-	option<Vector2> canvas_region_size = 9;
+	option<Vector2> canvas_region_size = 10;
 }
 
 /**

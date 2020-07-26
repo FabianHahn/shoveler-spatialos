@@ -339,7 +339,7 @@ int main(int argc, char **argv) {
 			Vector4 playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
 			Vector4 playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
-			clientEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, {playerParticleColor}, {}, {}});
+			clientEntity.Add<Material>({MaterialType::PARTICLE, {}, {}, {}, {}, {}, {}, {playerParticleColor}, {}, {}});
 			clientEntity.Add<Model>({0, pointDrawableEntityId, 0, {0.0f, 0.0f, 0.0f}, {0.1f, 0.1f, 0.0f}, true, true, false, PolygonMode::FILL});
 			clientEntity.Add<Light>({0, LightType::POINT, 1024, 1024, 1, 0.01f, 80.0f, {playerLightColor.x(), playerLightColor.y(), playerLightColor.z()}});
 		}
@@ -394,7 +394,7 @@ int main(int argc, char **argv) {
 		cubeEntity.Add<Persistence>({});
 		cubeEntity.Add<ImprobablePosition>({cubeImprobablePosition});
 		cubeEntity.Add<Position>({PositionType::ABSOLUTE, {cubePosition.values[0], cubePosition.values[1], cubePosition.values[2]}, {}});
-		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, cubeColor, {}, {}});
+		cubeEntity.Add<Material>({MaterialType::COLOR, {}, {}, {}, {}, {}, {}, cubeColor, {}, {}});
 		cubeEntity.Add<Model>({0, cubeDrawableEntityId, 0, op.Request.rotation(), {0.25f, 0.25f, 0.25f}, true, false, true, PolygonMode::FILL});
 
 		WorkerAttributeSet clientAttributeSet({"client"});

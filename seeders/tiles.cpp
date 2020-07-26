@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 	EntityId canvasEntityId = 9;
 	Entity canvasEntity;
 	canvasEntity.Add<Metadata>({"canvas"});
-	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
+	canvasEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}, {}});
 	canvasEntity.Add<Persistence>({});
 	canvasEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	canvasEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
 	EntityId tileSpriteMaterialEntityId = 10;
 	Entity tileSpriteMaterialEntity;
 	tileSpriteMaterialEntity.Add<Metadata>({"material"});
-	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}});
+	tileSpriteMaterialEntity.Add<Material>({MaterialType::TILE_SPRITE, {}, {}, {}, {}, {}, {}, {}, {}, {}});
 	tileSpriteMaterialEntity.Add<Persistence>({});
 	tileSpriteMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tileSpriteMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
@@ -293,7 +293,7 @@ int main(int argc, char **argv) {
 	EntityId tilemapMaterialEntityId = 11;
 	Entity tilemapMaterialEntity;
 	tilemapMaterialEntity.Add<Metadata>({"material"});
-	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}});
+	tilemapMaterialEntity.Add<Material>({MaterialType::TILEMAP, {}, {}, {}, {}, {}, {}, {}, {}, {}});
 	tilemapMaterialEntity.Add<Persistence>({});
 	tilemapMaterialEntity.Add<ImprobablePosition>({{-100, -100, -100}});
 	tilemapMaterialEntity.Add<Position>({PositionType::ABSOLUTE, {-100, -100, -100}, {}});
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
 		chunkEntity.Add<Persistence>({});
 		chunkEntity.Add<ImprobablePosition>({chunkImprobablePosition});
 		chunkEntity.Add<Position>({PositionType::ABSOLUTE, {chunkPosition.values[0], chunkPosition.values[1], chunkPosition.values[2]}, {}});
-		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
+		chunkEntity.Add<Material>({MaterialType::CANVAS, {}, {}, {}, {}, {}, {canvasEntityId}, {}, {{chunk.position.values[0], chunk.position.values[1]}}, {{(float) chunkSize, (float) chunkSize}}});
 		chunkEntity.Add<Model>({nextEntityId, 2, nextEntityId, {0.0, 0.0, 0.0}, {chunkSize / 2, chunkSize / 2, 1.0}, true, true, false, PolygonMode::FILL});
 		chunkEntity.Add<EntityAcl>({clientOrServerRequirementSet, {}});
 		entities[nextEntityId] = chunkEntity;
