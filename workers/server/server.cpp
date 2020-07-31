@@ -86,7 +86,7 @@ struct TilesData {
 struct ServerContext {
 	worker::Connection *connection;
 	worker::View *view;
-	std::unordered_set<worker::EntityId> authoritativeClients;
+	std::unordered_map<worker::EntityId, int64_t> authoritativeClientPongs;
 	std::unordered_map<worker::EntityId, std::string> clientWorkerIds;
 };
 
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 	ServerContext context;
 	context.connection = &connection;
 	context.view = &view;
-	context.authoritativeClients = {};
+	context.authoritativeClientPongs = {};
 
 	const Option<std::string>& flagOption = connection.GetWorkerFlag("game_type");
 	bool isTiles = flagOption && *flagOption == "tiles";
@@ -234,10 +234,10 @@ int main(int argc, char **argv) {
 
 	dispatcher.OnAuthorityChange<ClientHeartbeatPong>([&](const worker::AuthorityChangeOp &op) {
 		if(op.Authority == Authority::kAuthoritative) {
-			context.authoritativeClients.insert(op.EntityId);
-			shovelerLogInfo("Added authoritative client %lld.", op.EntityId);
+			context.authoritativeClientPongs[op.EntityId] = g_get_monotonic_time() + 1000 * maxHeartbeatTimeoutMs;
+			shovelerLogInfo("Added authoritative client %lld, last pong initialized with grace period to %lld.", op.EntityId, context.authoritativeClientPongs[op.EntityId]);
 		} else if(op.Authority == Authority::kNotAuthoritative) {
-			context.authoritativeClients.erase(op.EntityId);
+			context.authoritativeClientPongs.erase(op.EntityId);
 			shovelerLogInfo("Removed authoritative client %lld.", op.EntityId);
 		}
 	});
@@ -273,6 +273,7 @@ int main(int argc, char **argv) {
 		heartbeatPongUpdate.set_last_updated_time(*op.Update.last_updated_time());
 		connection.SendComponentUpdate<ClientHeartbeatPong>(op.EntityId, heartbeatPongUpdate);
 
+		context.authoritativeClientPongs[op.EntityId] = g_get_monotonic_time();
 		shovelerLogTrace("Reflected client %lld heartbeat pong update.", op.EntityId);
 	});
 
@@ -282,13 +283,11 @@ int main(int argc, char **argv) {
 		Coordinates playerImprobablePosition = getNewPlayerPosition(connection, view, op.Request);
 		ShovelerVector3 playerPosition = remapImprobablePosition(playerImprobablePosition, isTiles);
 
-		int64_t initialHeartbeat = g_get_monotonic_time() + 5 * 1000 * maxHeartbeatTimeoutMs;
-
 		worker::Entity clientEntity;
 		clientEntity.Add<Metadata>({"client"});
 		clientEntity.Add<Client>({});
-		clientEntity.Add<ClientHeartbeatPing>({initialHeartbeat});
-		clientEntity.Add<ClientHeartbeatPong>({initialHeartbeat});
+		clientEntity.Add<ClientHeartbeatPing>({0});
+		clientEntity.Add<ClientHeartbeatPong>({0});
 		clientEntity.Add<Persistence>({});
 		clientEntity.Add<ImprobablePosition>(playerImprobablePosition);
 		clientEntity.Add<Position>({PositionType::ABSOLUTE, {playerPosition.values[0], playerPosition.values[1], playerPosition.values[2]}, {}});
@@ -557,30 +556,28 @@ static void clientCleanupTick(void *contextPointer) {
 	ServerContext *context = (ServerContext *) contextPointer;
 
 	int64_t now = g_get_monotonic_time();
-	for(const auto& authoritativeClient : context->authoritativeClients) {
-		auto entityQuery = context->view->Entities.find(authoritativeClient);
-		if(entityQuery == context->view->Entities.end()) {
-			continue;
-		}
-		auto& entity = entityQuery->second;
+	for(const auto& authoritativeClientPongEntry : context->authoritativeClientPongs) {
+		auto entityId = authoritativeClientPongEntry.first;
+		auto lastPong = authoritativeClientPongEntry.second;
 
-		auto pongData = entity.Get<ClientHeartbeatPong>();
-		if(!pongData) {
-			continue;
-		}
-
-		int64_t last = pongData->last_updated_time();
-		int64_t diff = now - last;
+		int64_t diff = now - lastPong;
 		if(diff > 1000 * maxHeartbeatTimeoutMs) {
-			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(authoritativeClient, {});
+			worker::RequestId<worker::DeleteEntityRequest> deleteEntityRequestId = context->connection->SendDeleteEntityRequest(entityId, {});
 
 			std::string clientWorkerId = "(unknown)";
-			auto clientWorkerIdQuery = context->clientWorkerIds.find(authoritativeClient);
+			auto clientWorkerIdQuery = context->clientWorkerIds.find(entityId);
 			if(clientWorkerIdQuery != context->clientWorkerIds.end()) {
 				clientWorkerId = clientWorkerIdQuery->second;
 			}
 
-			shovelerLogWarning("Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms.", authoritativeClient, deleteEntityRequestId.Id, clientWorkerId.c_str(), maxHeartbeatTimeoutMs);
+			shovelerLogWarning(
+				"Sent remove client entity %lld request %lld of worker %s because it exceeded the maximum heartbeat timeout of %lldms: Last pong = %lld, now = %lld.",
+				entityId,
+				deleteEntityRequestId.Id,
+				clientWorkerId.c_str(),
+				maxHeartbeatTimeoutMs,
+				lastPong,
+				now);
 		}
 	}
 }
