@@ -296,8 +296,13 @@ int main(int argc, char **argv) {
 		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
 		Query relativeQuery;
 		relativeQuery.set_constraint(relativeConstraint);
-		relativeQuery.set_full_snapshot_result({true});
-		ComponentInterest interest{{relativeQuery}};
+		relativeQuery.set_result_component_id({{Light::ComponentId, Model::ComponentId, Sprite::ComponentId, TilemapTiles::ComponentId}});
+		QueryConstraint relativeSphereConstraint;
+		relativeSphereConstraint.set_relative_sphere_constraint({0.0});
+		Query heartbeatQuery;
+		heartbeatQuery.set_constraint(relativeSphereConstraint);
+		heartbeatQuery.set_result_component_id({{ClientHeartbeatPong::ComponentId}});
+		ComponentInterest interest{{relativeQuery, heartbeatQuery}};
 		clientEntity.Add<Interest>({{{Client::ComponentId, interest}}});
 
 		WorkerAttributeSet clientAttributeSet({"client"});

@@ -4,12 +4,16 @@
 
 #include <glib.h>
 #include <shoveler/log.h>
+#include <shoveler/component/sprite.h>
+#include <shoveler/component/model.h>
+#include <shoveler/component/light.h>
+#include <shoveler/component/tilemap_tiles.h>
 
 #include "schema.h"
 
 static void freeComponentSet(void *componentSetPointer);
 
-int shovelerClientComputeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentInterest)
+int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentInterest)
 {
 	// map from entity id to set of component IDs
 	GHashTable *dependencies = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, freeComponentSet);
@@ -88,8 +92,11 @@ int shovelerClientComputeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 		Schema_AddDouble(edgeLength, /* fieldId */ 2, 9999);
 		Schema_AddDouble(edgeLength, /* fieldId */ 3, viewDistance);
 
-		// full snapshot
-		Schema_AddBool(query, /* fieldId */ 2, true);
+		// result component IDs
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdLight));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdModel));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdSprite));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdTilemapTiles));
 
 		numQueries++;
 	} else {
@@ -102,11 +109,24 @@ int shovelerClientComputeViewInterest(ShovelerView *view, bool useAbsoluteConstr
 		Schema_AddDouble(edgeLength, /* fieldId */ 2, 9999);
 		Schema_AddDouble(edgeLength, /* fieldId */ 3, viewDistance);
 
-		// full snapshot
-		Schema_AddBool(query, /* fieldId */ 2, true);
+		// result component IDs
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdLight));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdModel));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdSprite));
+		Schema_AddUint32(query, /* fieldId */ 3, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdTilemapTiles));
 
 		numQueries++;
 	}
+
+	Schema_Object *query = Schema_AddObject(outputComponentInterest, /* fieldId */ 1);
+	Schema_Object *constraint = Schema_AddObject(query, /* fieldId */ 1);
+	Schema_AddInt64(constraint, /* fieldId */ 7, clientEntityId);
+
+	// result component IDs
+	Schema_AddUint32(query, /* fieldId */ 3, 13352); // ClientHeartbeatPong
+
+	numQueries++;
+
 
 	g_hash_table_destroy(dependencies);
 

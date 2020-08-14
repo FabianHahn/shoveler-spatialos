@@ -462,7 +462,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->update.component_id);
 	if(specialComponentType != NULL) {
 		// special case Metadata
-		if (op->update.component_id == 53) {
+		if(op->update.component_id == 53) {
 			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
 			uint32_t entityTypeLength = Schema_GetBytesLength(fields, /* fieldId */ 1);
 			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, /* fieldId */ 1);
@@ -478,7 +478,12 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		}
 
 		// special case ClientHeartbeatPong
-		if (op->update.component_id == 13352) {
+		if(op->update.component_id == 13352) {
+			if(op->entity_id != context->clientEntityId) {
+				shovelerLogWarning("Received ClientHeartbeatPong update for entity %lld that isn't the client entity %lld, which points to a broken interest setup", op->entity_id, context->clientEntityId);
+				return;
+			}
+
 			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
 			int64_t lastPing = Schema_GetInt64(fields, /* fieldId */ 1);
 
@@ -700,7 +705,7 @@ static void updateInterest(ClientContext *context, bool absoluteInterest, Shovel
 	Schema_AddUint32(interestEntry, /* fieldId */ 1, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdClient));
 	Schema_Object *componentInterest = Schema_AddObject(interestEntry, /* fieldId */ 2);
 
-	int numQueries = shovelerClientComputeViewInterest(context->game->view, absoluteInterest, position, edgeLength, componentInterest);
+	int numQueries = shovelerClientComputeViewInterest(context->game->view, context->clientEntityId, absoluteInterest, position, edgeLength, componentInterest);
 
 	Worker_ComponentUpdate update;
 	update.component_id = 58;

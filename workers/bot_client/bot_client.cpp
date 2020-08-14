@@ -259,11 +259,17 @@ int main(int argc, char **argv) {
 	});
 
 	dispatcher.OnComponentUpdate<ClientHeartbeatPong>([&](const worker::ComponentUpdateOp<ClientHeartbeatPong>& op) {
-		if(op.Update.last_updated_time()) {
-			context.lastHeartbeatPongTime = g_get_monotonic_time();
-			context.meanHeartbeatLatencyMs *= (1.0 - meanHeartbeatMovingExponentialFactor);
-			context.meanHeartbeatLatencyMs += meanHeartbeatMovingExponentialFactor * 0.001 * (double) (context.lastHeartbeatPongTime - *op.Update.last_updated_time());
+		if(op.EntityId != context.clientEntityId) {
+			shovelerLogWarning("Received ClientHeartbeatPong update for entity %lld that isn't the client entity %lld, which points to a broken interest setup", op.EntityId, context.clientEntityId);
 		}
+
+		if(!op.Update.last_updated_time()) {
+			return;
+		}
+
+		context.lastHeartbeatPongTime = g_get_monotonic_time();
+		context.meanHeartbeatLatencyMs *= (1.0 - meanHeartbeatMovingExponentialFactor);
+		context.meanHeartbeatLatencyMs += meanHeartbeatMovingExponentialFactor * 0.001 * (double) (context.lastHeartbeatPongTime - *op.Update.last_updated_time());
 	});
 
 	dispatcher.OnCommandResponse<CreateClientEntity>([&](const worker::CommandResponseOp<CreateClientEntity>& op) {

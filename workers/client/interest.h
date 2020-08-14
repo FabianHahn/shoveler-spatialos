@@ -5,6 +5,6 @@
 #include <shoveler/view.h>
 #include <shoveler/types.h>
 
-int shovelerClientComputeViewInterest(ShovelerView *view, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentInterest);
+int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentInterest);
 
 #endif
