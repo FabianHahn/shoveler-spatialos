@@ -633,6 +633,18 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
+	ShovelerViewEntity *clientEntity = shovelerViewGetEntity(context->game->view, context->clientEntityId);
+	if(clientEntity == NULL) {
+		return;
+	}
+
+	ShovelerComponent *positionComponent = shovelerViewEntityGetComponent(clientEntity, shovelerComponentTypeIdPosition);
+	if (positionComponent == NULL) {
+		return;
+	}
+
+	const ShovelerVector3 *coordinates = shovelerComponentGetPosition(positionComponent);
+
 	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 		if(context->clientConfiguration->gameType == SHOVELER_CLIENT_GAME_TYPE_TILES) {
 			shovelerLogInfo("Sending dig hole command...");
@@ -645,6 +657,10 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 
 			Schema_Object *digHoleRequest = Schema_GetCommandRequestObject(digHoleCommandRequest.schema_type);
 			Schema_AddEntityId(digHoleRequest, /* fieldId */ 1, context->clientEntityId);
+			Schema_Object *position = Schema_AddObject(digHoleRequest, /* fieldId */ 2);
+			Schema_AddFloat(position, /* fieldId */ 1, coordinates->values[0]);
+			Schema_AddFloat(position, /* fieldId */ 2, coordinates->values[1]);
+			Schema_AddFloat(position, /* fieldId */ 3, coordinates->values[2]);
 
 			Worker_RequestId digHoleCommandRequestId = Worker_Connection_SendCommandRequest(
 				context->connection,
@@ -669,11 +685,15 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 
 			Schema_Object *spawnCubeRequest = Schema_GetCommandRequestObject(spawnCubeCommandRequest.schema_type);
 			Schema_AddEntityId(spawnCubeRequest, /* fieldId */ 1, context->clientEntityId);
-			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, /* fieldId */ 2);
+			Schema_Object *position = Schema_AddObject(spawnCubeRequest, /* fieldId */ 2);
+			Schema_AddFloat(position, /* fieldId */ 1, coordinates->values[0]);
+			Schema_AddFloat(position, /* fieldId */ 2, coordinates->values[1]);
+			Schema_AddFloat(position, /* fieldId */ 3, coordinates->values[2]);
+			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, /* fieldId */ 3);
 			Schema_AddFloat(direction, /* fieldId */ 1, perspectiveCamera->direction.values[0]);
 			Schema_AddFloat(direction, /* fieldId */ 2, perspectiveCamera->direction.values[1]);
 			Schema_AddFloat(direction, /* fieldId */ 3, perspectiveCamera->direction.values[2]);
-			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, /* fieldId */ 3);
+			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, /* fieldId */ 4);
 			Schema_AddFloat(rotation, /* fieldId */ 1, 0.0f);
 			Schema_AddFloat(rotation, /* fieldId */ 2, 0.0f);
 			Schema_AddFloat(rotation, /* fieldId */ 3, 0.0f);

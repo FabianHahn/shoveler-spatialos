@@ -30,6 +30,8 @@ using improbable::WorkerRequirementSet;
 using shoveler::Bootstrap;
 using shoveler::Canvas;
 using shoveler::Client;
+using shoveler::ClientHeartbeatPing;
+using shoveler::ClientInfo;
 using shoveler::CoordinateMapping;
 using shoveler::Drawable;
 using shoveler::DrawableType;
@@ -137,7 +139,7 @@ int main(int argc, char **argv) {
 	QueryConstraint queryConstraint;
 	queryConstraint.set_component_constraint(Client::ComponentId);
 	query.set_constraint(queryConstraint);
-	query.set_full_snapshot_result({true});
+	query.set_result_component_id({ClientHeartbeatPing::ComponentId, ClientInfo::ComponentId});
 	ComponentInterest componentInterest;
 	componentInterest.set_queries({query});
 	InterestData interestData;

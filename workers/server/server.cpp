@@ -380,14 +380,9 @@ int main(int argc, char **argv) {
 			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without client info component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
 			return;
 		}
-		worker::Option<const PositionData &> positionComponent = clientEntity.Get<Position>();
-		if(!positionComponent) {
-			shovelerLogWarning("Received client spawn cube from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
-			return;
-		}
 
 		ShovelerVector3 normalizedDirection = shovelerVector3Normalize(shovelerVector3(op.Request.direction().x(), op.Request.direction().y(), op.Request.direction().z()));
-		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(positionComponent->coordinates().x(), positionComponent->coordinates().y(), positionComponent->coordinates().z()), 0.5f, normalizedDirection);
+		ShovelerVector3 cubePosition = shovelerVector3LinearCombination(1.0f, shovelerVector3(op.Request.position().x(), op.Request.position().y(), op.Request.position().z()), 0.5f, normalizedDirection);
 
 		Coordinates cubeImprobablePosition = remapPosition(cubePosition, isTiles);
 
@@ -429,16 +424,8 @@ int main(int argc, char **argv) {
 			return;
 		}
 
-		const worker::Entity &clientEntity = entityQuery->second;
-		worker::Option<const PositionData &> positionComponent = clientEntity.Get<Position>();
-		if(!positionComponent) {
-			shovelerLogWarning("Received dig hole request from %s for client entity %lld without position component, ignoring.", op.CallerWorkerId.c_str(), clientEntityId);
-			connection.SendCommandFailure<DigHole>(op.RequestId, "client entity without position");
-			return;
-		}
-
 		Coordinates improbablePosition = remapPosition(
-			shovelerVector3(positionComponent->coordinates().x(), positionComponent->coordinates().y(), positionComponent->coordinates().z()),
+			shovelerVector3(op.Request.position().x(), op.Request.position().y(), op.Request.position().z()),
 			isTiles);
 
 		double x = improbablePosition.x();

@@ -87,8 +87,9 @@ type CreateClientEntityResponse {
 
 type ClientSpawnCubeRequest {
 	EntityId client = 1;
-	Vector3 direction = 2;
-	Vector3 rotation = 3;
+	Vector3 position = 2;
+	Vector3 direction = 3;
+	Vector3 rotation = 4;
 }
 
 type ClientSpawnCubeResponse {
@@ -97,6 +98,7 @@ type ClientSpawnCubeResponse {
 
 type DigHoleRequest {
 	EntityId client = 1;
+	Vector3 position = 2;
 }
 
 type DigHoleResponse {
