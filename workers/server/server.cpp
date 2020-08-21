@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
 		relativeConstraint.set_relative_box_constraint({{{20.5, 9999, 20.5}}});
 		Query relativeQuery;
 		relativeQuery.set_constraint(relativeConstraint);
-		relativeQuery.set_result_component_id({{Light::ComponentId, Model::ComponentId, Sprite::ComponentId, TilemapTiles::ComponentId}});
+		relativeQuery.set_result_component_id({{Light::ComponentId, Model::ComponentId, Position::ComponentId, Sprite::ComponentId, TilemapTiles::ComponentId}});
 		QueryConstraint relativeSphereConstraint;
 		relativeSphereConstraint.set_relative_sphere_constraint({0.0});
 		Query heartbeatQuery;
