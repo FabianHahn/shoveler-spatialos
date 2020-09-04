@@ -57,11 +57,19 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 
 		gchar **afterDeploymentNameSplit = g_strsplit(afterDeploymentName, "&", 0);
 		GString *authToken = g_string_new("");
+		const char *locatorHost = "locator.improbable.io";
 		for(int i = 0; afterDeploymentNameSplit[i] != NULL; i++) {
 			const char *tokenPrefix = "token=";
+			const char *environmentPrefix = "environment=";
+
 			if(g_str_has_prefix(afterDeploymentNameSplit[i], tokenPrefix)) {
 				g_string_append(authToken, afterDeploymentNameSplit[i] + strlen(tokenPrefix));
-				break;
+			} else if (g_str_has_prefix(afterDeploymentNameSplit[i], environmentPrefix)) {
+				if (strcmp(afterDeploymentNameSplit[i] + strlen(environmentPrefix), "staging") == 0) {
+					locatorHost = "locator-staging.improbable.io";
+				} else {
+					shovelerLogWarning("Launcher URL specifies unsupported environment '%s', connection might fail.", afterDeploymentNameSplit[i] + strlen(environmentPrefix));
+				}
 			}
 		}
 
@@ -73,7 +81,7 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 			return NULL;
 		}
 
-		shovelerLogInfo("Connecting to cloud deployment...\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", projectName, deploymentName, authToken->str);
+		shovelerLogInfo("Connecting to cloud deployment...\n\tLocator host: %s\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", locatorHost, projectName, deploymentName, authToken->str);
 
 		Worker_LocatorParameters locatorParameters;
 		memset(&locatorParameters, 0, sizeof(Worker_LocatorParameters));
@@ -81,7 +89,7 @@ Worker_Connection *shovelerClientConnect(int argc, char **argv, Worker_Connectio
 		locatorParameters.credentials_type = WORKER_LOCATOR_LOGIN_TOKEN_CREDENTIALS;
 		locatorParameters.login_token.token = authToken->str;
 
-		Worker_Locator *locator = Worker_Locator_Create("locator.improbable.io", /* port */ 0, &locatorParameters);
+		Worker_Locator *locator = Worker_Locator_Create(locatorHost, /* port */ 0, &locatorParameters);
 
 		connectionParameters->network.use_external_ip = true;
 		Worker_ConnectionFuture *connectionFuture = Worker_Locator_ConnectAndQueueAsync(locator, deploymentName, connectionParameters, NULL, locatorQueueStatusCallback);

@@ -58,11 +58,20 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 
 		gchar **afterDeploymentNameSplit = g_strsplit(afterDeploymentName.c_str(), "&", 0);
 		std::string authToken;
+		std::string locatorHost = "locator.improbable.io";
 		for(int i = 0; afterDeploymentNameSplit[i] != NULL; i++) {
 			std::string tokenPrefix = "token=";
+			std::string environmentPrefix = "environment=";
+
 			if(g_str_has_prefix(afterDeploymentNameSplit[i], tokenPrefix.c_str())) {
 				authToken = std::string{afterDeploymentNameSplit[i]}.substr(tokenPrefix.size());
-				break;
+			} else if (g_str_has_prefix(afterDeploymentNameSplit[i], environmentPrefix.c_str())) {
+				std::string environment = std::string{afterDeploymentNameSplit[i]}.substr(environmentPrefix.size());
+				if (environment == "staging") {
+					locatorHost = "locator-staging.improbable.io";
+				} else {
+					shovelerLogWarning("Launcher URL specifies unsupported environment '%s', connection might fail.", environment.c_str());
+				}
 			}
 		}
 		g_strfreev(afterDeploymentNameSplit);
@@ -72,13 +81,13 @@ worker::Option<worker::Connection> connect(int argc, char **argv, worker::Connec
 			return {};
 		}
 
-		shovelerLogInfo("Connecting to cloud deployment...\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", projectName.c_str(), deploymentName.c_str(), authToken.c_str());
+		shovelerLogInfo("Connecting to cloud deployment...\n\tLocator host: %s\n\tProject name: %s\n\tDeployment name: %s\n\tAuth token: %s", locatorHost.c_str(), projectName.c_str(), deploymentName.c_str(), authToken.c_str());
 
 		worker::LocatorParameters locatorParameters;
 		locatorParameters.ProjectName = projectName;
 		locatorParameters.CredentialsType = worker::LocatorCredentialsType::kLoginToken;
 		locatorParameters.LoginToken = worker::LoginTokenCredentials{authToken};
-		worker::Locator locator{"locator.improbable.io", locatorParameters};
+		worker::Locator locator{locatorHost, locatorParameters};
 
 		auto queueStatusCallback = [&](const worker::QueueStatus& queueStatus) {
 			if (!queueStatus.Error.empty()) {
