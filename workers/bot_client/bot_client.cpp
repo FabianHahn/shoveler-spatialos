@@ -99,6 +99,8 @@ static void worldToTile(double x, double z, int& chunkX, int& chunkZ, int& tileX
 static EntityId getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static Option<TilesData> getChunkBackgroundTiles(worker::Connection &connection, worker::View &view, EntityId chunkBackgroundEntityId);
 
+static const auto connectionRetries = 3;
+static const auto connectionRetryDelayMs = 1500;
 static const long long int bootstrapEntityId = 1;
 static const int64_t clientPingTimeoutMs = 999;
 static const int64_t clientDirectionChangeTimeoutMs = 250;
@@ -164,12 +166,27 @@ int main(int argc, char **argv) {
 	parameters.Logsinks = {logsinkParameters};
 	parameters.EnableLoggingAtStartup = true;
 
-	worker::Option<Connection> connectionOption = connect(argc, argv, parameters, components);
+	worker::Option<Connection> connectionOption;
+
+	for(int i = 0; i < connectionRetries; i++) {
+		connectionOption = connect(argc, argv, parameters, components);
+
+		if(connectionOption && connectionOption->IsConnected()) {
+			shovelerLogInfo("Connected to SpatialOS deployment!");
+			break;
+		}
+
+		if(i != connectionRetries - 1) {
+			shovelerLogWarning("Connection to SpatialOS failed, will retry in %dms.", connectionRetryDelayMs);
+			std::this_thread::sleep_for(std::chrono::milliseconds{connectionRetryDelayMs});
+		}
+	}
+
 	if(!connectionOption || !connectionOption->IsConnected()) {
+		shovelerLogError("Failed to connect to SpatialOS deployment after %d attempts, aborting.", connectionRetries);
 		return EXIT_FAILURE;
 	}
 	Connection& connection = *connectionOption;
-	shovelerLogInfo("Connected to SpatialOS deployment!");
 
 	ShovelerExecutor *executor = shovelerExecutorCreateDirect();
 
