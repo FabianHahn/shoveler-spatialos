@@ -33,6 +33,10 @@
         {
           "name": "drive_shunt",
           "value": "false"
+        },
+        {
+          "name": "max_concurrent_workers",
+          "value": "4096"
         }
       ],
       "dimensions": {
@@ -188,6 +192,25 @@
             "./bot.sh",
             "500",
             "bots_b_",
+            "{receptionist_ip}",
+            "{receptionist_port}"
+          ]
+        },
+        "instances": 1
+      }
+    },
+    {
+      "name": "bots_c",
+      "size": "octa",
+      "config": {
+        "command": {
+          "assemblyZip": "LauncherClient@Linux.zip",
+          "path": "mono",
+          "args": [
+            "BashWrapper.exe",
+            "./bot.sh",
+            "500",
+            "bots_c_",
             "{receptionist_ip}",
             "{receptionist_port}"
           ]
