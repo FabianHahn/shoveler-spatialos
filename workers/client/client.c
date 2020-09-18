@@ -9,6 +9,7 @@
 #include <shoveler/component.h>
 #include <shoveler/component/client.h>
 #include <shoveler/component/position.h>
+#include <shoveler/connect.h>
 #include <shoveler/game.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
@@ -18,7 +19,6 @@
 #include <shoveler/view.h>
 
 #include "configuration.h"
-#include "connect.h"
 #include "interest.h"
 #include "schema.h"
 
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
 	connectionParameters.enable_logging_at_startup = true;
 
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());
-	Worker_Connection *connection = shovelerClientConnect(argc, argv, &connectionParameters);
+	Worker_Connection *connection = shovelerWorkerConnect(argc, argv, /* argumentOffset */ 0, &connectionParameters);
 	assert(connection != NULL);
 	if(!Worker_Connection_IsConnected(connection)) {
 		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
