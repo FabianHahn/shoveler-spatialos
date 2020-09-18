@@ -6,13 +6,13 @@
     "checkout_all_initially": true
   },
   "permissions": {
-    "entityCreation": {
+    "entity_creation": {
       "allow": true
     },
-    "entityDeletion": {
+    "entity_deletion": {
       "allow": true
     },
-    "entityQuery": {
+    "entity_query": {
       "allow": true,
       "components": [
         "*"
@@ -25,20 +25,20 @@
         "local_build_directory": "../../build/workers/server/Release/assembly",
         "command": "ShovelerServer.exe",
         "arguments": [
+          "${IMPROBABLE_LOG_FILE}",
           "${IMPROBABLE_WORKER_ID}",
           "${IMPROBABLE_RECEPTIONIST_HOST}",
-          "${IMPROBABLE_RECEPTIONIST_PORT}",
-          "${IMPROBABLE_LOG_FILE}"
+          "${IMPROBABLE_RECEPTIONIST_PORT}"
         ]
       },
       "linux": {
         "local_build_directory": "../../build/workers/server/assembly",
         "command": "ShovelerServer",
         "arguments": [
+          "${IMPROBABLE_LOG_FILE}",
           "${IMPROBABLE_WORKER_ID}",
           "${IMPROBABLE_RECEPTIONIST_HOST}",
-          "${IMPROBABLE_RECEPTIONIST_PORT}",
-          "${IMPROBABLE_LOG_FILE}"
+          "${IMPROBABLE_RECEPTIONIST_PORT}"
         ]
       }
     },
@@ -47,10 +47,10 @@
         "local_build_directory": "../../build/workers/server/assembly",
         "command": "ShovelerServer",
         "arguments": [
+          "${IMPROBABLE_LOG_FILE}",
           "${IMPROBABLE_WORKER_ID}",
           "${IMPROBABLE_RECEPTIONIST_HOST}",
-          "${IMPROBABLE_RECEPTIONIST_PORT}",
-          "${IMPROBABLE_LOG_FILE}"
+          "${IMPROBABLE_RECEPTIONIST_PORT}"
         ]
       }
     }

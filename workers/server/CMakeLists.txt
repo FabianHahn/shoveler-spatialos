@@ -1,11 +1,13 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_SERVER_SRC
-	server.cpp
+	configuration.c
+	configuration.h
+	server.c
 )
 
 add_executable(ShovelerServer ${SHOVELER_SERVER_SRC})
-target_link_libraries(ShovelerServer shoveler_base schema worker_sdk::cpp_worker_sdk)
+target_link_libraries(ShovelerServer shoveler_worker_common worker_sdk::c_worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerServer
