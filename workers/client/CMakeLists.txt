@@ -4,8 +4,6 @@ set(SHOVELER_CLIENT_SRC
 	client.c
 	configuration.c
 	configuration.h
-	connect.c
-	connect.h
 	interest.c
 	interest.h
 	schema.c
@@ -13,7 +11,7 @@ set(SHOVELER_CLIENT_SRC
 )
 
 add_executable(ShovelerClient ${SHOVELER_CLIENT_SRC})
-target_link_libraries(ShovelerClient shoveler_opengl worker_sdk::c_worker_sdk)
+target_link_libraries(ShovelerClient shoveler_opengl PNG::PNG ZLIB::ZLIB shoveler_worker_common worker_sdk::c_worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerClient
