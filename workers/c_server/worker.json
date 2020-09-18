@@ -1,0 +1,58 @@
+{
+  "worker_type": "ShovelerCServer",
+  "layer": "server",
+  "component_delivery": {
+    "default": "RELIABLE_ORDERED",
+    "checkout_all_initially": true
+  },
+  "permissions": {
+    "entity_creation": {
+      "allow": true
+    },
+    "entity_deletion": {
+      "allow": true
+    },
+    "entity_query": {
+      "allow": true,
+      "components": [
+        "*"
+      ]
+    }
+  },
+  "launch_configuration": {
+    "local_deployment": {
+      "windows": {
+        "local_build_directory": "../../build/workers/server/Release/assembly",
+        "command": "ShovelerServer.exe",
+        "arguments": [
+          "${IMPROBABLE_WORKER_ID}",
+          "${IMPROBABLE_RECEPTIONIST_HOST}",
+          "${IMPROBABLE_RECEPTIONIST_PORT}",
+          "${IMPROBABLE_LOG_FILE}"
+        ]
+      },
+      "linux": {
+        "local_build_directory": "../../build/workers/server/assembly",
+        "command": "ShovelerServer",
+        "arguments": [
+          "${IMPROBABLE_WORKER_ID}",
+          "${IMPROBABLE_RECEPTIONIST_HOST}",
+          "${IMPROBABLE_RECEPTIONIST_PORT}",
+          "${IMPROBABLE_LOG_FILE}"
+        ]
+      }
+    },
+    "cloud_deployment": {
+      "linux": {
+        "local_build_directory": "../../build/workers/server/assembly",
+        "command": "ShovelerServer",
+        "arguments": [
+          "${IMPROBABLE_WORKER_ID}",
+          "${IMPROBABLE_RECEPTIONIST_HOST}",
+          "${IMPROBABLE_RECEPTIONIST_PORT}",
+          "${IMPROBABLE_LOG_FILE}"
+        ]
+      }
+    }
+  }
+}
