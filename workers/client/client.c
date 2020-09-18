@@ -16,6 +16,7 @@
 #include <shoveler/resources/image_png.h>
 #include <shoveler/resources.h>
 #include <shoveler/types.h>
+#include <shoveler/worker_log.h>
 #include <shoveler/view.h>
 
 #include "configuration.h"
@@ -51,7 +52,6 @@ static const float improbablePositionUpdateDistance = 1.0f;
 static const double meanHeartbeatMovingExponentialFactor = 0.5f;
 static const double meanTimeSinceLastHeartbeatPongExponentialFactor = 0.05f;
 
-static void onLogMessage(void *user_data, const Worker_LogData *message);
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
 static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 	logsink.filter_parameters.level = WORKER_LOG_LEVEL_INFO;
 	logsink.filter_parameters.callback = NULL;
 	logsink.filter_parameters.user_data = NULL;
-	logsink.log_callback_parameters.log_callback = onLogMessage;
+	logsink.log_callback_parameters.log_callback = shovelerWorkerOnLogMessage;
 	logsink.log_callback_parameters.user_data = NULL;
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
