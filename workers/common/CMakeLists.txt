@@ -1,9 +1,11 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_WORKER_COMMON_SRC
+	include/shoveler/configuration.h
 	include/shoveler/connect.h
 	include/shoveler/schema.h
 	include/shoveler/worker_log.h
+	src/configuration.c
 	src/connect.c
 	src/schema.c
 	src/worker_log.c
