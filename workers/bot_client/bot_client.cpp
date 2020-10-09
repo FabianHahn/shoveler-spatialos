@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 	worker::ConnectionParameters parameters;
 	parameters.WorkerType = "ShovelerBotClient";
 	parameters.Network.ConnectionType = worker::NetworkConnectionType::kModularKcp;
-	parameters.Network.ModularKcp.SecurityType = worker::NetworkSecurityType::kDtls;
+	parameters.Network.ModularKcp.SecurityType = worker::NetworkSecurityType::kInsecure;
 	parameters.Logsinks = {logsinkParameters};
 	parameters.EnableLoggingAtStartup = true;
 
