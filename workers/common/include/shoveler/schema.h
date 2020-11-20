@@ -60,6 +60,11 @@ enum {
 };
 
 enum {
+	shovelerWorkerSchemaUpdateResourceRequestFieldIdResource = 1,
+	shovelerWorkerSchemaUpdateResourceRequestFieldIdContent = 2,
+};
+
+enum {
 	shovelerWorkerSchemaClientSpawnCubeRequestFieldIdClient = 1,
 	shovelerWorkerSchemaClientSpawnCubeRequestFieldIdPosition = 2,
 	shovelerWorkerSchemaClientSpawnCubeRequestFieldIdDirection = 3,
@@ -289,6 +294,10 @@ enum {
 	shovelerWorkerSchemaTilemapTilesFieldIdTilesetColumns = 4,
 	shovelerWorkerSchemaTilemapTilesFieldIdTilesetRows = 5,
 	shovelerWorkerSchemaTilemapTilesFieldIdTilesetIds = 6,
+};
+
+enum {
+	shovelerWorkerSchemaResourceFieldIdBuffer = 1,
 };
 
 const char *shovelerWorkerSchemaResolveSpecialComponentId(int componentId);
