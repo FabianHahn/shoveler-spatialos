@@ -1,5 +1,6 @@
 add_subdirectory(bot_client)
 add_subdirectory(c_server)
+add_subdirectory(c_updater)
 add_subdirectory(client)
 add_subdirectory(common)
 add_subdirectory(updater)

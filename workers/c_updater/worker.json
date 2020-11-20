@@ -1,0 +1,22 @@
+{
+  "worker_type": "ShovelerUpdater",
+  "layer": "updater",
+  "component_delivery": {
+    "default": "RELIABLE_ORDERED",
+    "checkout_all_initially": true
+  },
+  "permissions": {
+    "entity_creation": {
+      "allow": false
+    },
+    "entity_deletion": {
+      "allow": false
+    },
+    "entity_query": {
+      "allow": true,
+      "components": [
+        "*"
+      ]
+    }
+  }
+}
