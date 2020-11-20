@@ -347,7 +347,20 @@ static void onAddComponent(ServerContext *context, const Worker_AddComponentOp *
 			return;
 		}
 
-		// TODO
+		uint32_t tilesetColumnsLength = Schema_GetBytesLength(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetColumns);
+		uint32_t tilesetRowsLength = Schema_GetBytesLength(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetRows);
+		uint32_t tilesetIdsLength = Schema_GetBytesLength(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetIds);
+
+		const uint8_t *tilesetColumnsBytes = Schema_GetBytes(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetColumns);
+		const uint8_t *tilesetRowsBytes = Schema_GetBytes(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetRows);
+		const uint8_t *tilesetIdsBytes = Schema_GetBytes(fields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetIds);
+
+		g_string_append_len(component->tilemapTiles.tilesetColumns, (const char *) tilesetColumnsBytes, tilesetColumnsLength);
+		g_string_append_len(component->tilemapTiles.tilesetRows, (const char *) tilesetRowsBytes, tilesetRowsLength);
+		g_string_append_len(component->tilemapTiles.tilesetIds, (const char *) tilesetIdsBytes, tilesetIdsLength);
+	} else if (component->componentId == shovelerWorkerSchemaComponentIdClientInfo) {
+		component->clientInfo.colorHue = Schema_GetFloat(fields, shovelerWorkerSchemaClientInfoFieldIdColorHue);
+		component->clientInfo.colorSaturation = Schema_GetFloat(fields, shovelerWorkerSchemaClientInfoFieldIdColorSaturation);
 	}
 
 	g_hash_table_insert(entity->components, &component->componentId, component);
@@ -701,6 +714,7 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 		/* timeout_millis */ NULL);
 	if(createEntityRequestId == -1) {
 		shovelerLogError("Failed to send create entity request.");
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "entity creation failure");
 		return;
 	}
 
@@ -727,8 +741,7 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 	Entity *clientEntity = g_hash_table_lookup(context->entities, &clientEntityId);
 	if(clientEntity == NULL) {
 		shovelerLogWarning("Received client spawn cube from %s for unknown client entity %"PRId64", ignoring.", op->caller_worker_id, clientEntityId);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "unknown client entity");
 		return;
 	}
 
@@ -736,8 +749,7 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 	Component *clientInfoComponent = g_hash_table_lookup(clientEntity->components, &clientInfoComponentId);
 	if(clientInfoComponent == NULL) {
 		shovelerLogWarning("Received client spawn cube from %s for client entity %"PRId64" without client info component, ignoring.", op->caller_worker_id, clientEntityId);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no client info component");
 		return;
 	}
 
@@ -746,8 +758,7 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 	Schema_Object *rotationObject = Schema_GetObject(requestObject, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdRotation);
 	if(positionObject == NULL || directionObject == NULL || rotationObject == NULL) {
 		shovelerLogWarning("Client spawn cube request doesn't contain position, direction and rotation - ignoring.");
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no position, direction and rotation");
 		return;
 	}
 
@@ -849,8 +860,7 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 		/* timeout_millis */ NULL);
 	if(createEntityRequestId == -1) {
 		shovelerLogError("Failed to send create entity request.");
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "entity creation failure");
 		return;
 	}
 
@@ -880,16 +890,14 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	Entity *clientEntity = g_hash_table_lookup(context->entities, &clientEntityId);
 	if(clientEntity == NULL) {
 		shovelerLogWarning("Received dig hole request from %s for unknown client entity %"PRId64", ignoring.", op->caller_worker_id, clientEntityId);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "unknown client entity");
 		return;
 	}
 
 	Schema_Object *positionObject = Schema_GetObject(requestObject, shovelerWorkerSchemaDigHoleRequestFieldIdPosition);
 	if(positionObject == NULL) {
 		shovelerLogWarning("Dig hole request doesn't contain position - ignoring.");
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no position");
 		return;
 	}
 
@@ -907,8 +915,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 
 	if(chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows || tileX < 0 || tileX >= chunkSize || tileZ < 0 || tileZ >= chunkSize) {
 		shovelerLogWarning("Received dig hole request from %s for client entity %"PRId64" which is out of range at (%f, %f), ignoring.", op->caller_worker_id, clientEntityId, x, z);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "out of range");
 		return;
 	}
 
@@ -916,8 +923,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	TilemapTiles *tiles = getChunkBackgroundTiles(context, chunkBackgroundEntityId);
 	if(tiles == NULL) {
 		shovelerLogError("Received dig hole request from %s for client entity %"PRId64", but failed to resolve chunk background entity %lld tilemap tiles.", op->caller_worker_id, clientEntityId, chunkBackgroundEntityId);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no background tilemap tiles");
 		return;
 	}
 
@@ -926,8 +932,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	char *tilesetIds = &tiles->tilesetIds->str[tileZ * chunkSize + tileX];
 	if(*tilesetColumn > 2) {
 		shovelerLogWarning("Received dig hole request from %s for client entity %"PRId64", but its current tile is not grass.", op->caller_worker_id, clientEntityId);
-
-		// TODO: fail command
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "not grass");
 		return;
 	}
 
@@ -943,13 +948,13 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	uint8_t *tilesetRowsBuffer = Schema_AllocateBuffer(tilemapTilesFields, tiles->tilesetRows->len);
 	uint8_t *tilesetIdsBuffer = Schema_AllocateBuffer(tilemapTilesFields, tiles->tilesetIds->len);
 	memcpy(tilesetColumnsBuffer, tiles->tilesetColumns->str, tiles->tilesetColumns->len);
-	memcpy(tilesetColumnsBuffer, tiles->tilesetRows->str, tiles->tilesetRows->len);
-	memcpy(tilesetColumnsBuffer, tiles->tilesetIds->str, tiles->tilesetIds->len);
+	memcpy(tilesetRowsBuffer, tiles->tilesetRows->str, tiles->tilesetRows->len);
+	memcpy(tilesetIdsBuffer, tiles->tilesetIds->str, tiles->tilesetIds->len);
 	Schema_AddBytes(tilemapTilesFields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetColumns, tilesetColumnsBuffer, tiles->tilesetColumns->len);
 	Schema_AddBytes(tilemapTilesFields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetRows, tilesetRowsBuffer, tiles->tilesetRows->len);
 	Schema_AddBytes(tilemapTilesFields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetIds, tilesetIdsBuffer, tiles->tilesetIds->len);
 
-	Worker_Connection_SendComponentUpdate(context->connection, op->entity_id, &tilemapTilesUpdate, /* update_parameters */ NULL);
+	Worker_Connection_SendComponentUpdate(context->connection, chunkBackgroundEntityId, &tilemapTilesUpdate, /* update_parameters */ NULL);
 
 	Worker_CommandResponse commandResponse;
 	commandResponse.component_id = op->request.component_id;
@@ -964,7 +969,40 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 
 static void onUpdateResourceRequest(ServerContext *context, const Worker_CommandRequestOp *op)
 {
+	shovelerLogInfo("Received update resource request from '%s'.", op->caller_worker_id);
 
+	Schema_Object *requestObject = Schema_GetCommandRequestObject(op->request.schema_type);
+
+	int64_t resourceEntityId = Schema_GetEntityId(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdResource);
+	uint32_t contentCount = Schema_GetBytesCount(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdContent);
+	if(contentCount == 0) {
+		shovelerLogWarning("Received update resource request from %s for resource entity %"PRId64", but no content was provided.", op->caller_worker_id, resourceEntityId);
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no content");
+		return;
+	}
+
+	uint32_t contentLength = Schema_GetBytesLength(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdContent);
+	const uint8_t *contentBytes = Schema_GetBytes(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdContent);
+
+	Worker_ComponentUpdate resourceUpdate;
+	resourceUpdate.component_id = shovelerWorkerSchemaComponentIdResource;
+	resourceUpdate.schema_type = Schema_CreateComponentUpdate();
+	Schema_Object *resourceFields = Schema_GetComponentUpdateFields(resourceUpdate.schema_type);
+	uint8_t *resourceBuffer = Schema_AllocateBuffer(resourceFields, contentLength);
+	memcpy(resourceBuffer, contentBytes, contentLength);
+	Schema_AddBytes(resourceFields, shovelerWorkerSchemaResourceFieldIdBuffer, contentBytes, contentLength);
+
+	Worker_Connection_SendComponentUpdate(context->connection, resourceEntityId, &resourceUpdate, /* update_parameters */ NULL);
+
+	Worker_CommandResponse commandResponse;
+	commandResponse.component_id = op->request.component_id;
+	commandResponse.command_index = op->request.command_index;
+	commandResponse.schema_type = Schema_CreateCommandResponse();
+
+	int8_t result = Worker_Connection_SendCommandResponse(context->connection, op->request_id, &commandResponse);
+	if(result == WORKER_RESULT_FAILURE) {
+		shovelerLogError("Failed to send update resource response.");
+	}
 }
 
 static Client *getOrCreateClient(ServerContext *context, int64_t entityId)
