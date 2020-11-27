@@ -7,12 +7,12 @@ if(MSVC)
 
 	# Find all the worker SDK libraries.
 	find_package(Threads)
-	find_library(LIB_IMPROBABLE_WORKER_RELEASE improbable_worker "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH)
-	find_library(LIB_IMPROBABLE_WORKER_DEBUG improbable_worker "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH)
-	find_library(LIB_RAKNET_RELEASE RakNetLibStatic "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH)
-	find_library(LIB_RAKNET_DEBUG RakNetLibStatic "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH)
-	find_library(LIB_SSL_RELEASE ssl "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH)
-	find_library(LIB_SSL_DEBUG ssl "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH)
+	find_library(LIB_IMPROBABLE_WORKER_RELEASE improbable_worker PATHS "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_IMPROBABLE_WORKER_DEBUG improbable_worker PATHS "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_RAKNET_RELEASE RakNetLibStatic PATHS "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_RAKNET_DEBUG RakNetLibStatic PATHS "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_SSL_RELEASE ssl PATHS "${WORKER_SDK_DIR_RELEASE}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_SSL_DEBUG ssl PATHS "${WORKER_SDK_DIR_DEBUG}" NO_DEFAULT_PATH REQUIRED)
 
 	# Worker SDK targets.
 	add_library(worker_sdk::RakNetLibStatic STATIC IMPORTED)
@@ -43,9 +43,9 @@ else()
 
 	# Find all the worker SDK libraries.
 	find_package(Threads)
-	find_library(LIB_IMPROBABLE_WORKER improbable_worker "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
-	find_library(LIB_RAKNET RakNetLibStatic "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
-	find_library(LIB_SSL ssl "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_IMPROBABLE_WORKER improbable_worker PATHS "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_RAKNET RakNetLibStatic PATHS "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_SSL ssl PATHS "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
 
 	# Worker SDK targets.
 	add_library(worker_sdk::RakNetLibStatic STATIC IMPORTED)
