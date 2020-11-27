@@ -15,6 +15,7 @@
 #include <shoveler/log.h>
 #include <shoveler/resources/image_png.h>
 #include <shoveler/resources.h>
+#include <shoveler/schema.h>
 #include <shoveler/types.h>
 #include <shoveler/worker_log.h>
 #include <shoveler/view.h>
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
 	Worker_CommandRequest createClientEntityCommandRequest;
 	memset(&createClientEntityCommandRequest, 0, sizeof(Worker_CommandRequest));
 	createClientEntityCommandRequest.component_id = bootstrapComponentId;
-	createClientEntityCommandRequest.command_index = 1;
+	createClientEntityCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdCreateClientEntity;
 	createClientEntityCommandRequest.schema_type = Schema_CreateCommandRequest();
 
 	Worker_RequestId createClientEntityCommandRequestId = Worker_Connection_SendCommandRequest(
@@ -321,10 +322,10 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->data.component_id);
 	if (specialComponentType != NULL) {
 		// special case Metadata
-		if (op->data.component_id == 53) {
+		if (op->data.component_id == shovelerWorkerSchemaComponentIdImprobableMetadata) {
 			Schema_Object *fields = Schema_GetComponentDataFields(op->data.schema_type);
-			uint32_t entityTypeLength = Schema_GetBytesLength(fields, /* fieldId */ 1);
-			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, /* fieldId */ 1);
+			uint32_t entityTypeLength = Schema_GetBytesLength(fields, shovelerWorkerSchemaImprobableMetadataFieldIdEntityType);
+			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, shovelerWorkerSchemaImprobableMetadataFieldIdEntityType);
 
 			GString *entityType = g_string_new("");
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
@@ -336,13 +337,13 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 			return;
 		}
 		// special case improbable position for client entity
-		if (op->data.component_id == 54 && op->entity_id == context->clientEntityId) {
+		if (op->data.component_id == shovelerWorkerSchemaComponentIdImprobablePosition && op->entity_id == context->clientEntityId) {
 			Schema_Object *fields = Schema_GetComponentDataFields(op->data.schema_type);
-			Schema_Object *coordinatesField = Schema_GetObject(fields, /* fieldId */ 1);
+			Schema_Object *coordinatesField = Schema_GetObject(fields, shovelerWorkerSchemaImprobablePositionFieldIdCoords);
 
-			double coordinatesX = Schema_GetDouble(coordinatesField, /* fieldId */ 1);
-			double coordinatesY = Schema_GetDouble(coordinatesField, /* fieldId */ 2);
-			double coordinatesZ = Schema_GetDouble(coordinatesField, /* fieldId */ 3);
+			double coordinatesX = Schema_GetDouble(coordinatesField, shovelerWorkerSchemaImprobableCoordinatesFieldIdX);
+			double coordinatesY = Schema_GetDouble(coordinatesField, shovelerWorkerSchemaImprobableCoordinatesFieldIdY);
+			double coordinatesZ = Schema_GetDouble(coordinatesField, shovelerWorkerSchemaImprobableCoordinatesFieldIdZ);
 
 			ShovelerVector3 coordinates = shovelerVector3((float) coordinatesX, (float) coordinatesY, (float) coordinatesZ);
 
@@ -387,7 +388,7 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op)
 {
 	// special case interest
-	if (op->component_id == 58) {
+	if (op->component_id == shovelerWorkerSchemaComponentIdImprobableInterest) {
 		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
 			shovelerLogTrace("Received authority over interest component of client entity %lld.", op->entity_id);
 			context->clientInterestAuthoritative = true;
@@ -399,7 +400,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 		return;
 	}
 	// special case improbable position
-	if (op->component_id == 54) {
+	if (op->component_id == shovelerWorkerSchemaComponentIdImprobablePosition) {
 		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
 			shovelerLogTrace("Received authority over Improbable position component of client entity %lld.", op->entity_id);
 			context->improbablePositionAuthoritative = true;
@@ -462,10 +463,10 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->update.component_id);
 	if(specialComponentType != NULL) {
 		// special case Metadata
-		if(op->update.component_id == 53) {
+		if(op->update.component_id == shovelerWorkerSchemaComponentIdImprobableMetadata) {
 			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
-			uint32_t entityTypeLength = Schema_GetBytesLength(fields, /* fieldId */ 1);
-			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, /* fieldId */ 1);
+			uint32_t entityTypeLength = Schema_GetBytesLength(fields, shovelerWorkerSchemaImprobableMetadataFieldIdEntityType);
+			const uint8_t *entityTypeBytes = Schema_GetBytes(fields, shovelerWorkerSchemaImprobableMetadataFieldIdEntityType);
 
 			GString *entityType = g_string_new("");
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
@@ -478,14 +479,14 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		}
 
 		// special case ClientHeartbeatPong
-		if(op->update.component_id == 13352) {
+		if(op->update.component_id == shovelerWorkerSchemaComponentIdClientHeartbeatPong) {
 			if(op->entity_id != context->clientEntityId) {
 				shovelerLogWarning("Received ClientHeartbeatPong update for entity %lld that isn't the client entity %lld, which points to a broken interest setup", op->entity_id, context->clientEntityId);
 				return;
 			}
 
 			Schema_Object *fields = Schema_GetComponentUpdateFields(op->update.schema_type);
-			int64_t lastPing = Schema_GetInt64(fields, /* fieldId */ 1);
+			int64_t lastPing = Schema_GetInt64(fields, shovelerWorkerSchemaClientHeartbeatPongFieldIdLastUpdatedTime);
 
 			context->lastHeartbeatPongTime = g_get_monotonic_time();
 			context->meanHeartbeatLatencyMs *= (1.0 - meanHeartbeatMovingExponentialFactor);
@@ -584,7 +585,7 @@ static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, Shovele
 			Schema_ComponentUpdate *componentUpdate = shovelerClientCreateImprobablePositionUpdate(*position, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ);
 
 			Worker_ComponentUpdate update;
-			update.component_id = 54;
+			update.component_id = shovelerWorkerSchemaComponentIdImprobablePosition;
 			update.schema_type = componentUpdate;
 
 			Worker_UpdateParameters updateParameters;
@@ -603,10 +604,10 @@ static void clientPingTick(void *clientContextPointer)
 
 	Schema_ComponentUpdate *componentUpdate = Schema_CreateComponentUpdate();
 	Schema_Object *fields = Schema_GetComponentUpdateFields(componentUpdate);
-	Schema_AddInt64(fields, /* fieldId */ 1, g_get_monotonic_time());
+	Schema_AddInt64(fields, shovelerWorkerSchemaClientHeartbeatPingFieldIdLastUpdatedTime, g_get_monotonic_time());
 
 	Worker_ComponentUpdate update;
-	update.component_id = 13351;
+	update.component_id = shovelerWorkerSchemaComponentIdClientHeartbeatPing;
 	update.schema_type = componentUpdate;
 
 	Worker_UpdateParameters updateParameters;
@@ -652,15 +653,15 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 			Worker_CommandRequest digHoleCommandRequest;
 			memset(&digHoleCommandRequest, 0, sizeof(Worker_CommandRequest));
 			digHoleCommandRequest.component_id = bootstrapComponentId;
-			digHoleCommandRequest.command_index = 3;
+			digHoleCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdDigHole;
 			digHoleCommandRequest.schema_type = Schema_CreateCommandRequest();
 
 			Schema_Object *digHoleRequest = Schema_GetCommandRequestObject(digHoleCommandRequest.schema_type);
-			Schema_AddEntityId(digHoleRequest, /* fieldId */ 1, context->clientEntityId);
-			Schema_Object *position = Schema_AddObject(digHoleRequest, /* fieldId */ 2);
-			Schema_AddFloat(position, /* fieldId */ 1, coordinates->values[0]);
-			Schema_AddFloat(position, /* fieldId */ 2, coordinates->values[1]);
-			Schema_AddFloat(position, /* fieldId */ 3, coordinates->values[2]);
+			Schema_AddEntityId(digHoleRequest, shovelerWorkerSchemaDigHoleRequestFieldIdClient, context->clientEntityId);
+			Schema_Object *position = Schema_AddObject(digHoleRequest, shovelerWorkerSchemaDigHoleRequestFieldIdPosition);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdX, coordinates->values[0]);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdY, coordinates->values[1]);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdZ, coordinates->values[2]);
 
 			Worker_RequestId digHoleCommandRequestId = Worker_Connection_SendCommandRequest(
 				context->connection,
@@ -680,23 +681,23 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 			Worker_CommandRequest spawnCubeCommandRequest;
 			memset(&spawnCubeCommandRequest, 0, sizeof(Worker_CommandRequest));
 			spawnCubeCommandRequest.component_id = bootstrapComponentId;
-			spawnCubeCommandRequest.command_index = 2;
+			spawnCubeCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdClientSpawnCube;
 			spawnCubeCommandRequest.schema_type = Schema_CreateCommandRequest();
 
 			Schema_Object *spawnCubeRequest = Schema_GetCommandRequestObject(spawnCubeCommandRequest.schema_type);
-			Schema_AddEntityId(spawnCubeRequest, /* fieldId */ 1, context->clientEntityId);
-			Schema_Object *position = Schema_AddObject(spawnCubeRequest, /* fieldId */ 2);
-			Schema_AddFloat(position, /* fieldId */ 1, coordinates->values[0]);
-			Schema_AddFloat(position, /* fieldId */ 2, coordinates->values[1]);
-			Schema_AddFloat(position, /* fieldId */ 3, coordinates->values[2]);
-			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, /* fieldId */ 3);
-			Schema_AddFloat(direction, /* fieldId */ 1, perspectiveCamera->direction.values[0]);
-			Schema_AddFloat(direction, /* fieldId */ 2, perspectiveCamera->direction.values[1]);
-			Schema_AddFloat(direction, /* fieldId */ 3, perspectiveCamera->direction.values[2]);
-			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, /* fieldId */ 4);
-			Schema_AddFloat(rotation, /* fieldId */ 1, 0.0f);
-			Schema_AddFloat(rotation, /* fieldId */ 2, 0.0f);
-			Schema_AddFloat(rotation, /* fieldId */ 3, 0.0f);
+			Schema_AddEntityId(spawnCubeRequest, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdClient, context->clientEntityId);
+			Schema_Object *position = Schema_AddObject(spawnCubeRequest, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdPosition);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdX, coordinates->values[0]);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdY, coordinates->values[1]);
+			Schema_AddFloat(position, shovelerWorkerSchemaVector3FieldIdZ, coordinates->values[2]);
+			Schema_Object *direction = Schema_AddObject(spawnCubeRequest, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdDirection);
+			Schema_AddFloat(direction, shovelerWorkerSchemaVector3FieldIdX, perspectiveCamera->direction.values[0]);
+			Schema_AddFloat(direction, shovelerWorkerSchemaVector3FieldIdY, perspectiveCamera->direction.values[1]);
+			Schema_AddFloat(direction, shovelerWorkerSchemaVector3FieldIdZ, perspectiveCamera->direction.values[2]);
+			Schema_Object *rotation = Schema_AddObject(spawnCubeRequest, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdRotation);
+			Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdX, 0.0f);
+			Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdY, 0.0f);
+			Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdZ, 0.0f);
 
 			Worker_RequestId spawnCubeCommandRequestId = Worker_Connection_SendCommandRequest(
 				context->connection,
@@ -721,14 +722,14 @@ static void updateInterest(ClientContext *context, bool absoluteInterest, Shovel
 {
 	Schema_ComponentUpdate *componentUpdate = Schema_CreateComponentUpdate();
 	Schema_Object *interest = Schema_GetComponentUpdateFields(componentUpdate);
-	Schema_Object *interestEntry = Schema_AddObject(interest, /* fieldId */ 1);
-	Schema_AddUint32(interestEntry, /* fieldId */ 1, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdClient));
-	Schema_Object *componentInterest = Schema_AddObject(interestEntry, /* fieldId */ 2);
+	Schema_Object *interestEntry = Schema_AddObject(interest, shovelerWorkerSchemaImprobableInterestFieldIdComponentInterest);
+	Schema_AddUint32(interestEntry, SCHEMA_MAP_KEY_FIELD_ID, shovelerClientResolveComponentSchemaId(shovelerComponentTypeIdClient));
+	Schema_Object *componentInterest = Schema_AddObject(interestEntry, SCHEMA_MAP_VALUE_FIELD_ID);
 
 	int numQueries = shovelerClientComputeViewInterest(context->game->view, context->clientEntityId, absoluteInterest, position, edgeLength, componentInterest);
 
 	Worker_ComponentUpdate update;
-	update.component_id = 58;
+	update.component_id = shovelerWorkerSchemaComponentIdImprobableInterest;
 	update.schema_type = componentUpdate;
 
 	Worker_UpdateParameters updateParameters;

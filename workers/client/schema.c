@@ -29,6 +29,7 @@
 #include <shoveler/component/tileset.h>
 #include <shoveler/component.h>
 #include <shoveler/log.h>
+#include <shoveler/schema.h>
 #include <shoveler/view.h>
 
 #include "schema.h"
@@ -48,53 +49,53 @@ static void updateBytesConfigurationOption(ShovelerComponent *component, Shovele
 const char *shovelerClientResolveComponentTypeId(int componentId)
 {
 	switch(componentId) {
-		case 5454:
+		case shovelerWorkerSchemaComponentIdPosition:
 			return shovelerComponentTypeIdPosition;
-		case 1335:
+		case shovelerWorkerSchemaComponentIdClient:
 			return shovelerComponentTypeIdClient;
-		case 1337:
+		case shovelerWorkerSchemaComponentIdResource:
 			return shovelerComponentTypeIdResource;
-		case 13377:
+		case shovelerWorkerSchemaComponentIdImage:
 			return shovelerComponentTypeIdImage;
-		case 1338:
+		case shovelerWorkerSchemaComponentIdTexture:
 			return shovelerComponentTypeIdTexture;
-		case 1339:
+		case shovelerWorkerSchemaComponentIdTileset:
 			return shovelerComponentTypeIdTileset;
-		case 1340:
+		case shovelerWorkerSchemaComponentIdTilemapTiles:
 			return shovelerComponentTypeIdTilemapTiles;
-		case 1341:
+		case shovelerWorkerSchemaComponentIdTilemap:
 			return shovelerComponentTypeIdTilemap;
-		case 13422:
+		case shovelerWorkerSchemaComponentIdSprite:
 			return shovelerComponentTypeIdSprite;
-		case 1342:
+		case shovelerWorkerSchemaComponentIdTileSprite:
 			return shovelerComponentTypeIdTileSprite;
-		case 13421:
+		case shovelerWorkerSchemaComponentIdTilemapSprite:
 			return shovelerComponentTypeIdTilemapSprite;
-		case 13423:
+		case shovelerWorkerSchemaComponentIdTextureSprite:
 			return shovelerComponentTypeIdTextureSprite;
-		case 1343:
+		case shovelerWorkerSchemaComponentIdTileSpriteAnimation:
 			return shovelerComponentTypeIdTileSpriteAnimation;
-		case 1344:
+		case shovelerWorkerSchemaComponentIdCanvas:
 			return shovelerComponentTypeIdCanvas;
-		case 1346:
+		case shovelerWorkerSchemaComponentIdDrawable:
 			return shovelerComponentTypeIdDrawable;
-		case 1347:
+		case shovelerWorkerSchemaComponentIdMaterial:
 			return shovelerComponentTypeIdMaterial;
-		case 1348:
+		case shovelerWorkerSchemaComponentIdModel:
 			return shovelerComponentTypeIdModel;
-		case 1349:
+		case shovelerWorkerSchemaComponentIdLight:
 			return shovelerComponentTypeIdLight;
-		case 13381:
+		case shovelerWorkerSchemaComponentIdSampler:
 			return shovelerComponentTypeIdSampler;
-		case 134132:
+		case shovelerWorkerSchemaComponentIdTilemapColliders:
 			return shovelerComponentTypeIdTilemapColliders;
-		case 1350:
+		case shovelerWorkerSchemaComponentIdFont:
 			return shovelerComponentTypeIdFont;
-		case 1351:
+		case shovelerWorkerSchemaComponentIdFontAtlas:
 			return shovelerComponentTypeIdFontAtlas;
-		case 1352:
+		case shovelerWorkerSchemaComponentIdFontAtlasTexture:
 			return shovelerComponentTypeIdFontAtlasTexture;
-		case 1353:
+		case shovelerWorkerSchemaComponentIdTextTextureRenderer:
 			return shovelerComponentTypeIdTextTextureRenderer;
 		default:
 			return NULL;
@@ -104,30 +105,30 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 const char *shovelerClientResolveSpecialComponentId(int componentId)
 {
 	switch(componentId) {
-		case 50:
+		case shovelerWorkerSchemaComponentIdImprobableEntityAcl:
 			return "EntityAcl";
-		case 53:
+		case shovelerWorkerSchemaComponentIdImprobableMetadata:
 			return "Metadata";
-		case 54:
+		case shovelerWorkerSchemaComponentIdImprobablePosition:
 			return "Position";
-		case 55:
+		case shovelerWorkerSchemaComponentIdImprobablePersistence:
 			return "Persistence";
-		case 58:
+		case shovelerWorkerSchemaComponentIdImprobableInterest:
 			return "Interest";
-		case 59:
+		case shovelerWorkerSchemaComponentIdImprobableSystem:
 			return "System";
-		case 60:
+		case shovelerWorkerSchemaComponentIdImprobableWorker:
 			return "Worker";
-		case 61:
+		case shovelerWorkerSchemaComponentIdImprobablePlayerClient:
 			return "PlayerClient";
 		// special shoveler components below
-		case 1334:
+		case shovelerWorkerSchemaComponentIdBootstrap:
 			return "Bootstrap";
-		case 133742:
+		case shovelerWorkerSchemaComponentIdClientInfo:
 			return "ClientInfo";
-		case 13351:
+		case shovelerWorkerSchemaComponentIdClientHeartbeatPing:
 			return "ClientHeartbeatPing";
-		case 13352:
+		case shovelerWorkerSchemaComponentIdClientHeartbeatPong:
 			return "ClientHeartbeatPong";
 		default:
 			return NULL;
@@ -137,76 +138,76 @@ const char *shovelerClientResolveSpecialComponentId(int componentId)
 int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 {
 	if(componentTypeId == shovelerComponentTypeIdPosition) {
-		return 5454;
+		return shovelerWorkerSchemaComponentIdPosition;
 	}
 	if(componentTypeId == shovelerComponentTypeIdClient) {
-		return 1335;
+		return shovelerWorkerSchemaComponentIdClient;
 	}
 	if(componentTypeId == shovelerComponentTypeIdResource) {
-		return 1337;
+		return shovelerWorkerSchemaComponentIdResource;
 	}
 	if(componentTypeId == shovelerComponentTypeIdImage) {
-		return 13377;
+		return shovelerWorkerSchemaComponentIdImage;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTexture) {
-		return 1338;
+		return shovelerWorkerSchemaComponentIdTexture;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTileset) {
-		return 1339;
+		return shovelerWorkerSchemaComponentIdTileset;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTilemapTiles) {
-		return 1340;
+		return shovelerWorkerSchemaComponentIdTilemapTiles;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTilemap) {
-		return 1341;
+		return shovelerWorkerSchemaComponentIdTilemap;
 	}
 	if(componentTypeId == shovelerComponentTypeIdSprite) {
-		return 13422;
+		return shovelerWorkerSchemaComponentIdSprite;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTileSprite) {
-		return 1342;
+		return shovelerWorkerSchemaComponentIdTileSprite;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTilemapSprite) {
-		return 13421;
+		return shovelerWorkerSchemaComponentIdTilemapSprite;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTextureSprite) {
-		return 13423;
+		return shovelerWorkerSchemaComponentIdTextureSprite;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTileSpriteAnimation) {
-		return 1343;
+		return shovelerWorkerSchemaComponentIdTileSpriteAnimation;
 	}
 	if(componentTypeId == shovelerComponentTypeIdCanvas) {
-		return 1344;
+		return shovelerWorkerSchemaComponentIdCanvas;
 	}
 	if(componentTypeId == shovelerComponentTypeIdDrawable) {
-		return 1346;
+		return shovelerWorkerSchemaComponentIdDrawable;
 	}
 	if(componentTypeId == shovelerComponentTypeIdMaterial) {
-		return 1347;
+		return shovelerWorkerSchemaComponentIdMaterial;
 	}
 	if(componentTypeId == shovelerComponentTypeIdModel) {
-		return 1348;
+		return shovelerWorkerSchemaComponentIdModel;
 	}
 	if(componentTypeId == shovelerComponentTypeIdLight) {
-		return 1349;
+		return shovelerWorkerSchemaComponentIdLight;
 	}
 	if(componentTypeId == shovelerComponentTypeIdSampler) {
-		return 13381;
+		return shovelerWorkerSchemaComponentIdSampler;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTilemapColliders) {
-		return 134132;
+		return shovelerWorkerSchemaComponentIdTilemapColliders;
 	}
 	if(componentTypeId == shovelerComponentTypeIdFont) {
-		return 1350;
+		return shovelerWorkerSchemaComponentIdFont;
 	}
 	if(componentTypeId == shovelerComponentTypeIdFontAtlas) {
-		return 1351;
+		return shovelerWorkerSchemaComponentIdFontAtlas;
 	}
 	if(componentTypeId == shovelerComponentTypeIdFontAtlasTexture) {
-		return 1352;
+		return shovelerWorkerSchemaComponentIdFontAtlasTexture;
 	}
 	if(componentTypeId == shovelerComponentTypeIdTextTextureRenderer) {
-		return 1353;
+		return shovelerWorkerSchemaComponentIdTextTextureRenderer;
 	}
 	return 0;
 }
@@ -362,8 +363,8 @@ Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *c
 			} else {
 				assert(value != NULL);
 				Schema_Object *vector2 = Schema_AddObject(fields, fieldId);
-				Schema_AddFloat(vector2, /* fieldId */ 1, value->vector2Value.values[0]);
-				Schema_AddFloat(vector2, /* fieldId */ 2, value->vector2Value.values[1]);
+				Schema_AddFloat(vector2, shovelerWorkerSchemaVector2FieldIdX, value->vector2Value.values[0]);
+				Schema_AddFloat(vector2, shovelerWorkerSchemaVector2FieldIdY, value->vector2Value.values[1]);
 			}
 		} break;
 		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3: {
@@ -372,9 +373,9 @@ Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *c
 			} else {
 				assert(value != NULL);
 				Schema_Object *vector3 = Schema_AddObject(fields, fieldId);
-				Schema_AddFloat(vector3, /* fieldId */ 1, value->vector3Value.values[0]);
-				Schema_AddFloat(vector3, /* fieldId */ 2, value->vector3Value.values[1]);
-				Schema_AddFloat(vector3, /* fieldId */ 3, value->vector3Value.values[2]);
+				Schema_AddFloat(vector3, shovelerWorkerSchemaVector3FieldIdX, value->vector3Value.values[0]);
+				Schema_AddFloat(vector3, shovelerWorkerSchemaVector3FieldIdY, value->vector3Value.values[1]);
+				Schema_AddFloat(vector3, shovelerWorkerSchemaVector3FieldIdZ, value->vector3Value.values[2]);
 			}
 		} break;
 		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR4: {
@@ -383,10 +384,10 @@ Schema_ComponentUpdate *shovelerClientCreateComponentUpdate(ShovelerComponent *c
 			} else {
 				assert(value != NULL);
 				Schema_Object *vector4 = Schema_AddObject(fields, fieldId);
-				Schema_AddFloat(vector4, /* fieldId */ 1, value->vector4Value.values[0]);
-				Schema_AddFloat(vector4, /* fieldId */ 2, value->vector4Value.values[1]);
-				Schema_AddFloat(vector4, /* fieldId */ 3, value->vector4Value.values[2]);
-				Schema_AddFloat(vector4, /* fieldId */ 4, value->vector4Value.values[3]);
+				Schema_AddFloat(vector4, shovelerWorkerSchemaVector4FieldIdX, value->vector4Value.values[0]);
+				Schema_AddFloat(vector4, shovelerWorkerSchemaVector4FieldIdY, value->vector4Value.values[1]);
+				Schema_AddFloat(vector4, shovelerWorkerSchemaVector4FieldIdZ, value->vector4Value.values[2]);
+				Schema_AddFloat(vector4, shovelerWorkerSchemaVector4FieldIdW, value->vector4Value.values[3]);
 			}
 		} break;
 		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_BYTES: {
@@ -421,10 +422,10 @@ Schema_ComponentUpdate *shovelerClientCreateImprobablePositionUpdate(ShovelerVec
 		shovelerCoordinateMap(position, mappingY),
 		shovelerCoordinateMap(position, mappingZ));
 
-	Schema_Object *coordinates = Schema_AddObject(fields, /* fieldId */ 1);
-	Schema_AddDouble(coordinates, /* fieldId */ 1, coordinatesValue.values[0]);
-	Schema_AddDouble(coordinates, /* fieldId */ 2, coordinatesValue.values[1]);
-	Schema_AddDouble(coordinates, /* fieldId */ 3, coordinatesValue.values[2]);
+	Schema_Object *coordinates = Schema_AddObject(fields, shovelerWorkerSchemaImprobablePositionFieldIdCoords);
+	Schema_AddDouble(coordinates, shovelerWorkerSchemaImprobableCoordinatesFieldIdX, coordinatesValue.values[0]);
+	Schema_AddDouble(coordinates, shovelerWorkerSchemaImprobableCoordinatesFieldIdY, coordinatesValue.values[1]);
+	Schema_AddDouble(coordinates, shovelerWorkerSchemaImprobableCoordinatesFieldIdZ, coordinatesValue.values[2]);
 
 	return update;
 }
@@ -584,8 +585,8 @@ static void updateVector2ConfigurationOption(ShovelerComponent *component, Shove
 		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector2 = Schema_GetObject(fields, fieldId);
-		float x = Schema_GetFloat(vector2, 1);
-		float y = Schema_GetFloat(vector2, 2);
+		float x = Schema_GetFloat(vector2, shovelerWorkerSchemaVector2FieldIdX);
+		float y = Schema_GetFloat(vector2, shovelerWorkerSchemaVector2FieldIdY);
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector2(component, optionId, shovelerVector2(x, y));
 
@@ -604,9 +605,9 @@ static void updateVector3ConfigurationOption(ShovelerComponent *component, Shove
 		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector3 = Schema_GetObject(fields, fieldId);
-		float x = Schema_GetFloat(vector3, 1);
-		float y = Schema_GetFloat(vector3, 2);
-		float z = Schema_GetFloat(vector3, 3);
+		float x = Schema_GetFloat(vector3, shovelerWorkerSchemaVector3FieldIdX);
+		float y = Schema_GetFloat(vector3, shovelerWorkerSchemaVector3FieldIdY);
+		float z = Schema_GetFloat(vector3, shovelerWorkerSchemaVector3FieldIdZ);
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector3(component, optionId, shovelerVector3(x, y, z));
 
@@ -625,10 +626,10 @@ static void updateVector4ConfigurationOption(ShovelerComponent *component, Shove
 		shovelerLogTrace("Cleared entity %lld component '%s' option '%s'.", component->entityId, component->type->id, configurationOption->name);
 	} else {
 		Schema_Object *vector4 = Schema_GetObject(fields, fieldId);
-		float x = Schema_GetFloat(vector4, 1);
-		float y = Schema_GetFloat(vector4, 2);
-		float z = Schema_GetFloat(vector4, 3);
-		float w = Schema_GetFloat(vector4, 4);
+		float x = Schema_GetFloat(vector4, shovelerWorkerSchemaVector4FieldIdX);
+		float y = Schema_GetFloat(vector4, shovelerWorkerSchemaVector4FieldIdY);
+		float z = Schema_GetFloat(vector4, shovelerWorkerSchemaVector4FieldIdZ);
+		float w = Schema_GetFloat(vector4, shovelerWorkerSchemaVector4FieldIdW);
 
 		shovelerComponentUpdateCanonicalConfigurationOptionVector4(component, optionId, shovelerVector4(x, y, z, w));
 
