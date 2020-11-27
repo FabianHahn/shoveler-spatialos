@@ -647,7 +647,7 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 	const ShovelerVector3 *coordinates = shovelerComponentGetPosition(positionComponent);
 
 	if(button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-		if(context->clientConfiguration->gameType == SHOVELER_CLIENT_GAME_TYPE_TILES) {
+		if(context->clientConfiguration->gameType == SHOVELER_WORKER_GAME_TYPE_TILES) {
 			shovelerLogInfo("Sending dig hole command...");
 
 			Worker_CommandRequest digHoleCommandRequest;
