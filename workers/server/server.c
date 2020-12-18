@@ -490,11 +490,7 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 
 	Worker_ComponentData clientEntityComponentData[13] = {0};
 
-	// improbable.Metadata
-	clientEntityComponentData[0].component_id = shovelerWorkerSchemaComponentIdImprobableMetadata;
-	clientEntityComponentData[0].schema_type = Schema_CreateComponentData();
-	Schema_Object *metadata = Schema_GetComponentDataFields(clientEntityComponentData[0].schema_type);
-	Schema_AddBytes(metadata, shovelerWorkerSchemaImprobableMetadataFieldIdEntityType, (const uint8_t *) "client", strlen("client"));
+	clientEntityComponentData[0] = shovelerWorkerSchemaCreateImprobableMetadataComponent("client");
 
 	// shoveler.Client
 	clientEntityComponentData[1].component_id = shovelerWorkerSchemaComponentIdClient;
@@ -514,63 +510,30 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 	Schema_Object *clientHeartbeatPong = Schema_GetComponentDataFields(clientEntityComponentData[3].schema_type);
 	Schema_AddInt64(clientHeartbeatPong, shovelerWorkerSchemaClientHeartbeatPongFieldIdLastUpdatedTime, 0);
 
-	// improbable.Persistence
-	clientEntityComponentData[4].component_id = shovelerWorkerSchemaComponentIdImprobablePersistence;
-	clientEntityComponentData[4].schema_type = Schema_CreateComponentData();
+	clientEntityComponentData[4] = shovelerWorkerSchemaCreateImprobablePersistenceComponent();
+	clientEntityComponentData[5] = shovelerWorkerSchemaCreateImprobablePositionComponent(
+		playerImprobablePosition.values[0], playerImprobablePosition.values[1], playerImprobablePosition.values[2]);
+	clientEntityComponentData[6] = shovelerWorkerSchemaCreatePositionComponent(playerPosition);
 
-	// improbable.Position
-	clientEntityComponentData[5].component_id = shovelerWorkerSchemaComponentIdImprobablePosition;
-	clientEntityComponentData[5].schema_type = Schema_CreateComponentData();
-	Schema_Object *improbablePosition = Schema_GetComponentDataFields(clientEntityComponentData[5].schema_type);
-	Schema_Object *coords = Schema_AddObject(improbablePosition, shovelerWorkerSchemaImprobablePositionFieldIdCoords);
-	Schema_AddDouble(coords, shovelerWorkerSchemaImprobableCoordinatesFieldIdX, playerImprobablePosition.values[0]);
-	Schema_AddDouble(coords, shovelerWorkerSchemaImprobableCoordinatesFieldIdY, playerImprobablePosition.values[1]);
-	Schema_AddDouble(coords, shovelerWorkerSchemaImprobableCoordinatesFieldIdZ, playerImprobablePosition.values[2]);
-
-	// shoveler.Position
-	clientEntityComponentData[6].component_id = shovelerWorkerSchemaComponentIdPosition;
-	clientEntityComponentData[6].schema_type = Schema_CreateComponentData();
-	Schema_Object *position = Schema_GetComponentDataFields(clientEntityComponentData[6].schema_type);
-	Schema_AddEnum(position, shovelerWorkerSchemaPositionFieldIdPositionType, SHOVELER_COMPONENT_POSITION_TYPE_ABSOLUTE);
-	Schema_Object *coordinates = Schema_AddObject(position, shovelerWorkerSchemaPositionFieldIdCoordinates);
-	Schema_AddFloat(coordinates, shovelerWorkerSchemaVector3FieldIdX, playerPosition.values[0]);
-	Schema_AddFloat(coordinates, shovelerWorkerSchemaVector3FieldIdY, playerPosition.values[1]);
-	Schema_AddFloat(coordinates, shovelerWorkerSchemaVector3FieldIdZ, playerPosition.values[2]);
-
-	// improbable.Interest
-	clientEntityComponentData[7].component_id = shovelerWorkerSchemaComponentIdImprobableInterest;
-	clientEntityComponentData[7].schema_type = Schema_CreateComponentData();
-	Schema_Object *interest = Schema_GetComponentDataFields(clientEntityComponentData[7].schema_type);
-	Schema_Object *clientComponentInterestEntry = Schema_AddObject(interest, shovelerWorkerSchemaImprobableInterestFieldIdComponentInterest);
-	Schema_AddUint32(clientComponentInterestEntry, SCHEMA_MAP_KEY_FIELD_ID, shovelerWorkerSchemaComponentIdClient);
-	Schema_Object *clientComponentInterest = Schema_AddObject(clientComponentInterestEntry, SCHEMA_MAP_VALUE_FIELD_ID);
-	Schema_Object *relativeQuery = Schema_AddObject(clientComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-	Schema_Object *relativeQueryConstraint = Schema_AddObject(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
-	Schema_Object *relativeBoxConstraint = Schema_AddObject(relativeQueryConstraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeBoxConstraint);
-	Schema_Object *relativeBoxConstraintEdgeLength = Schema_AddObject(relativeBoxConstraint, shovelerWorkerSchemaImprobableComponentInterestRelativeBoxConstraintFieldIdEdgeLength);
-	Schema_AddDouble(relativeBoxConstraintEdgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdX, 20.5);
-	Schema_AddDouble(relativeBoxConstraintEdgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdY, 9999.0);
-	Schema_AddDouble(relativeBoxConstraintEdgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdZ, 20.5);
-	Schema_AddUint32(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdLight);
-	Schema_AddUint32(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdModel);
-	Schema_AddUint32(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdPosition);
-	Schema_AddUint32(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdSprite);
-	Schema_AddUint32(relativeQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdTilemapTiles);
-	Schema_Object *heartbeatQuery = Schema_AddObject(clientComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-	Schema_Object *heartbeatQueryConstraint = Schema_AddObject(heartbeatQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
-	Schema_Object *relativeSphereConstraint = Schema_AddObject(heartbeatQueryConstraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeSphereConstraint);
-	Schema_AddDouble(relativeSphereConstraint, shovelerWorkerSchemaImprobableComponentInterestRelativeSphereConstraintFieldIdRadius, 0.0);
-	Schema_AddUint32(heartbeatQuery, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
+	clientEntityComponentData[7] = shovelerWorkerSchemaCreateImprobableInterestComponent();
+	Schema_Object *clientComponentInterest = shovelerWorkerSchemaAddImprobableInterestForComponent(
+		&clientEntityComponentData[7], shovelerWorkerSchemaComponentIdClient);
+	Schema_Object *relativeQuery = shovelerWorkerSchemaAddImprobableInterestComponentQuery(clientComponentInterest);
+	shovelerWorkerSchemaSetImprobableInterestQueryRelativeBoxConstraint(relativeQuery, 20.5, 9999.0, 20.5);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(relativeQuery, shovelerWorkerSchemaComponentIdLight);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(relativeQuery, shovelerWorkerSchemaComponentIdModel);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(relativeQuery, shovelerWorkerSchemaComponentIdPosition);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(relativeQuery, shovelerWorkerSchemaComponentIdSprite);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(relativeQuery, shovelerWorkerSchemaComponentIdTilemapTiles);
+	Schema_Object *heartbeatQuery = shovelerWorkerSchemaAddImprobableInterestComponentQuery(clientComponentInterest);
+	shovelerWorkerSchemaSetImprobableInterestQueryRelativeSphereConstraint(heartbeatQuery, 0.0);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(heartbeatQuery, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
 
 	// improbable.EntityAcl
-	clientEntityComponentData[8].component_id = shovelerWorkerSchemaComponentIdImprobableEntityAcl;
-	clientEntityComponentData[8].schema_type = Schema_CreateComponentData();
+	clientEntityComponentData[8] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
+	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&clientEntityComponentData[8], "client");
+	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&clientEntityComponentData[8], "server");
 	Schema_Object *entityAcl = Schema_GetComponentDataFields(clientEntityComponentData[8].schema_type);
-	Schema_Object *readAcl = Schema_AddObject(entityAcl, shovelerWorkerSchemaImprobableEntityAclFieldIdReadAcl);
-	Schema_Object *readAclClientAttributeSet = Schema_AddObject(readAcl, shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet);
-	Schema_AddBytes(readAclClientAttributeSet, shovelerWorkerSchemaImprobableWorkerAttributeSetFieldIdAttribute, (const uint8_t *) "client", strlen("client"));
-	Schema_Object *readAclServerAttributeSet = Schema_AddObject(readAcl, shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet);
-	Schema_AddBytes(readAclServerAttributeSet, shovelerWorkerSchemaImprobableWorkerAttributeSetFieldIdAttribute, (const uint8_t *) "server", strlen("server"));
 	const char *specificClientAttribute = getSpecificWorkerAttribute(&op->caller_attribute_set);
 	uint32_t specificClientAttributeLength = strlen(specificClientAttribute);
 	uint8_t *specificClientAttributeBuffer = Schema_AllocateBuffer(entityAcl, specificClientAttributeLength);
@@ -647,52 +610,26 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 		ShovelerVector4 playerParticleColor = colorFromHsv(hue, saturation, 0.9f);
 		ShovelerVector4 playerLightColor = colorFromHsv(hue, saturation, 0.1f);
 
-		// shoveler.Material
-		clientEntityComponentData[9].component_id = shovelerWorkerSchemaComponentIdMaterial;
-		clientEntityComponentData[9].schema_type = Schema_CreateComponentData();
-		Schema_Object *material = Schema_GetComponentDataFields(clientEntityComponentData[9].schema_type);
-		Schema_AddEnum(material, shovelerWorkerSchemaMaterialFieldIdType, shovelerWorkerSchemaMaterialTypeParticle);
-		Schema_Object *materialColor = Schema_AddObject(material, shovelerWorkerSchemaMaterialFieldIdColor);
-		Schema_AddFloat(materialColor, shovelerWorkerSchemaVector4FieldIdX, playerParticleColor.values[0]);
-		Schema_AddFloat(materialColor, shovelerWorkerSchemaVector4FieldIdY, playerParticleColor.values[1]);
-		Schema_AddFloat(materialColor, shovelerWorkerSchemaVector4FieldIdZ, playerParticleColor.values[2]);
-		Schema_AddFloat(materialColor, shovelerWorkerSchemaVector4FieldIdW, playerParticleColor.values[3]);
-
-		// shoveler.Model
-		clientEntityComponentData[10].component_id = shovelerWorkerSchemaComponentIdModel;
-		clientEntityComponentData[10].schema_type = Schema_CreateComponentData();
-		Schema_Object *model = Schema_GetComponentDataFields(clientEntityComponentData[10].schema_type);
-		Schema_AddEntityId(model, shovelerWorkerSchemaModelFieldIdPosition, 0);
-		Schema_AddEntityId(model, shovelerWorkerSchemaModelFieldIdDrawable, pointDrawableEntityId);
-		Schema_AddEntityId(model, shovelerWorkerSchemaModelFieldIdMaterial, 0);
-		Schema_Object *rotation = Schema_AddObject(model, shovelerWorkerSchemaModelFieldIdRotation);
-		Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdX, 0.0f);
-		Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdY, 0.0f);
-		Schema_AddFloat(rotation, shovelerWorkerSchemaVector3FieldIdZ, 0.0f);
-		Schema_Object *scale = Schema_AddObject(model, shovelerWorkerSchemaModelFieldIdScale);
-		Schema_AddFloat(scale, shovelerWorkerSchemaVector3FieldIdX, 0.1f);
-		Schema_AddFloat(scale, shovelerWorkerSchemaVector3FieldIdY, 0.1f);
-		Schema_AddFloat(scale, shovelerWorkerSchemaVector3FieldIdZ, 0.1f);
-		Schema_AddBool(model, shovelerWorkerSchemaModelFieldIdVisible, true);
-		Schema_AddBool(model, shovelerWorkerSchemaModelFieldIdEmitter, true);
-		Schema_AddBool(model, shovelerWorkerSchemaModelFieldIdCastsShadow, false);
-		Schema_AddEnum(model, shovelerWorkerSchemaModelFieldIdPolygonMode, shovelerWorkerSchemaPolygonModeFill);
-
-		// shoveler.Light
-		clientEntityComponentData[11].component_id = shovelerWorkerSchemaComponentIdLight;
-		clientEntityComponentData[11].schema_type = Schema_CreateComponentData();
-		Schema_Object *light = Schema_GetComponentDataFields(clientEntityComponentData[11].schema_type);
-		Schema_AddEntityId(light, shovelerWorkerSchemaLightFieldIdPosition, 0);
-		Schema_AddEnum(light, shovelerWorkerSchemaLightFieldIdType, shovelerWorkerSchemaLightTypePoint);
-		Schema_AddUint32(light, shovelerWorkerSchemaLightFieldIdWidth, 1024);
-		Schema_AddUint32(light, shovelerWorkerSchemaLightFieldIdHeight, 1024);
-		Schema_AddUint32(light, shovelerWorkerSchemaLightFieldIdSamples, 1);
-		Schema_AddFloat(light, shovelerWorkerSchemaLightFieldIdAmbientFactor, 0.01f);
-		Schema_AddFloat(light, shovelerWorkerSchemaLightFieldIdExponentialFactor, 80.0f);
-		Schema_Object *lightColor = Schema_AddObject(light, shovelerWorkerSchemaLightFieldIdColor);
-		Schema_AddFloat(lightColor, shovelerWorkerSchemaVector3FieldIdX, playerLightColor.values[0]);
-		Schema_AddFloat(lightColor, shovelerWorkerSchemaVector3FieldIdY, playerLightColor.values[1]);
-		Schema_AddFloat(lightColor, shovelerWorkerSchemaVector3FieldIdZ, playerLightColor.values[2]);
+		clientEntityComponentData[9] = shovelerWorkerSchemaCreateMaterialParticleComponent(playerParticleColor);
+		clientEntityComponentData[10] = shovelerWorkerSchemaCreateModelComponent(
+			/* position */ 0,
+			pointDrawableEntityId,
+			/* material */ 0,
+			/* rotation */ shovelerVector3(0.0f, 0.0f, 0.0f),
+			/* scale */ shovelerVector3(0.1f, 0.1f, 0.1f),
+			/* visible */ true,
+			/* emitter */ true,
+			/* castsShadow */ false,
+			shovelerWorkerSchemaPolygonModeFill);
+		clientEntityComponentData[11] = shovelerWorkerSchemaCreateLightComponent(
+			/* position */ 0,
+			shovelerWorkerSchemaLightTypePoint,
+			/* width */ 1024,
+			/* height */ 1024,
+			/* samples */ 1,
+			/* ambientFactor */ 0.01f,
+			/* exponentialFactor */ 80.0f,
+			/* color */ shovelerVector3(playerLightColor.values[0], playerLightColor.values[1], playerLightColor.values[2]));
 	}
 
 	// shoveler.ClientInfo
