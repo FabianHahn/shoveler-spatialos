@@ -33,6 +33,7 @@ enum DrawableType {
 	CUBE = 0;
 	QUAD = 1;
 	POINT = 2;
+	TILES = 3;
 }
 
 /** Represents the type of shader to use for a material. */
@@ -258,9 +259,9 @@ component TilemapTiles {
 	 */
 	option<EntityId> image = 1;
 	/** Number of tile columns in the tilemap tiles, must be in [0, 255]. */
-	option<uint32> num_columns = 2;
+	option<int32> num_columns = 2;
 	/** Number of tile rows in the tilemap tiles, must be in [0, 255]. */
-	option<uint32> num_rows = 3;
+	option<int32> num_rows = 3;
 	/** Array of tileset column bytes, where tile (column, row) is at position [row * numColumns + column]. */
 	option<bytes> tileset_columns = 4;
 	/** Array of tileset row bytes, where tile (column, row) is at position [row * numColumns + column]. */
@@ -470,11 +471,11 @@ component Light {
 	/** Type of this light source. */
 	LightType type = 2;
 	/** The width of the framebuffer to use for the light's shadow volume. */
-	uint32 width = 3;
+	int32 width = 3;
 	/** The height of the framebuffer to use for the light's shadow volume. */
-	uint32 height = 4;
+	int32 height = 4;
 	/** The number of samples per pixel to use when rendering the light's shadow volume. */
-	uint32 samples = 5;
+	int32 samples = 5;
 	/** Phong ambient factor to use for this light source. */
 	float ambient_factor = 6;
 	/** Exponential factor to use for exponential shadow mapping of this light source. */
