@@ -8,6 +8,14 @@ set(SEEDER_LIGHTS_SRC
 	lights.cpp
 )
 
+set(SEEDER_C_TILES_SRC
+	map.c
+	map.h
+	tiles.c
+	tileset.c
+	tileset.h
+)
+
 set(SEEDER_TILES_SRC
 	tiles.cpp
 	tiles/map.cpp
@@ -53,3 +61,25 @@ add_custom_command(TARGET seeder_tiles POST_BUILD
 )
 
 add_dependencies(seeder_tiles shoveler_spatialos_assets)
+
+add_executable(seeder_c_tiles ${SEEDER_C_TILES_SRC})
+target_link_libraries(seeder_c_tiles shoveler_worker_common worker_sdk::c_worker_sdk shoveler_base)
+
+add_custom_command(TARGET seeder_c_tiles POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:seeder_c_tiles>/assets/tilesets
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_tilesets_autumn} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/tilesets/
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_tilesets_spring} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/tilesets/
+	COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player1} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player2} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player3} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/
+	COMMAND ${CMAKE_COMMAND} -E copy ${shoveler_spatialos_assets_characters_player4} $<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/
+	COMMAND seeder_c_tiles
+		$<TARGET_FILE_DIR:seeder_c_tiles>/assets/tilesets/spring.png 7 2
+		$<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/player1.png
+		$<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/player2.png
+		$<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/player3.png
+		$<TARGET_FILE_DIR:seeder_c_tiles>/assets/characters/player4.png
+		5
+		${CMAKE_CURRENT_BINARY_DIR}/c_tiles.snapshot
+)
