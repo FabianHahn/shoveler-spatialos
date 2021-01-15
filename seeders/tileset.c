@@ -1,11 +1,7 @@
-#include <algorithm>
+#include "tileset.h"
 
-extern "C" {
 #include <shoveler/image/png.h>
 #include <shoveler/log.h>
-}
-
-#include "tileset.h"
 
 static const int tileWidth = 16;
 static const int tileHeight = 16;
@@ -13,6 +9,7 @@ static const int tileHeight = 16;
 static void addFrame(ShovelerImage *tile, int size);
 static void setTile(ShovelerImage *tileset, int column, int row, ShovelerImage *tile);
 static int getBorderDistance(int i, int j);
+static int getMin(int a, int b);
 
 void createTileset(ShovelerImage **outputTileset, int *outputColumns, int *outputRows)
 {
@@ -81,5 +78,10 @@ static int getBorderDistance(int i, int j)
 	int xHigh = tileWidth - 1 - i;
 	int yLow = j;
 	int yHigh = tileHeight - 1 - j;
-	return std::min(xLow, std::min(xHigh, std::min(yLow, yHigh)));
+	return getMin(xLow, getMin(xHigh, getMin(yLow, yHigh)));
+}
+
+static int getMin(int a, int b)
+{
+	return a <= b ? a : b;
 }
