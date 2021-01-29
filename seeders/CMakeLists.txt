@@ -1,7 +1,7 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SEEDER_LIGHTS_SRC
-	lights.cpp
+	lights.c
 )
 
 set(SEEDER_TILES_SRC
@@ -13,7 +13,7 @@ set(SEEDER_TILES_SRC
 )
 
 add_executable(seeder_lights ${SEEDER_LIGHTS_SRC})
-target_link_libraries(seeder_lights schema worker_sdk::cpp_worker_sdk shoveler_base)
+target_link_libraries(seeder_lights shoveler_worker_common worker_sdk::c_worker_sdk shoveler_base)
 
 add_custom_command(TARGET seeder_lights POST_BUILD
 	COMMAND seeder_lights ${CMAKE_CURRENT_BINARY_DIR}/lights.snapshot
