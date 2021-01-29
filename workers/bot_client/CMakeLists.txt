@@ -1,13 +1,11 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_BOT_CLIENT_SRC
-	bot_client.cpp
-	connect.cpp
-	connect.h
+	bot_client.c
 )
 
 add_executable(ShovelerBotClient ${SHOVELER_BOT_CLIENT_SRC})
-target_link_libraries(ShovelerBotClient shoveler_base schema worker_sdk::cpp_worker_sdk)
+target_link_libraries(ShovelerBotClient shoveler_base shoveler_worker_common worker_sdk::c_worker_sdk)
 
 if(WIN32)
 	add_custom_command(
