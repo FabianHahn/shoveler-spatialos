@@ -6,8 +6,15 @@ set(SHOVELER_BOT_CLIENT_SRC
 	connect.h
 )
 
+set(SHOVELER_BOT_C_CLIENT_SRC
+	bot_client.c
+)
+
 add_executable(ShovelerBotClient ${SHOVELER_BOT_CLIENT_SRC})
 target_link_libraries(ShovelerBotClient shoveler_base schema worker_sdk::cpp_worker_sdk)
+
+add_executable(ShovelerBotCClient ${SHOVELER_BOT_C_CLIENT_SRC})
+target_link_libraries(ShovelerBotCClient shoveler_base shoveler_worker_common worker_sdk::c_worker_sdk)
 
 if(WIN32)
 	add_custom_command(
