@@ -8,40 +8,57 @@
 
 static void workerFlagCallback(void *targetPointer, const char *value);
 
-void shovelerWorkerConfigurationParseFloatFlag(Worker_Connection *connection, const char *flagName, float *outputValue)
+bool shovelerWorkerConfigurationParseFloatFlag(Worker_Connection *connection, const char *flagName, float *outputValue)
 {
 	char *stringValue;
 	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
 	if(stringValue == NULL) {
-		return;
+		return false;
 	}
 
 	*outputValue = atof(stringValue);
 
 	shovelerLogInfo("Parsed configuration flag '%s' with value %f.", flagName, *outputValue);
 	free(stringValue);
+	return true;
 }
 
-void shovelerWorkerConfigurationParseVector3Flag(Worker_Connection *connection, const char *flagName, ShovelerVector3 *outputValue)
+bool shovelerWorkerConfigurationParseIntFlag(Worker_Connection *connection, const char *flagName, int *outputValue)
 {
 	char *stringValue;
 	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
 	if(stringValue == NULL) {
-		return;
+		return false;
+	}
+
+	*outputValue = atoi(stringValue);
+
+	shovelerLogInfo("Parsed configuration flag '%s' with value %d.", flagName, *outputValue);
+	free(stringValue);
+	return true;
+}
+
+bool shovelerWorkerConfigurationParseVector3Flag(Worker_Connection *connection, const char *flagName, ShovelerVector3 *outputValue)
+{
+	char *stringValue;
+	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
+	if(stringValue == NULL) {
+		return false;
 	}
 
 	sscanf(stringValue, "%f %f %f", &outputValue->values[0], &outputValue->values[1], &outputValue->values[2]);
 
 	shovelerLogInfo("Parsed client configuration flag '%s' with value (%f, %f, %f).", flagName, outputValue->values[0], outputValue->values[1], outputValue->values[2]);
 	free(stringValue);
+	return true;
 }
 
-void shovelerWorkerConfigurationParseBoolFlag(Worker_Connection *connection, const char *flagName, bool *outputValue)
+bool shovelerWorkerConfigurationParseBoolFlag(Worker_Connection *connection, const char *flagName, bool *outputValue)
 {
 	char *stringValue;
 	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
 	if(stringValue == NULL) {
-		return;
+		return false;
 	}
 
 	if(strcmp(stringValue, "true") == 0) {
@@ -50,19 +67,20 @@ void shovelerWorkerConfigurationParseBoolFlag(Worker_Connection *connection, con
 		*outputValue = false;
 	} else {
 		free(stringValue);
-		return;
+		return false;
 	}
 
 	shovelerLogInfo("Parsed client configuration flag '%s' with value %s.", flagName, stringValue);
 	free(stringValue);
+	return true;
 }
 
-void shovelerWorkerConfigurationParseCoordinateMappingFlag(Worker_Connection *connection, const char *flagName, ShovelerCoordinateMapping *outputValue)
+bool shovelerWorkerConfigurationParseCoordinateMappingFlag(Worker_Connection *connection, const char *flagName, ShovelerCoordinateMapping *outputValue)
 {
 	char *stringValue;
 	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
 	if(stringValue == NULL) {
-		return;
+		return false;
 	}
 
 	if(strcmp(stringValue, "+x") == 0) {
@@ -79,19 +97,20 @@ void shovelerWorkerConfigurationParseCoordinateMappingFlag(Worker_Connection *co
 		*outputValue = SHOVELER_COORDINATE_MAPPING_NEGATIVE_Z;
 	} else {
 		free(stringValue);
-		return;
+		return false;
 	}
 
 	shovelerLogInfo("Parsed client configuration flag '%s' with value %s.", flagName, stringValue);
 	free(stringValue);
+	return true;
 }
 
-void shovelerWorkerConfigurationParseGameTypeFlag(Worker_Connection *connection, const char *flagName, ShovelerWorkerGameType *outputValue)
+bool shovelerWorkerConfigurationParseGameTypeFlag(Worker_Connection *connection, const char *flagName, ShovelerWorkerGameType *outputValue)
 {
 	char *stringValue;
 	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
 	if(stringValue == NULL) {
-		return;
+		return false;
 	}
 
 	if(strcmp(stringValue, "lights") == 0) {
@@ -100,11 +119,12 @@ void shovelerWorkerConfigurationParseGameTypeFlag(Worker_Connection *connection,
 		*outputValue = SHOVELER_WORKER_GAME_TYPE_TILES;
 	} else {
 		free(stringValue);
-		return;
+		return false;
 	}
 
 	shovelerLogInfo("Parsed client configuration flag '%s' with value '%s'.", flagName, stringValue);
 	free(stringValue);
+	return true;
 }
 
 static void workerFlagCallback(void *targetPointer, const char *value)
