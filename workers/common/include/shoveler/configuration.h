@@ -10,6 +10,7 @@ typedef enum {
 } ShovelerWorkerGameType;
 
 void shovelerWorkerConfigurationParseFloatFlag(Worker_Connection *connection, const char *flagName, float *outputValue);
+void shovelerWorkerConfigurationParseIntFlag(Worker_Connection *connection, const char *flagName, int *outputValue);
 void shovelerWorkerConfigurationParseVector3Flag(Worker_Connection *connection, const char *flagName, ShovelerVector3 *outputValue);
 void shovelerWorkerConfigurationParseBoolFlag(Worker_Connection *connection, const char *flagName, bool *outputValue);
 void shovelerWorkerConfigurationParseCoordinateMappingFlag(Worker_Connection *connection, const char *flagName, ShovelerCoordinateMapping *outputValue);

@@ -22,6 +22,20 @@ void shovelerWorkerConfigurationParseFloatFlag(Worker_Connection *connection, co
 	free(stringValue);
 }
 
+void shovelerWorkerConfigurationParseIntFlag(Worker_Connection *connection, const char *flagName, int *outputValue)
+{
+	char *stringValue;
+	Worker_Connection_GetWorkerFlag(connection, flagName, &stringValue, workerFlagCallback);
+	if(stringValue == NULL) {
+		return;
+	}
+
+	*outputValue = atoi(stringValue);
+
+	shovelerLogInfo("Parsed configuration flag '%s' with value %d.", flagName, *outputValue);
+	free(stringValue);
+}
+
 void shovelerWorkerConfigurationParseVector3Flag(Worker_Connection *connection, const char *flagName, ShovelerVector3 *outputValue)
 {
 	char *stringValue;
