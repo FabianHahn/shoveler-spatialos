@@ -26,14 +26,14 @@ if(WIN32)
 		TARGET ShovelerClient
 		POST_BUILD
 		COMMENT "Creating client release archive."
-		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "c_client-x86_64-win32.zip" --format=zip "$<TARGET_FILE_NAME:ShovelerClient>"
+		COMMAND ${CMAKE_COMMAND} -E tar "cfv" "client-x86_64-win32.zip" --format=zip "$<TARGET_FILE_NAME:ShovelerClient>"
 		WORKING_DIRECTORY "$<TARGET_FILE_DIR:ShovelerClient>"
 	)
 elseif(UNIX AND NOT APPLE)
 	add_custom_command(
 			TARGET ShovelerClient
 			POST_BUILD
-			COMMENT "Creating C client release archive."
-			COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "c_client-x86_64-linux.tar.gz" "$<TARGET_FILE:ShovelerClient>"
+			COMMENT "Creating client release archive."
+			COMMAND ${CMAKE_COMMAND} -E tar "cfvz" "client-x86_64-linux.tar.gz" "$<TARGET_FILE:ShovelerClient>"
 	)
 endif()
