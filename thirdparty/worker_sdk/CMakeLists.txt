@@ -1,5 +1,4 @@
 set(WORKER_SDK_C_HEADERS "${CMAKE_BINARY_DIR}/external/worker_sdk/c_headers/include")
-set(WORKER_SDK_CPP_HEADERS "${CMAKE_BINARY_DIR}/external/worker_sdk/cpp_headers/include")
 
 if(MSVC)
 	set(WORKER_SDK_DIR_RELEASE "${CMAKE_BINARY_DIR}/external/worker_sdk/windows/release")
@@ -25,13 +24,6 @@ if(MSVC)
 		IMPORTED_LOCATION_DEBUG ${LIB_SSL_DEBUG}
 		IMPORTED_LOCATION_RELEASE ${LIB_SSL_RELEASE})
 
-	add_library(worker_sdk::cpp_worker_sdk STATIC IMPORTED GLOBAL)
-	set_target_properties(worker_sdk::cpp_worker_sdk PROPERTIES
-		IMPORTED_LOCATION_DEBUG ${LIB_IMPROBABLE_WORKER_DEBUG}
-		IMPORTED_LOCATION_RELEASE ${LIB_IMPROBABLE_WORKER_RELEASE}
-		INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_CPP_HEADERS}")
-	target_link_libraries(worker_sdk::cpp_worker_sdk INTERFACE worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic)
-
 	add_library(worker_sdk::c_worker_sdk STATIC IMPORTED GLOBAL)
 	set_target_properties(worker_sdk::c_worker_sdk PROPERTIES
 			IMPORTED_LOCATION_DEBUG ${LIB_IMPROBABLE_WORKER_DEBUG}
@@ -55,12 +47,6 @@ else()
 	add_library(worker_sdk::ssl STATIC IMPORTED)
 	set_target_properties(worker_sdk::ssl PROPERTIES
 		IMPORTED_LOCATION ${LIB_SSL})
-
-	add_library(worker_sdk::cpp_worker_sdk STATIC IMPORTED GLOBAL)
-	set_target_properties(worker_sdk::cpp_worker_sdk PROPERTIES
-		IMPORTED_LOCATION ${LIB_IMPROBABLE_WORKER}
-		INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_CPP_HEADERS}")
-	target_link_libraries(worker_sdk::cpp_worker_sdk INTERFACE worker_sdk::RakNetLibStatic worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 
 	add_library(worker_sdk::c_worker_sdk STATIC IMPORTED GLOBAL)
 	set_target_properties(worker_sdk::c_worker_sdk PROPERTIES

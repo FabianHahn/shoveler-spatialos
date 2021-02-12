@@ -3,15 +3,6 @@ include(ExternalProject)
 
 project(external)
 
-ExternalProject_Add(spatialos_worker_sdk_cpp_headers
-	PREFIX worker_sdk/linux
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk cpp_headers ${SPATIALOS_SDK_VERSION} .
-	DOWNLOAD_DIR worker_sdk/cpp_headers
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND ""
-	INSTALL_COMMAND ""
-)
-
 ExternalProject_Add(spatialos_worker_sdk_c_headers
 	PREFIX worker_sdk/linux
 	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c_headers ${SPATIALOS_SDK_VERSION} .

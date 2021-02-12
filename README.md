@@ -2,8 +2,8 @@
 
 ## Introduction
 
-This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/spatialos). SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C](https://docs.improbable.io/reference/14.4/csdk/introduction), [C++](https://docs.improbable.io/reference/14.4/cppsdk/introduction), [C#](https://docs.improbable.io/reference/14.4/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/14.4/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/14.4/shared/byoe/introduction).
-This project uses the C SDK and the C++ SDK to run _shoveler_ workers on both the client and the server side to implement a simple interactive 3D sandbox demo game, which harnesses the power of SpatialOS to enable multiplayer in the cloud.
+This repository contains an example integration of the [shoveler](https://github.com/FabianHahn/shoveler) game engine into [Improbable's SpatialOS](https://improbable.io/spatialos). Like shoveler itself, the engine integration is written purely in C. SpatialOS is primarily used together with its dedicated integrations for popular game engines such as [Unity](https://unity3d.com/) and [Unreal Engine](https://www.unrealengine.com), but it also includes lower-level language SDKs for [C](https://docs.improbable.io/reference/14.4/csdk/introduction), [C++](https://docs.improbable.io/reference/14.4/cppsdk/introduction), [C#](https://docs.improbable.io/reference/14.4/csharpsdk/introduction) and [Java](https://docs.improbable.io/reference/14.4/javasdk/introduction) which can be used to [integrate any game engine](https://docs.improbable.io/reference/14.4/shared/byoe/introduction).
+This project uses the C SDK to run _shoveler_ workers on both the client and the server side to implement a simple interactive 3D sandbox demo game, which harnesses the power of SpatialOS to enable multiplayer in the cloud.
 Though I work at Improbable, this is a personal project built in my free time using publicly available resources.
 It is not an Improbable product.
 
@@ -36,7 +36,7 @@ If you've just navigated to this repository on GitHub for the first time and are
 
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
-| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C, C++ (version 14.4.1) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | n/a (active development) |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C (version 14.5.0) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | n/a (active development) |
 | [`0.4`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.4) | C, C++ (version 14.4.1) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | C player client, simulated player bot client |
 | [`0.3`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.3) | C++ (version 14.1.0) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | full query-based interest support |
 | [`0.2`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.2) | C++ (version 13.7.1) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | FPL port, working tiles demo |
@@ -47,21 +47,18 @@ If you've just navigated to this repository on GitHub for the first time and are
 The overall directory structure of this repository was chosen to comply with the [SpatialOS beta flexible project structure](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) while still integrating nicely with the [CMake](https://cmake.org/) build system. The most important files and directories in the repository are:
  * [`assets/`](assets/): Asset references fetched using a [CMake `ExternalData` rule](https://cmake.org/cmake/help/v3.3/module/ExternalData.html) from a [separate asset repository](https://github.com/FabianHahn/shoveler-spatialos-assets) to avoid binary files in this repository.
  * [`schema/shoveler.schema`](schema/shoveler.schema): [SpatialOS schema](https://docs.improbable.io/reference/14.4/shared/schema/introduction#schema-introduction) for the project.
- * [`seeders/lights.cpp`](seeders/lights.cpp): Complete seeder tool source code for initial snapshot generation of the lights demo.
- * [`seeders/tiles/map.cpp`](seeders/tiles/map.cpp): Map generation source code for tiles demo.
- * [`seeders/tiles.cpp`](seeders/tiles.cpp): Seeder tool source code entrypoint for initial snapshot generation of the tiles demo.
+ * [`seeders/lights.c`](seeders/lights.c): Complete seeder tool source code for initial snapshot generation of the lights demo.
+ * [`seeders/map.c`](seeders/map.c): Map generation source code for tiles demo.
+ * [`seeders/tiles.c`](seeders/tiles.c): Seeder tool source code entrypoint for initial snapshot generation of the tiles demo.
  * [`shoveler/`](shoveler/): Unchanged git subtree of the [shoveler](https://github.com/FabianHahn/shoveler) repository.
- * [`worker_sdk/CMakeLists.txt`](worker_sdk/CMakeLists.txt): Helper CMake file to [link against the SpatialOS C++ worker SDK](https://docs.improbable.io/reference/14.4/cppsdk/building).
+ * [`worker_sdk/CMakeLists.txt`](worker_sdk/CMakeLists.txt): Helper CMake file to [link against the SpatialOS C worker SDK](https://docs.improbable.io/reference/14.4/csdk/building).
  * [`workers/bot_client/`](workers/bot_client/): Complete source code for simulated player bot client worker.
- * [`workers/bot_client/bot_client.cpp`](workers/bot_client/bot_client.cpp): Source file containing main function for simulated player bot client worker.
+ * [`workers/bot_client/bot_client.c`](workers/bot_client/bot_client.c): Source file containing main function for simulated player bot client worker.
  * [`workers/bot_client/worker.json`](workers/bot_client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/reference/client-worker-configuration) for simulated player bot client worker.
- * [`workers/c_client/`](workers/c_client/): Complete source code for C client worker.
- * [`workers/c_client/client.c`](workers/c_client/client.c): Source file containing main function for C client worker.
- * [`workers/c_client/worker.json`](workers/c_client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/reference/client-worker-configuration) for C client worker.
- * [`workers/client/`](workers/client/): Complete source code for C++ client worker.
- * [`workers/client/client.cpp`](workers/client/client.cpp): Source file containing main function for C++ client worker.
- * [`workers/client/worker.json`](workers/client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/reference/client-worker-configuration) for C++ client worker.
- * [`workers/server/server.cpp`](workers/server/server.cpp): Complete source code for server worker
+ * [`workers/client/`](workers/client/): Complete source code for the client worker.
+ * [`workers/client/client.c`](workers/client/client.c): Source file containing main function for the client worker.
+ * [`workers/client/worker.json`](workers/client/worker.json): [SpatialOS client worker configuration file](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/reference/client-worker-configuration) for the client worker.
+ * [`workers/server/server.c`](workers/server/server.c): Complete source code for server worker.
  * [`workers/server/worker.json`](workers/server/worker.json): [SpatialOS server worker configuration file](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/reference/server-worker-configuration)
   * [`workers/updater/`](workers/updater/): Complete source code for runtime asset updater worker.
  * [`CMakeLists.txt`](CMakeLists.txt): Root CMake project definition file.
@@ -106,7 +103,7 @@ mkdir build
 cd build
 ```
 
-Run CMake to configure the project, which includes downloading the correct version of the SpatialOS C++ SDK, the schema compiler, and the standard library schema:
+Run CMake to configure the project, which includes downloading the correct version of the SpatialOS C SDK, the schema compiler, and the standard library schema:
 ```
 # Linux: (select either a debug or a release build)
 cmake -DCMAKE_BUILD_TYPE=Debug .. # debug build
@@ -117,7 +114,7 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 ```
 Depending on the speed of your Internet connection, this step might take a while the first time you run it!
 
-The following command will build a complete project assembly by generating C++ code for the included [schema](schema/shoveler.schema), compiling shoveler and its dependencies, compiling the [seeders](seeders) and running them to generate initial snapshots, and building executables for [all included workers](workers):
+The following command will build a complete project assembly by generating a descriptor for the included [schema](schema/shoveler.schema), compiling shoveler and its dependencies, compiling the [seeders](seeders) and running them to generate initial snapshots, and building executables for [all included workers](workers):
 ```
 # Linux: (select the number of threads to compile with)
 make # compile with a single thread
