@@ -37,6 +37,7 @@ If you've just navigated to this repository on GitHub for the first time and are
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
 | [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C (version 14.5.0) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | n/a (active development) |
+| [`0.5`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C (version 14.5.0) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | pure C implementation, improvements to hearbeating and logging |
 | [`0.4`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.4) | C, C++ (version 14.4.1) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | C player client, simulated player bot client |
 | [`0.3`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.3) | C++ (version 14.1.0) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | full query-based interest support |
 | [`0.2`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.2) | C++ (version 13.7.1) | [FPL beta](https://docs.improbable.io/reference/14.4/shared/flexible-project-layout/introduction) | FPL port, working tiles demo |
