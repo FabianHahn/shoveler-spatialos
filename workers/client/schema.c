@@ -102,39 +102,6 @@ const char *shovelerClientResolveComponentTypeId(int componentId)
 	}
 }
 
-const char *shovelerClientResolveSpecialComponentId(int componentId)
-{
-	switch(componentId) {
-		case shovelerWorkerSchemaComponentIdImprobableEntityAcl:
-			return "EntityAcl";
-		case shovelerWorkerSchemaComponentIdImprobableMetadata:
-			return "Metadata";
-		case shovelerWorkerSchemaComponentIdImprobablePosition:
-			return "Position";
-		case shovelerWorkerSchemaComponentIdImprobablePersistence:
-			return "Persistence";
-		case shovelerWorkerSchemaComponentIdImprobableInterest:
-			return "Interest";
-		case shovelerWorkerSchemaComponentIdImprobableSystem:
-			return "System";
-		case shovelerWorkerSchemaComponentIdImprobableWorker:
-			return "Worker";
-		case shovelerWorkerSchemaComponentIdImprobablePlayerClient:
-			return "PlayerClient";
-		// special shoveler components below
-		case shovelerWorkerSchemaComponentIdBootstrap:
-			return "Bootstrap";
-		case shovelerWorkerSchemaComponentIdClientInfo:
-			return "ClientInfo";
-		case shovelerWorkerSchemaComponentIdClientHeartbeatPing:
-			return "ClientHeartbeatPing";
-		case shovelerWorkerSchemaComponentIdClientHeartbeatPong:
-			return "ClientHeartbeatPong";
-		default:
-			return NULL;
-	}
-}
-
 int shovelerClientResolveComponentSchemaId(const char *componentTypeId)
 {
 	if(componentTypeId == shovelerComponentTypeIdPosition) {

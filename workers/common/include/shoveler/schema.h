@@ -7,7 +7,6 @@
 #include <shoveler/types.h>
 
 enum {
-	shovelerWorkerSchemaComponentIdImprobableEntityAcl = 50,
 	shovelerWorkerSchemaComponentIdImprobableMetadata = 53,
 	shovelerWorkerSchemaComponentIdImprobablePosition = 54,
 	shovelerWorkerSchemaComponentIdImprobablePersistence = 55,
@@ -15,6 +14,7 @@ enum {
 	shovelerWorkerSchemaComponentIdImprobableSystem = 59,
 	shovelerWorkerSchemaComponentIdImprobableWorker = 60,
 	shovelerWorkerSchemaComponentIdImprobablePlayerClient = 61,
+	shovelerWorkerSchemaComponentIdImprobableAuthorityDelegation = 65,
 	shovelerWorkerSchemaComponentIdPosition = 5454,
 	shovelerWorkerSchemaComponentIdBootstrap = 1334,
 	shovelerWorkerSchemaComponentIdClient = 1335,
@@ -43,6 +43,24 @@ enum {
 	shovelerWorkerSchemaComponentIdFontAtlas = 1351,
 	shovelerWorkerSchemaComponentIdFontAtlasTexture = 1352,
 	shovelerWorkerSchemaComponentIdTextTextureRenderer = 1353,
+};
+
+enum {
+	shovelerWorkerSchemaComponentSetIdImprobableWellKnownComponentSet = 50,
+	shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority = 1337,
+	shovelerWorkerSchemaComponentSetIdServerAssetAuthority = 1338,
+	shovelerWorkerSchemaComponentSetIdServerPlayerAuthority = 1339,
+	shovelerWorkerSchemaComponentSetIdClientPlayerAuthority = 1340,
+	shovelerWorkerSchemaComponentSetIdClientPlayerSpatialInterest = 1341,
+};
+
+enum {
+	shovelerWorkerSchemaImprobableWorkerCommandIdDisconnect = 1,
+	shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition = 2,
+};
+
+enum {
+	shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId = 1,
 };
 
 enum {
@@ -128,55 +146,57 @@ enum {
 };
 
 enum {
-	shovelerWorkerSchemaImprobableInterestFieldIdComponentInterest = 1,
+	shovelerWorkerSchemaImprobableInterestFieldIdComponentSetInterest = 1,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestFieldIdQueries = 1,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint = 1,
-	shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdFullSnapshotResult = 2,
-	shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId = 3,
-	shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdFrequency = 4,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryFieldIdConstraint = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryFieldIdFullSnapshotResult = 2,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryFieldIdResultComponentId = 3,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryFieldIdFrequency = 4,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryFieldIdResultComponentSetId = 5,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdSphereConstraint = 1,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdCylinderConstraint = 2,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdBoxConstraint = 3,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeSphereConstraint = 4,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeCylinderConstraint = 5,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeBoxConstraint = 6,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdEntityIdConstraint = 7,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdComponentConstraint = 8,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdAndConstraint = 9,
-	shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdOrConstraint = 10,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdSphereConstraint = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdCylinderConstraint = 2,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdBoxConstraint = 3,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdRelativeSphereConstraint = 4,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdRelativeCylinderConstraint = 5,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdRelativeBoxConstraint = 6,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdEntityIdConstraint = 7,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdComponentConstraint = 8,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdAndConstraint = 9,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdOrConstraint = 10,
+	shovelerWorkerSchemaImprobableComponentSetInterestQueryConstraintFieldIdSelfConstraint = 12,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestBoxConstraintFieldIdCenter = 1,
-	shovelerWorkerSchemaImprobableComponentInterestBoxConstraintFieldIdEdgeLength = 2,
+	shovelerWorkerSchemaImprobableComponentSetInterestBoxConstraintFieldIdCenter = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestBoxConstraintFieldIdEdgeLength = 2,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestRelativeSphereConstraintFieldIdRadius = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestRelativeSphereConstraintFieldIdRadius = 1,
 };
 
 enum {
-	shovelerWorkerSchemaImprobableComponentInterestRelativeBoxConstraintFieldIdEdgeLength = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestConstraintFieldIdCenter = 1,
+	shovelerWorkerSchemaImprobableComponentSetInterestConstraintFieldIdEdgeLength = 2,
+};
+
+enum {
+	shovelerWorkerSchemaImprobableComponentSetInterestRelativeBoxConstraintFieldIdEdgeLength = 1,
 };
 
 enum {
 	shovelerWorkerSchemaImprobableEdgeLengthFieldIdX = 1,
 	shovelerWorkerSchemaImprobableEdgeLengthFieldIdY = 2,
 	shovelerWorkerSchemaImprobableEdgeLengthFieldIdZ = 3,
-};
-
-enum {
-	shovelerWorkerSchemaImprobableEntityAclFieldIdReadAcl = 1,
-	shovelerWorkerSchemaImprobableEntityAclFieldIdComponentWriteAcl = 2,
 };
 
 enum {
@@ -287,7 +307,7 @@ enum {
 };
 
 enum {
-	shovelerWorkerSchemaClientInfoFieldIdWorkerId = 1,
+	shovelerWorkerSchemaClientInfoFieldIdWorkerEntityId = 1,
 	shovelerWorkerSchemaClientInfoFieldIdColorHue = 2,
 	shovelerWorkerSchemaClientInfoFieldIdColorSaturation = 3,
 };
@@ -379,12 +399,16 @@ enum {
 	shovelerWorkerSchemaTilemapSpriteFieldIdTilemap = 2,
 };
 
+enum {
+	shovelerWorkerSchemaImprobableAuthorityDelegationDelegations = 1,
+};
+
 const char *shovelerWorkerSchemaResolveSpecialComponentId(int componentId);
 
 Worker_ComponentData shovelerWorkerSchemaCreateImprobableMetadataComponent(const char *staticEntityType);
 Worker_ComponentData shovelerWorkerSchemaCreateImprobablePersistenceComponent();
 Worker_ComponentData shovelerWorkerSchemaCreateImprobablePositionComponent(double x, double y, double z);
-Worker_ComponentData shovelerWorkerSchemaCreateImprobableEntityAclComponent();
+Worker_ComponentData shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
 Worker_ComponentData shovelerWorkerSchemaCreateImprobableInterestComponent();
 Worker_ComponentData shovelerWorkerSchemaCreatePositionComponent(ShovelerVector3 positionCoordinates);
 Worker_ComponentData shovelerWorkerSchemaCreateBootstrapComponent();
@@ -481,20 +505,21 @@ Worker_ComponentData shovelerWorkerSchemaCreateClientComponent(Worker_EntityId p
 Worker_ComponentData shovelerWorkerSchemaCreateClientHeartPingComponent(int64_t lastUpdatedTime);
 Worker_ComponentData shovelerWorkerSchemaCreateClientHeartPongComponent(int64_t lastUpdatedTime);
 Worker_ComponentData shovelerWorkerSchemaCreateClientInfoComponent(
-	const char *workerId,
+	Worker_EntityId workerEntityId,
 	float colorHue,
 	float colorSaturation);
 
-void shovelerWorkerSchemaAddImprobableEntityAclReadStatic(Worker_ComponentData *componentData, const char *staticAttribute);
-void shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *staticAttribute);
-void shovelerWorkerSchemaAddImprobableEntityAclWrite(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *attribute);
-Schema_Object *shovelerWorkerSchemaAddImprobableInterestForComponent(Worker_ComponentData *componentData, Worker_ComponentId componentId);
-Schema_Object *shovelerWorkerSchemaAddImprobableInterestComponentQuery(Schema_Object *componentInterest);
+void shovelerWorkerSchemaAddImprobableAuthorityDelegation(Worker_ComponentData *componentData, Worker_ComponentSetId componentSetId, Worker_EntityId partitionId);
+Schema_Object *shovelerWorkerSchemaAddImprobableInterestForComponentSet(Worker_ComponentData *componentData, Worker_ComponentSetId componentSetId);
+Schema_Object *shovelerWorkerSchemaAddImprobableInterestComponentQuery(Schema_Object *componentSetInterest);
 void shovelerWorkerSchemaSetImprobableInterestQueryEntityIdConstraint(Schema_Object *query, Worker_EntityId entityId);
 void shovelerWorkerSchemaSetImprobableInterestQueryComponentConstraint(Schema_Object *query, Worker_ComponentId componentId);
+void shovelerWorkerSchemaSetImprobableInterestQueryBoxConstraint(Schema_Object *query, double centerX, double centerY, double centerZ, double edgeLengthX, double edgeLengthY, double edgeLengthZ);
 void shovelerWorkerSchemaSetImprobableInterestQueryRelativeBoxConstraint(Schema_Object *query, double edgeLengthX, double edgeLengthY, double edgeLengthZ);
 void shovelerWorkerSchemaSetImprobableInterestQueryRelativeSphereConstraint(Schema_Object *query, double radius);
+void shovelerWorkerSchemaSetImprobableInterestQuerySelfConstraint(Schema_Object *query);
 void shovelerWorkerSchemaSetImprobableInterestQueryFullSnapshotResult(Schema_Object *query);
 void shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(Schema_Object *query, Worker_ComponentId componentId);
+void shovelerWorkerSchemaAddImprobableInterestQueryResultComponentSetId(Schema_Object *query, Worker_ComponentSetId componentSetId);
 
 #endif

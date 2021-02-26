@@ -9,6 +9,8 @@
 #include <shoveler/log.h>
 #include <shoveler/schema.h>
 
+static const int64_t serverPartitionEntityId = 1;
+
 static bool writeEntity(Worker_SnapshotOutputStream *snapshotOutputStream, Worker_Entity *entity);
 
 int main(int argc, char **argv)
@@ -52,14 +54,12 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateBootstrapComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
-		shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(&componentData[5], shovelerWorkerSchemaComponentIdBootstrap, "server");
+		componentData[5] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+		shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[5], shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority, serverPartitionEntityId);
 		componentData[6] = shovelerWorkerSchemaCreateImprobableInterestComponent();
-		Schema_Object *componentInterest = shovelerWorkerSchemaAddImprobableInterestForComponent(
-			&componentData[6], shovelerWorkerSchemaComponentIdBootstrap);
-		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(componentInterest);
+		Schema_Object *componentSetInterest = shovelerWorkerSchemaAddImprobableInterestForComponentSet(
+			&componentData[6], shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority);
+		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(componentSetInterest);
 		shovelerWorkerSchemaSetImprobableInterestQueryComponentConstraint(query, shovelerWorkerSchemaComponentIdClient);
 		shovelerWorkerSchemaSetImprobableInterestQueryFullSnapshotResult(query);
 
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId cubeDrawableEntityId = nextEntityId;
 	{ // cube drawable
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -80,9 +80,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateDrawableCubeComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -91,7 +88,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId quadDrawableEntityId = nextEntityId;
 	{ // quad drawable
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -101,9 +98,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateDrawableQuadComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -112,7 +106,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId pointDrawableEntityId = nextEntityId;
 	{ // point drawable
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -122,9 +116,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateDrawablePointComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -133,7 +124,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId grayColorMaterialEntityId = nextEntityId;
 	{ // gray color material
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -143,9 +134,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateMaterialColorComponent(shovelerVector4(0.7f, 0.7f, 0.7f, 1.0f));
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -154,7 +142,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId whiteParticleMaterialEntityId = nextEntityId;
 	{ // white particle color material
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -164,9 +152,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(0.0, 0.0, 0.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(0.0f, 0.0f, 0.0f));
 		componentData[4] = shovelerWorkerSchemaCreateMaterialParticleComponent(shovelerVector4(1.0f, 1.0f, 1.0f, 1.0f));
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -174,7 +159,7 @@ int main(int argc, char **argv)
 	}
 
 	{ // plane
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -193,8 +178,6 @@ int main(int argc, char **argv)
 			/* emitter */ false,
 			/* castsShadow */ true,
 			/* polygonMode */ shovelerWorkerSchemaPolygonModeFill);
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -202,7 +185,7 @@ int main(int argc, char **argv)
 	}
 
 	{ // cube
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -221,8 +204,6 @@ int main(int argc, char **argv)
 			/* emitter */ false,
 			/* castsShadow */ true,
 			/* polygonMode */ shovelerWorkerSchemaPolygonModeFill);
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -230,7 +211,7 @@ int main(int argc, char **argv)
 	}
 
 	{ // light
-		Worker_ComponentData componentData[7] = {0};
+		Worker_ComponentData componentData[6] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -258,8 +239,6 @@ int main(int argc, char **argv)
 			/* ambientFactor */ 0.01f,
 			/* exponentialFactor */ 80.0f,
 			/* color */ shovelerVector3(1.0f, 1.0f, 1.0f));
-		componentData[6] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[6], "client");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;

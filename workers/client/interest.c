@@ -14,7 +14,7 @@
 
 static void freeComponentSet(void *componentSetPointer);
 
-int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentInterest)
+int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentSetInterest)
 {
 	// map from entity id to set of component IDs
 	GHashTable *dependencies = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, freeComponentSet);
@@ -58,76 +58,49 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 	GHashTable *componentSet;
 	g_hash_table_iter_init(&iter, dependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &entityId, (gpointer *) &componentSet)) {
-		Schema_Object *query = Schema_AddObject(outputComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-		Schema_Object *constraint = Schema_AddObject(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
+		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+		shovelerWorkerSchemaSetImprobableInterestQueryEntityIdConstraint(query, *entityId);
 
-		// entity ID constraint
-		Schema_AddEntityId(constraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdEntityIdConstraint, *entityId);
-
-		// always depend on EntityAcl and Metadata
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdImprobableEntityAcl);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdImprobableMetadata);
+		// always depend on Metadata
+		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, shovelerWorkerSchemaComponentIdImprobableMetadata);
 
 		GHashTableIter componentSetIter;
 		int *componentId;
 		g_hash_table_iter_init(&componentSetIter, componentSet);
 		while(g_hash_table_iter_next(&componentSetIter, (gpointer *) &componentId, NULL)) {
-			Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, *componentId);
+			shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, *componentId);
 		}
 
 		numQueries++;
 	}
 
 	if(useAbsoluteConstraint) {
-		Schema_Object *query = Schema_AddObject(outputComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-		Schema_Object *constraint = Schema_AddObject(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
-		Schema_Object *absoluteConstraint = Schema_AddObject(constraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdBoxConstraint);
-
-		Schema_Object *center = Schema_AddObject(absoluteConstraint, shovelerWorkerSchemaImprobableComponentInterestBoxConstraintFieldIdCenter);
-		Schema_AddDouble(center, shovelerWorkerSchemaImprobableCoordinatesFieldIdX, absolutePosition.values[0]);
-		Schema_AddDouble(center, shovelerWorkerSchemaImprobableCoordinatesFieldIdY, absolutePosition.values[1]);
-		Schema_AddDouble(center, shovelerWorkerSchemaImprobableCoordinatesFieldIdZ, absolutePosition.values[2]);
-
-		Schema_Object *edgeLength = Schema_AddObject(absoluteConstraint, shovelerWorkerSchemaImprobableComponentInterestBoxConstraintFieldIdEdgeLength);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdX, viewDistance);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdY, 9999);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdZ, viewDistance);
-
-		// result component IDs
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdLight);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdModel);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdSprite);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdTilemapTiles);
-
+		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+		shovelerWorkerSchemaSetImprobableInterestQueryBoxConstraint(
+			query,
+			/* centerX */ absolutePosition.values[0],
+			/* centerY */ absolutePosition.values[1],
+			/* centerZ */ absolutePosition.values[2],
+			/* edgeLengthX */ viewDistance,
+			/* edgeLengthY */ 9999,
+			/* edgeLengthZ */ viewDistance);
+		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentSetId(query, shovelerWorkerSchemaComponentSetIdClientPlayerSpatialInterest);
 		numQueries++;
 	} else {
-		Schema_Object *query = Schema_AddObject(outputComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-		Schema_Object *constraint = Schema_AddObject(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
-		Schema_Object *relativeConstraint = Schema_AddObject(constraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdRelativeBoxConstraint);
-
-		Schema_Object *edgeLength = Schema_AddObject(relativeConstraint, shovelerWorkerSchemaImprobableComponentInterestRelativeBoxConstraintFieldIdEdgeLength);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdX, viewDistance);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdY, 9999);
-		Schema_AddDouble(edgeLength, shovelerWorkerSchemaImprobableEdgeLengthFieldIdZ, viewDistance);
-
-		// result component IDs
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdLight);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdModel);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdSprite);
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdTilemapTiles);
-
+		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+		shovelerWorkerSchemaSetImprobableInterestQueryRelativeBoxConstraint(
+			query,
+			/* edgeLengthX */ viewDistance,
+			/* edgeLengthY */ 9999,
+			/* edgeLengthZ */ viewDistance);
+		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentSetId(query, shovelerWorkerSchemaComponentSetIdClientPlayerSpatialInterest);
 		numQueries++;
 	}
 
-	Schema_Object *query = Schema_AddObject(outputComponentInterest, shovelerWorkerSchemaImprobableComponentInterestFieldIdQueries);
-	Schema_Object *constraint = Schema_AddObject(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdConstraint);
-	Schema_AddInt64(constraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdEntityIdConstraint, clientEntityId);
-
-	// result component IDs
-	Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
-
+	Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+	shovelerWorkerSchemaSetImprobableInterestQuerySelfConstraint(query);
+	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
 	numQueries++;
-
 
 	g_hash_table_destroy(dependencies);
 

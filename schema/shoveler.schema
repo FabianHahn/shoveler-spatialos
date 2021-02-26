@@ -1,5 +1,7 @@
 package shoveler;
 
+import "improbable/standard_library.schema";
+
 type Vector2 {
 	float x = 1;
 	float y = 2;
@@ -152,7 +154,7 @@ component Client {
 /** Server-side metadata associated with each connected client. */
 component ClientInfo {
 	id = 133742;
-	string worker_id = 1;
+	EntityId worker_entity_id = 1;
 	float color_hue = 2;
 	float color_saturation = 3;
 }
@@ -516,4 +518,48 @@ component TextTextureRenderer {
     id = 1353;
     /** Dependency entity ID with font atlas texture component to use for this renderer. */
     EntityId font_atlas_texture = 1;
+}
+
+component_set ServerBootstrapAuthority {
+    id = 1337;
+    components = [
+        Bootstrap
+    ];
+}
+
+component_set ServerAssetAuthority {
+    id = 1338;
+    components = [
+        Resource,
+        TilemapTiles
+    ];
+}
+
+component_set ServerPlayerAuthority {
+    id = 1339;
+    components = [
+        ClientHeartbeatPong,
+        ClientInfo
+    ];
+}
+
+component_set ClientPlayerAuthority {
+    id = 1340;
+    components = [
+        improbable.Position,
+        improbable.Interest,
+        Client,
+        ClientHeartbeatPing,
+        Position
+    ];
+}
+
+component_set ClientPlayerSpatialInterest {
+    id = 1341;
+    components = [
+        Light,
+        Model,
+        Sprite,
+        TilemapTiles
+    ];
 }

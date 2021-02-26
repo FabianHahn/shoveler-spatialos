@@ -5,7 +5,7 @@ project(external)
 
 ExternalProject_Add(spatialos_worker_sdk_c_headers
 	PREFIX worker_sdk/linux
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c_headers ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c_headers ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/c_headers
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -14,7 +14,7 @@ ExternalProject_Add(spatialos_worker_sdk_c_headers
 
 ExternalProject_Add(spatialos_worker_sdk_linux
 	PREFIX worker_sdk/linux
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-gcc510_pic-linux ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c-static-x86_64-clang1000_pic-linux ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/linux
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -23,7 +23,7 @@ ExternalProject_Add(spatialos_worker_sdk_linux
 
 ExternalProject_Add(spatialos_worker_sdk_windows_debug
 	PREFIX worker_sdk/windows/debug
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc141_mdd-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c-static-x86_64-vc141_mdd-win32 ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/windows/debug
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -32,7 +32,7 @@ ExternalProject_Add(spatialos_worker_sdk_windows_debug
 
 ExternalProject_Add(spatialos_worker_sdk_windows_release
 	PREFIX worker_sdk/windows/release
-	DOWNLOAD_COMMAND spatial package get --force --unzip worker_sdk c-static-x86_64-vc141_md-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c-static-x86_64-vc141_md-win32 ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR worker_sdk/windows/release
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -41,7 +41,7 @@ ExternalProject_Add(spatialos_worker_sdk_windows_release
 
 ExternalProject_Add(spatialos_standard_library
 	PREFIX schema
-	DOWNLOAD_COMMAND spatial package get --force --unzip schema standard_library ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip schema standard_library ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR schema
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -50,7 +50,7 @@ ExternalProject_Add(spatialos_standard_library
 
 ExternalProject_Add(spatialos_schema_compiler_linux
 	PREFIX schema_compiler/linux
-	DOWNLOAD_COMMAND spatial package get --force --unzip tools schema_compiler-x86_64-linux ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip tools schema_compiler-x86_64-linux ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR schema_compiler/linux
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""
@@ -59,7 +59,7 @@ ExternalProject_Add(spatialos_schema_compiler_linux
 
 ExternalProject_Add(spatialos_schema_compiler_windows
 	PREFIX schema_compiler/windows
-	DOWNLOAD_COMMAND spatial package get --force --unzip tools schema_compiler-x86_64-win32 ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip tools schema_compiler-x86_64-win32 ${SPATIALOS_SDK_VERSION} .
 	DOWNLOAD_DIR schema_compiler/windows
 	CONFIGURE_COMMAND ""
 	BUILD_COMMAND ""

@@ -7,7 +7,6 @@ typedef struct ShovelerComponentStruct ShovelerComponent;
 typedef struct ShovelerViewStruct ShovelerView;
 
 const char *shovelerClientResolveComponentTypeId(int componentId);
-const char *shovelerClientResolveSpecialComponentId(int componentId);
 int shovelerClientResolveComponentSchemaId(const char *componentTypeId);
 void shovelerClientRegisterViewComponentTypes(ShovelerView *view);
 void shovelerClientApplyComponentData(ShovelerView *view, ShovelerComponent *component, Schema_ComponentData *componentData, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ);

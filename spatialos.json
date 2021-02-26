@@ -1,7 +1,7 @@
 {
   "configurationVersion": "0.1",
   "projectName": "shoveler_spatialos",
-  "schemaDescriptor": "build/schema/schema.descriptor",
+  "schemaBundle": "build/schema/schema.sb",
   "launchConfiguration": "lights.json",
   "clientWorkers": [
     "workers/bot_client/worker.json",

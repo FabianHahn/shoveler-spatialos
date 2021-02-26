@@ -8,35 +8,10 @@
 #include <improbable/c_worker.h>
 #include <shoveler/log.h>
 
-uint8_t locatorQueueStatusCallback(void *unused, const Worker_QueueStatus *queueStatus);
-
 Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffset, Worker_ConnectionParameters *connectionParameters)
 {
 	const char *launcherPrefix = "spatialos.launch:";
-	if(argc - argumentOffset == 5) {
-		const char *locatorHostname = argv[argumentOffset + 1];
-		const char *projectName = argv[argumentOffset + 2];
-		const char *deploymentName = argv[argumentOffset + 3];
-		const char *loginToken = argv[argumentOffset + 4];
-
-		shovelerLogInfo("Connecting to cloud deployment...\n\tLocator hostname: %s\n\tProject name: %s\n\tDeployment name: %s\n\tLogin token: %s", locatorHostname, projectName, deploymentName, loginToken);
-
-		Worker_LocatorParameters locatorParameters;
-		locatorParameters.project_name = projectName;
-		locatorParameters.credentials_type = WORKER_LOCATOR_LOGIN_TOKEN_CREDENTIALS;
-		locatorParameters.login_token.token = loginToken;
-
-		Worker_Locator *locator = Worker_Locator_Create(locatorHostname, /* port */ 0, &locatorParameters);
-
-		connectionParameters->network.use_external_ip = true;
-		Worker_ConnectionFuture *connectionFuture = Worker_Locator_ConnectAndQueueAsync(locator, deploymentName, connectionParameters, NULL, locatorQueueStatusCallback);
-		Worker_Connection *connection = Worker_ConnectionFuture_Get(connectionFuture, /* timeoutMillis */ NULL);
-
-		Worker_ConnectionFuture_Destroy(connectionFuture);
-		Worker_Locator_Destroy(locator);
-
-		return connection;
-	} else if(argc - argumentOffset == 2 && g_str_has_prefix(argv[argumentOffset + 1], launcherPrefix)) {
+	if(argc - argumentOffset == 2 && g_str_has_prefix(argv[argumentOffset + 1], launcherPrefix)) {
 		const char *launcherString = argv[argumentOffset + 1] + strlen(launcherPrefix);
 		gchar **projectNameSplit = g_strsplit(launcherString, "-", 2);
 		if(projectNameSplit[0] == NULL || projectNameSplit[1] == NULL) {
@@ -85,14 +60,12 @@ Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffs
 
 		Worker_LocatorParameters locatorParameters;
 		memset(&locatorParameters, 0, sizeof(Worker_LocatorParameters));
-		locatorParameters.project_name = projectName;
-		locatorParameters.credentials_type = WORKER_LOCATOR_LOGIN_TOKEN_CREDENTIALS;
-		locatorParameters.login_token.token = authToken->str;
+		locatorParameters.player_identity.login_token = authToken->str;
 
 		Worker_Locator *locator = Worker_Locator_Create(locatorHost, /* port */ 0, &locatorParameters);
 
 		connectionParameters->network.use_external_ip = true;
-		Worker_ConnectionFuture *connectionFuture = Worker_Locator_ConnectAndQueueAsync(locator, deploymentName, connectionParameters, NULL, locatorQueueStatusCallback);
+		Worker_ConnectionFuture *connectionFuture = Worker_Locator_ConnectAsync(locator, connectionParameters);
 		Worker_Connection *connection = Worker_ConnectionFuture_Get(connectionFuture, /* timeoutMillis */ NULL);
 
 		Worker_ConnectionFuture_Destroy(connectionFuture);
@@ -132,14 +105,4 @@ Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffs
 
 		return connection;
 	}
-}
-
-uint8_t locatorQueueStatusCallback(void *unused, const Worker_QueueStatus *queueStatus)
-{
-	if (queueStatus->error != NULL) {
-		shovelerLogError("Error while queueing: %s", queueStatus->error);
-		return false;
-	}
-	shovelerLogInfo("Current position in login queue: %u", queueStatus->position_in_queue);
-	return true;
 }
