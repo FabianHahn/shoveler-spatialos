@@ -17,30 +17,30 @@ typedef enum {
 const char *shovelerWorkerSchemaResolveSpecialComponentId(int componentId)
 {
 	switch(componentId) {
-		case 50:
-			return "EntityAcl";
-		case 53:
+		case shovelerWorkerSchemaComponentIdImprobableMetadata:
 			return "Metadata";
-		case 54:
+		case shovelerWorkerSchemaComponentIdImprobablePosition:
 			return "Position";
-		case 55:
+		case shovelerWorkerSchemaComponentIdImprobablePersistence:
 			return "Persistence";
-		case 58:
+		case shovelerWorkerSchemaComponentIdImprobableInterest:
 			return "Interest";
-		case 59:
+		case shovelerWorkerSchemaComponentIdImprobableSystem:
 			return "System";
-		case 60:
+		case shovelerWorkerSchemaComponentIdImprobableWorker:
 			return "Worker";
-		case 61:
+		case shovelerWorkerSchemaComponentIdImprobablePlayerClient:
 			return "PlayerClient";
+		case shovelerWorkerSchemaComponentIdImprobableAuthorityDelegation:
+			return "AuthorityDelegation";
 			// special shoveler components below
-		case 1334:
+		case shovelerWorkerSchemaComponentIdBootstrap:
 			return "Bootstrap";
-		case 133742:
+		case shovelerWorkerSchemaComponentIdClientInfo:
 			return "ClientInfo";
-		case 13351:
+		case shovelerWorkerSchemaComponentIdClientHeartbeatPing:
 			return "ClientHeartbeatPing";
-		case 13352:
+		case shovelerWorkerSchemaComponentIdClientHeartbeatPong:
 			return "ClientHeartbeatPong";
 		default:
 			return NULL;
@@ -78,13 +78,11 @@ Worker_ComponentData shovelerWorkerSchemaCreateImprobablePositionComponent(doubl
 	return componentData;
 }
 
-Worker_ComponentData shovelerWorkerSchemaCreateImprobableEntityAclComponent()
+Worker_ComponentData shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent()
 {
 	Worker_ComponentData componentData;
-	componentData.component_id = shovelerWorkerSchemaComponentIdImprobableEntityAcl;
+	componentData.component_id = shovelerWorkerSchemaComponentIdImprobableAuthorityDelegation;
 	componentData.schema_type = Schema_CreateComponentData();
-	Schema_Object *entityAcl = Schema_GetComponentDataFields(componentData.schema_type);
-	Schema_Object *readAcl = Schema_AddObject(entityAcl, shovelerWorkerSchemaImprobableEntityAclFieldIdReadAcl);
 	return componentData;
 }
 
@@ -587,7 +585,7 @@ Worker_ComponentData shovelerWorkerSchemaCreateClientHeartPongComponent(int64_t 
 }
 
 Worker_ComponentData shovelerWorkerSchemaCreateClientInfoComponent(
-	const char *workerId,
+	Worker_EntityId workerEntityId,
 	float colorHue,
 	float colorSaturation)
 {
@@ -595,47 +593,19 @@ Worker_ComponentData shovelerWorkerSchemaCreateClientInfoComponent(
 	componentData.component_id = shovelerWorkerSchemaComponentIdClientInfo;
 	componentData.schema_type = Schema_CreateComponentData();
 	Schema_Object *clientInfo = Schema_GetComponentDataFields(componentData.schema_type);
-	uint32_t callerWorkerIdLength = strlen(workerId);
-	uint8_t *callerWorkerIdBuffer = Schema_AllocateBuffer(clientInfo, callerWorkerIdLength);
-	memcpy(callerWorkerIdBuffer, workerId, callerWorkerIdLength);
-	Schema_AddBytes(clientInfo, shovelerWorkerSchemaClientInfoFieldIdWorkerId, callerWorkerIdBuffer, callerWorkerIdLength);
+	Schema_AddEntityId(clientInfo, shovelerWorkerSchemaClientInfoFieldIdWorkerEntityId, workerEntityId);
 	Schema_AddFloat(clientInfo, shovelerWorkerSchemaClientInfoFieldIdColorHue, colorHue);
 	Schema_AddFloat(clientInfo, shovelerWorkerSchemaClientInfoFieldIdColorSaturation, colorSaturation);
 	return componentData;
 }
 
-void shovelerWorkerSchemaAddImprobableEntityAclReadStatic(Worker_ComponentData *componentData, const char *staticAttribute)
+void shovelerWorkerSchemaAddImprobableAuthorityDelegation(Worker_ComponentData *componentData, Worker_ComponentSetId componentSetId, Worker_EntityId partitionId)
 {
-	assert(componentData->component_id == shovelerWorkerSchemaComponentIdImprobableEntityAcl);
-	Schema_Object *entityAcl = Schema_GetComponentDataFields(componentData->schema_type);
-	Schema_Object *readAcl = Schema_GetObject(entityAcl, shovelerWorkerSchemaImprobableEntityAclFieldIdReadAcl);
-	assert(readAcl != NULL);
-	Schema_Object *readAclClientAttributeSet = Schema_AddObject(readAcl, shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet);
-	Schema_AddBytes(readAclClientAttributeSet, shovelerWorkerSchemaImprobableWorkerAttributeSetFieldIdAttribute, (const uint8_t *) staticAttribute, strlen(staticAttribute));
-}
-
-void shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *staticAttribute)
-{
-	assert(componentData->component_id == shovelerWorkerSchemaComponentIdImprobableEntityAcl);
-	Schema_Object *entityAcl = Schema_GetComponentDataFields(componentData->schema_type);
-	Schema_Object *componentWriteAclEntry = Schema_AddObject(entityAcl, shovelerWorkerSchemaImprobableEntityAclFieldIdComponentWriteAcl);
-	Schema_AddUint32(componentWriteAclEntry, SCHEMA_MAP_KEY_FIELD_ID, componentId);
-	Schema_Object *componentWriteAclClientWorkerRequirementSet = Schema_AddObject(componentWriteAclEntry, SCHEMA_MAP_VALUE_FIELD_ID);
-	Schema_Object *componentWriteAclClientAttributeSet = Schema_AddObject(componentWriteAclClientWorkerRequirementSet, shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet);
-	Schema_AddBytes(componentWriteAclClientAttributeSet, shovelerWorkerSchemaImprobableWorkerAttributeSetFieldIdAttribute, (const uint8_t *) staticAttribute, strlen(staticAttribute));
-}
-
-void shovelerWorkerSchemaAddImprobableEntityAclWrite(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *attribute) {
-	assert(componentData->component_id == shovelerWorkerSchemaComponentIdImprobableEntityAcl);
-	Schema_Object *entityAcl = Schema_GetComponentDataFields(componentData->schema_type);
-	uint32_t attributeLength = strlen(attribute);
-	uint8_t *attributeBuffer = Schema_AllocateBuffer(entityAcl, attributeLength);
-	memcpy(attributeBuffer, attribute, attributeLength);
-	Schema_Object *componentWriteAclEntry = Schema_AddObject(entityAcl, shovelerWorkerSchemaImprobableEntityAclFieldIdComponentWriteAcl);
-	Schema_AddUint32(componentWriteAclEntry, SCHEMA_MAP_KEY_FIELD_ID, componentId);
-	Schema_Object *componentWriteAclClientWorkerRequirementSet = Schema_AddObject(componentWriteAclEntry, SCHEMA_MAP_VALUE_FIELD_ID);
-	Schema_Object *componentWriteAclClientAttributeSet = Schema_AddObject(componentWriteAclClientWorkerRequirementSet, shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet);
-	Schema_AddBytes(componentWriteAclClientAttributeSet, shovelerWorkerSchemaImprobableWorkerAttributeSetFieldIdAttribute, attributeBuffer, attributeLength);
+	assert(componentData->component_id == shovelerWorkerSchemaComponentIdImprobableAuthorityDelegation);
+	Schema_Object *authorityDelegations = Schema_GetComponentDataFields(componentData->schema_type);
+	Schema_Object *authorityDelegation = Schema_AddObject(authorityDelegations, shovelerWorkerSchemaImprobableAuthorityDelegationDelegations);
+	Schema_AddUint32(authorityDelegation, SCHEMA_MAP_KEY_FIELD_ID, componentSetId);
+	Schema_AddUint32(authorityDelegation, SCHEMA_MAP_VALUE_FIELD_ID, partitionId);
 }
 
 Schema_Object *shovelerWorkerSchemaAddImprobableInterestForComponent(Worker_ComponentData *componentData, Worker_ComponentId componentId)

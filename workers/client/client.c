@@ -54,7 +54,7 @@ static const double meanHeartbeatMovingExponentialFactor = 0.5f;
 static const double meanTimeSinceLastHeartbeatPongExponentialFactor = 0.05f;
 
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
-static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
+static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op);
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
 static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op);
 static void updateGame(ShovelerGame *game, double dt);
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 	shovelerGlobalInit();
 
 	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
-		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>\n\t%s <locator hostname> <project name> <deployment name> <login token>", argv[0], argv[0], argv[0], argv[0]);
+		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -100,8 +100,8 @@ int main(int argc, char **argv) {
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerClient";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_KCP;
-	connectionParameters.network.modular_kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_KCP;
+	connectionParameters.network.kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
 	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
@@ -110,7 +110,8 @@ int main(int argc, char **argv) {
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());
 	Worker_Connection *connection = shovelerWorkerConnect(argc, argv, /* argumentOffset */ 0, &connectionParameters);
 	assert(connection != NULL);
-	if(!Worker_Connection_IsConnected(connection)) {
+	uint8_t status = Worker_Connection_GetConnectionStatusCode(connection);
+	if(status != WORKER_CONNECTION_STATUS_CODE_SUCCESS) {
 		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
@@ -204,9 +205,6 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_FLAG_UPDATE:
 					shovelerLogTrace("WORKER_OP_TYPE_FLAG_UPDATE");
 					break;
-				case WORKER_OP_TYPE_LOG_MESSAGE:
-					// deprecated and can be ignored, we receive all log messages through logsink already.
-					break;
 				case WORKER_OP_TYPE_METRICS:
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
 					break;
@@ -237,8 +235,8 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_REMOVE_COMPONENT:
 					onRemoveComponent(&context, &op->op.remove_component);
 					break;
-				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
-					onAuthorityChange(&context, &op->op.authority_change);
+				case WORKER_OP_TYPE_COMPONENT_SET_AUTHORITY_CHANGE:
+					onAuthorityChange(&context, &op->op.component_set_authority_change);
 					break;
 				case WORKER_OP_TYPE_COMPONENT_UPDATE:
 					onUpdateComponent(&context, &op->op.component_update);
@@ -288,27 +286,6 @@ int main(int argc, char **argv) {
 	return EXIT_SUCCESS;
 }
 
-static void onLogMessage(void *user_data, const Worker_LogData *message)
-{
-	switch(message->log_level) {
-		case WORKER_LOG_LEVEL_DEBUG:
-			shovelerLogTrace("[Worker SDK] %s", message->content);
-			break;
-		case WORKER_LOG_LEVEL_INFO:
-			shovelerLogInfo("[Worker SDK] %s", message->content);
-			break;
-		case WORKER_LOG_LEVEL_WARN:
-			shovelerLogWarning("[Worker SDK] %s", message->content);
-			break;
-		case WORKER_LOG_LEVEL_ERROR:
-			shovelerLogError("[Worker SDK] %s", message->content);
-			break;
-		case WORKER_LOG_LEVEL_FATAL:
-			shovelerLogError("[Worker SDK] [FATAL] %s", message->content);
-			break;
-	}
-}
-
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op)
 {
 	ShovelerView *view = context->game->view;
@@ -319,7 +296,7 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 		return;
 	}
 
-	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->data.component_id);
+	const char *specialComponentType = shovelerWorkerSchemaResolveSpecialComponentId((int) op->data.component_id);
 	if (specialComponentType != NULL) {
 		// special case Metadata
 		if (op->data.component_id == shovelerWorkerSchemaComponentIdImprobableMetadata) {
@@ -385,35 +362,10 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 	shovelerComponentActivate(component);
 }
 
-static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op)
+static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op)
 {
-	// special case interest
-	if (op->component_id == shovelerWorkerSchemaComponentIdImprobableInterest) {
-		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-			shovelerLogTrace("Received authority over interest component of client entity %lld.", op->entity_id);
-			context->clientInterestAuthoritative = true;
-			context->viewDependenciesUpdated = true;
-		} else {
-			shovelerLogWarning("Lost interest authority over client entity %lld.", op->entity_id);
-			context->clientInterestAuthoritative = false;
-		}
-		return;
-	}
-	// special case improbable position
-	if (op->component_id == shovelerWorkerSchemaComponentIdImprobablePosition) {
-		if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-			shovelerLogTrace("Received authority over Improbable position component of client entity %lld.", op->entity_id);
-			context->improbablePositionAuthoritative = true;
-		} else {
-			shovelerLogWarning("Lost Improbable position authority over client entity %lld.", op->entity_id);
-			context->improbablePositionAuthoritative = false;
-		}
-		return;
-	}
-
-	const char *componentTypeId = shovelerClientResolveComponentTypeId((int) op->component_id);
-	if(componentTypeId == NULL) {
-		shovelerLogWarning("Received authority change for unknown component ID %d on entity %lld, ignoring.", op->component_id, op->entity_id);
+	if (op->component_set_id != shovelerWorkerSchemaComponentSetIdClientPlayerAuthority) {
+		shovelerLogWarning("Received authority change on entity %"PRId64" for unknown component set ID %"PRIu32", ignoring.", op->entity_id, op->component_set_id);
 		return;
 	}
 
@@ -424,29 +376,38 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 	}
 
 	if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-		shovelerLogTrace("Gained authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
-		shovelerViewEntityDelegate(entity, componentTypeId);
+		shovelerLogTrace("Gained authority over entity %lld component set ID %d.", op->entity_id, op->component_set_id);
+		shovelerViewEntityDelegate(entity, shovelerComponentTypeIdClient);
+		shovelerViewEntityDelegate(entity, shovelerComponentTypeIdPosition);
 
-		// If the component exists, we might be able to activate it now.
-		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+		// If the client component exists, we might be able to activate it now.
+		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdClient);
 		if(component != NULL) {
 			shovelerComponentActivate(component);
 		}
 
-		if(op->component_id == clientComponentId) {
-			shovelerLogTrace("Gained client authority over entity %lld.", op->entity_id);
-			context->clientEntityId = op->entity_id;
-			context->clientPingTickCallback = shovelerExecutorSchedulePeriodic(context->game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, context);
-		}
-	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
-		shovelerLogTrace("Lost authority over entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
-		shovelerViewEntityUndelegate(entity, componentTypeId);
+		shovelerLogTrace("Gained client authority over entity %lld.", op->entity_id);
+		context->clientEntityId = op->entity_id;
+		context->clientPingTickCallback = shovelerExecutorSchedulePeriodic(context->game->updateExecutor, 0, clientPingTimeoutMs, clientPingTick, context);
 
-		if(op->component_id == clientComponentId) {
-			shovelerLogWarning("Lost client authority over entity %lld.", op->entity_id);
-			context->clientEntityId = 0;
-			shovelerExecutorRemoveCallback(context->game->updateExecutor, context->clientPingTickCallback);
-		}
+		shovelerLogTrace("Received authority over interest component of client entity %lld.", op->entity_id);
+		context->clientInterestAuthoritative = true;
+		context->viewDependenciesUpdated = true;
+		shovelerLogTrace("Received authority over Improbable position component of client entity %lld.", op->entity_id);
+		context->improbablePositionAuthoritative = true;
+	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
+		shovelerLogTrace("Lost authority over entity %lld component set ID %d.", op->entity_id, op->component_set_id);
+		shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdClient);
+		shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdPosition);
+
+		shovelerLogWarning("Lost client authority over entity %lld.", op->entity_id);
+		context->clientEntityId = 0;
+		shovelerExecutorRemoveCallback(context->game->updateExecutor, context->clientPingTickCallback);
+
+		shovelerLogWarning("Lost interest authority over client entity %lld.", op->entity_id);
+		context->clientInterestAuthoritative = false;
+		shovelerLogWarning("Lost Improbable position authority over client entity %lld.", op->entity_id);
+		context->improbablePositionAuthoritative = false;
 	}
 }
 
@@ -460,7 +421,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		return;
 	}
 
-	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->update.component_id);
+	const char *specialComponentType = shovelerWorkerSchemaResolveSpecialComponentId((int) op->update.component_id);
 	if(specialComponentType != NULL) {
 		// special case Metadata
 		if(op->update.component_id == shovelerWorkerSchemaComponentIdImprobableMetadata) {
@@ -531,7 +492,7 @@ static void onRemoveComponent(ClientContext *context, const Worker_RemoveCompone
 		return;
 	}
 
-	const char *specialComponentType = shovelerClientResolveSpecialComponentId((int) op->component_id);
+	const char *specialComponentType = shovelerWorkerSchemaResolveSpecialComponentId((int) op->component_id);
 	if(specialComponentType != NULL) {
 		shovelerLogTrace("Removed special component %s from entity %lld.", specialComponentType, op->entity_id);
 		return;

@@ -51,8 +51,8 @@ int main(int argc, char **argv)
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerUpdater";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_TCP;
-	connectionParameters.network.modular_tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_TCP;
+	connectionParameters.network.tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
 	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
@@ -60,7 +60,8 @@ int main(int argc, char **argv)
 
 	Worker_Connection *connection = shovelerWorkerConnect(argc, argv, /* argumentOffset */ 0, &connectionParameters);
 	assert(connection != NULL);
-	if(!Worker_Connection_IsConnected(connection)) {
+	uint8_t status = Worker_Connection_GetConnectionStatusCode(connection);
+	if(status != WORKER_CONNECTION_STATUS_CODE_SUCCESS) {
 		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;

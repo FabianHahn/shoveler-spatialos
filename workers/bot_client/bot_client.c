@@ -59,7 +59,8 @@ typedef struct {
 
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op);
 static void onComponentUpdate(ClientContext *context, const Worker_ComponentUpdateOp *op);
-static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op);
+static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op);
+static void onComponentAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op, Entity *entity, Worker_ComponentId componentId);
 static void clientPingTick(void *clientContextPointer);
 static void clientDirectionChange(void *clientContextPointer);
 static void clientStatus(void *clientContextPointer);
@@ -95,7 +96,7 @@ int main(int argc, char **argv) {
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 
 	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
-		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>\n\t%s <locator hostname> <project name> <deployment name> <login token>", argv[0], argv[0], argv[0], argv[0]);
+		shovelerLogError("Usage:\n\t%s\n\t%s <launcher link>\n\t%s <worker ID> <hostname> <port>", argv[0], argv[0], argv[0]);
 		return EXIT_FAILURE;
 	}
 
@@ -112,8 +113,8 @@ int main(int argc, char **argv) {
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerBotClient";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_KCP;
-	connectionParameters.network.modular_kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_KCP;
+	connectionParameters.network.kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
 	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
@@ -122,7 +123,9 @@ int main(int argc, char **argv) {
 	shovelerLogInfo("Using SpatialOS C Worker SDK '%s'.", Worker_ApiVersionStr());
 	Worker_Connection *connection = shovelerWorkerConnect(argc, argv, /* argumentOffset */ 0, &connectionParameters);
 	assert(connection != NULL);
-	if(!Worker_Connection_IsConnected(connection)) {
+
+	uint8_t status = Worker_Connection_GetConnectionStatusCode(connection);
+	if(status != WORKER_CONNECTION_STATUS_CODE_SUCCESS) {
 		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
@@ -206,9 +209,6 @@ int main(int argc, char **argv) {
 				case WORKER_OP_TYPE_FLAG_UPDATE:
 					shovelerLogTrace("WORKER_OP_TYPE_FLAG_UPDATE");
 					break;
-				case WORKER_OP_TYPE_LOG_MESSAGE:
-					// deprecated and can be ignored, we receive all log messages through logsink already.
-					break;
 				case WORKER_OP_TYPE_METRICS:
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
 					break;
@@ -252,8 +252,8 @@ int main(int argc, char **argv) {
 
 					g_hash_table_remove(entity->components, &op->op.remove_component.component_id);
 				} break;
-				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
-					onAuthorityChange(&context, &op->op.authority_change);
+				case WORKER_OP_TYPE_COMPONENT_SET_AUTHORITY_CHANGE:
+					onAuthorityChange(&context, &op->op.component_set_authority_change);
 					break;
 				case WORKER_OP_TYPE_COMPONENT_UPDATE:
 					onComponentUpdate(&context, &op->op.component_update);
@@ -445,23 +445,34 @@ static void onComponentUpdate(ClientContext *context, const Worker_ComponentUpda
 	}
 }
 
-static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChangeOp *op)
+static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op)
 {
-	Entity *entity = g_hash_table_lookup(context->entities, &op->entity_id);
-	if(entity == NULL) {
-		shovelerLogWarning(
-			"Received authority change for entity %"PRId64" component %"PRIu32" but entity is not in view, ignoring.",
-			op->entity_id,
-			op->component_id);
+	if(op->component_set_id != shovelerWorkerSchemaComponentSetIdClientPlayerAuthority) {
+		shovelerLogWarning("Received authority change on entity %"PRId64" for unknown component set ID %"PRIu32", ignoring.", op->entity_id, op->component_set_id);
 		return;
 	}
 
-	Component *component = g_hash_table_lookup(entity->components, &op->component_id);
+	Entity *entity = g_hash_table_lookup(context->entities, &op->entity_id);
+	if(entity == NULL) {
+		shovelerLogWarning(
+			"Received authority change for entity %"PRId64" component set %"PRIu32" but entity is not in view, ignoring.",
+			op->entity_id,
+			op->component_set_id);
+		return;
+	}
+
+	onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdClient);
+	onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdPosition);
+}
+
+static void onComponentAuthorityChange(ClientContext *context, const Worker_ComponentSetAuthorityChangeOp *op, Entity *entity, Worker_ComponentId componentId)
+{
+	Component *component = g_hash_table_lookup(entity->components, &componentId);
 	if(component == NULL) {
 		shovelerLogWarning(
 			"Received authority change for entity %"PRId64" component %"PRIu32" but component is not in view, ignoring.",
 			op->entity_id,
-			op->component_id);
+			componentId);
 		return;
 	}
 
@@ -473,13 +484,13 @@ static void onAuthorityChange(ClientContext *context, const Worker_AuthorityChan
 	component->authoritative = newAuthority;
 
 	if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
-		if(op->component_id == shovelerWorkerSchemaComponentIdClient) {
+		if(componentId == shovelerWorkerSchemaComponentIdClient) {
 			shovelerLogTrace("Gained client authority over entity %lld.", op->entity_id);
 			context->clientEntityId = op->entity_id;
 			context->clientPingTickCallback = shovelerExecutorSchedulePeriodic(context->executor, 0, clientPingTimeoutMs, clientPingTick, context);
 		}
 	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
-		if(op->component_id == shovelerWorkerSchemaComponentIdClient) {
+		if(componentId == shovelerWorkerSchemaComponentIdClient) {
 			shovelerLogWarning("Lost client authority over entity %lld.", op->entity_id);
 			context->clientEntityId = 0;
 			shovelerExecutorRemoveCallback(context->executor, context->clientPingTickCallback);

@@ -16,10 +16,8 @@ void shovelerWorkerOnLogMessage(void *user_data, const Worker_LogData *message)
 			shovelerLogWarning("[Worker SDK] %s", message->content);
 			break;
 		case WORKER_LOG_LEVEL_ERROR:
+		default:
 			shovelerLogError("[Worker SDK] %s", message->content);
-			break;
-		case WORKER_LOG_LEVEL_FATAL:
-			shovelerLogError("[Worker SDK] [FATAL] %s", message->content);
 			break;
 	}
 }

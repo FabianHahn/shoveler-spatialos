@@ -17,6 +17,9 @@
       "components": [
         "*"
       ]
+    },
+    "system_entity_command": {
+      "allow": true
     }
   },
   "launch_configuration": {

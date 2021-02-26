@@ -17,6 +17,7 @@
 #include "tileset.h"
 
 static const int chunkSize = 10;
+static const int64_t serverPartitionEntityId = 1;
 
 static bool addCharacterAnimationTilesetEntity(Worker_SnapshotOutputStream *snapshotOutputStream, Worker_EntityId *nextEntityId, const char *filename, int shiftAmount);
 static bool writeEntity(Worker_SnapshotOutputStream *snapshotOutputStream, Worker_Entity *entity);
@@ -71,10 +72,8 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(-100.0, -100.0, -100.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(-100.0f, -100.0f, -100.0f));
 		componentData[4] = shovelerWorkerSchemaCreateBootstrapComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
-		shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(&componentData[5], shovelerWorkerSchemaComponentIdBootstrap, "server");
+		componentData[5] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+		shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[5], shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority, serverPartitionEntityId);
 		componentData[6] = shovelerWorkerSchemaCreateImprobableInterestComponent();
 		Schema_Object *componentInterest = shovelerWorkerSchemaAddImprobableInterestForComponent(
 			&componentData[6], shovelerWorkerSchemaComponentIdBootstrap);
@@ -92,7 +91,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId quadDrawableEntityId = nextEntityId;
 	{ // quad drawable
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -102,9 +101,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(-100.0, -100.0, -100.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(-100.0f, -100.0f, -100.0f));
 		componentData[4] = shovelerWorkerSchemaCreateDrawableQuadComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -138,11 +134,8 @@ int main(int argc, char **argv)
 		componentData[7] = shovelerWorkerSchemaCreateTextureImageComponent(/* image */ 0);
 		componentData[8] = shovelerWorkerSchemaCreateTilesetComponent(
 			/* image */ 0, tilesetColumns, tilesetRows, /* padding */ 1);
-		componentData[9] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "server");
-		shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(
-			&componentData[9], shovelerWorkerSchemaComponentIdResource, "server");
+		componentData[9] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+		shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[9], shovelerWorkerSchemaComponentSetIdServerAssetAuthority, serverPartitionEntityId);
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -175,11 +168,8 @@ int main(int argc, char **argv)
 		componentData[7] = shovelerWorkerSchemaCreateTextureImageComponent(/* image */ 0);
 		componentData[8] = shovelerWorkerSchemaCreateTilesetComponent(
 			/* image */ 0, tilesetPngColumns, tilesetPngRows, /* padding */ 1);
-		componentData[9] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "server");
-		shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(
-			&componentData[9], shovelerWorkerSchemaComponentIdResource, "server");
+		componentData[9] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+		shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[9], shovelerWorkerSchemaComponentSetIdServerAssetAuthority, serverPartitionEntityId);
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -214,7 +204,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId canvasEntityId = nextEntityId;
 	{ // canvas
-		Worker_ComponentData componentData[7] = {0};
+		Worker_ComponentData componentData[6] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -225,9 +215,6 @@ int main(int argc, char **argv)
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(-100.0f, -100.0f, -100.0f));
 		componentData[4] = shovelerWorkerSchemaCreateMaterialTileSpriteComponent();
 		componentData[5] = shovelerWorkerSchemaCreateCanvasComponent(/* numLayers */ 3);
-		componentData[6] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[6], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[6], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -235,7 +222,7 @@ int main(int argc, char **argv)
 	}
 
 	{ // tile sprite material
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -245,9 +232,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(-100.0, -100.0, -100.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(-100.0f, -100.0f, -100.0f));
 		componentData[4] = shovelerWorkerSchemaCreateMaterialTileSpriteComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -256,7 +240,7 @@ int main(int argc, char **argv)
 
 	Worker_EntityId tilemapMaterialEntityId = nextEntityId;
 	{ // tilemap material
-		Worker_ComponentData componentData[6] = {0};
+		Worker_ComponentData componentData[5] = {0};
 		Worker_Entity entity;
 		entity.entity_id = nextEntityId++;
 		entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -266,9 +250,6 @@ int main(int argc, char **argv)
 		componentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(-100.0, -100.0, -100.0);
 		componentData[3] = shovelerWorkerSchemaCreatePositionComponent(shovelerVector3(-100.0f, -100.0f, -100.0f));
 		componentData[4] = shovelerWorkerSchemaCreateMaterialTilemapComponent();
-		componentData[5] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "client");
-		shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[5], "server");
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;
@@ -323,11 +304,8 @@ int main(int argc, char **argv)
 				/* layer */ 0,
 				/* size */ shovelerVector2((float) chunkSize, (float) chunkSize),
 				/* tilemapSprite */ 0);
-			componentData[9] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "client");
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "server");
-			shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(
-				&componentData[9], shovelerWorkerSchemaComponentIdTilemapTiles, "server");
+			componentData[9] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+			shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[9], shovelerWorkerSchemaComponentSetIdServerAssetAuthority, serverPartitionEntityId);
 
 			if(!writeEntity(snapshotOutputStream, &entity)) {
 				return EXIT_FAILURE;
@@ -372,9 +350,8 @@ int main(int argc, char **argv)
 				/* layer */ 2,
 				/* size */ shovelerVector2((float) chunkSize, (float) chunkSize),
 				/* tilemapSprite */ 0);
-			componentData[9] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "client");
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "server");
+			componentData[9] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+			shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[9], shovelerWorkerSchemaComponentSetIdServerAssetAuthority, serverPartitionEntityId);
 
 			if(!writeEntity(snapshotOutputStream, &entity)) {
 				return EXIT_FAILURE;
@@ -382,7 +359,7 @@ int main(int argc, char **argv)
 		}
 
 		{ // chunk
-			Worker_ComponentData componentData[7] = {0};
+			Worker_ComponentData componentData[6] = {0};
 			Worker_Entity entity;
 			entity.entity_id = nextEntityId++;
 			entity.component_count = sizeof(componentData) / sizeof(componentData[0]);
@@ -406,9 +383,6 @@ int main(int argc, char **argv)
 				/* emitter */ true,
 				/* castsShadow */ false,
 				shovelerWorkerSchemaPolygonModeFill);
-			componentData[6] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[6], "client");
-			shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[6], "server");
 
 			if(!writeEntity(snapshotOutputStream, &entity)) {
 				return EXIT_FAILURE;
@@ -449,11 +423,8 @@ static bool addCharacterAnimationTilesetEntity(Worker_SnapshotOutputStream *snap
 	componentData[7] = shovelerWorkerSchemaCreateTextureImageComponent(/* image */ 0);
 	componentData[8] = shovelerWorkerSchemaCreateTilesetComponent(
 		/* image */ 0, /* columns */ 4, /* rows */ 3, /* padding */ 1);
-	componentData[9] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "client");
-	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&componentData[9], "server");
-	shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(
-		&componentData[9], shovelerWorkerSchemaComponentIdResource, "server");
+	componentData[9] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&componentData[9], shovelerWorkerSchemaComponentSetIdServerAssetAuthority, serverPartitionEntityId);
 
 	if(!writeEntity(snapshotOutputStream, &entity)) {
 		return false;

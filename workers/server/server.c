@@ -19,21 +19,23 @@
 
 #include "configuration.h"
 
-const int tickRateHz = 100;
-const int64_t maxHeartbeatTimeoutMs = 5000;
-const int clientCleanupTickRateHz = 2;
-const int halfMapWidth = 100;
-const int halfMapHeight = 100;
-const int chunkSize = 10;
-const int64_t firstChunkEntityId = 12;
-const int numPlayerPositionAttempts = 10;
-const int64_t cubeDrawableEntityId = 2;
-const int64_t pointDrawableEntityId = 4;
-const int64_t characterAnimationTilesetEntityId = 5;
-const int64_t character2AnimationTilesetEntityId = 6;
-const int64_t character3AnimationTilesetEntityId = 7;
-const int64_t character4AnimationTilesetEntityId = 8;
-const int64_t canvasEntityId = 9;
+static const int tickRateHz = 100;
+static const int64_t maxHeartbeatTimeoutMs = 500000;
+static const int clientCleanupTickRateHz = 2;
+static const int halfMapWidth = 100;
+static const int halfMapHeight = 100;
+static const int chunkSize = 10;
+static const int64_t firstChunkEntityId = 12;
+static const int numPlayerPositionAttempts = 10;
+static const int64_t cubeDrawableEntityId = 2;
+static const int64_t pointDrawableEntityId = 4;
+static const int64_t characterAnimationTilesetEntityId = 5;
+static const int64_t character2AnimationTilesetEntityId = 6;
+static const int64_t character3AnimationTilesetEntityId = 7;
+static const int64_t character4AnimationTilesetEntityId = 8;
+static const int64_t canvasEntityId = 9;
+static const int64_t serverPartitionEntityId = 1;
+static const uint32_t entityReservationBatchSize = 1;
 
 typedef struct {
 	GString *tilesetRows;
@@ -71,6 +73,8 @@ typedef struct {
 	ShovelerServerConfiguration configuration;
 	GHashTable *entities;
 	GHashTable *clients;
+	Worker_EntityId nextReservedEntityId;
+	int numReservedEntityIds;
 	int numAuthoritativeComponents;
 	int numEntitiesLastTick;
 	int numAuthoritativeComponentsLastTick;
@@ -82,7 +86,8 @@ static void clientCleanupTick(void *contextPointer);
 static void updateTickMetrics(ServerContext *context);
 static void onAddComponent(ServerContext *context, const Worker_AddComponentOp *op);
 static void onComponentUpdate(ServerContext *context, const Worker_ComponentUpdateOp *op);
-static void onAuthorityChange(ServerContext *context, const Worker_AuthorityChangeOp *op);
+static void onAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op);
+static void onComponentAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op, Entity *entity, Worker_ComponentId componentId);
 static void onCommandRequest(ServerContext *context, const Worker_CommandRequestOp *op);
 static void onCreateClientEntityRequest(ServerContext *context, const Worker_CommandRequestOp *op);
 static void onClientSpawnCubeRequest(ServerContext *context, const Worker_CommandRequestOp *op);
@@ -94,7 +99,6 @@ static int64_t getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static TilemapTiles *getChunkBackgroundTiles(ServerContext *context, int64_t chunkBackgroundEntityId);
 static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int *outputChunkX, int *outputChunkZ, int *outputTileX, int *outputTileZ);
-static const char *getSpecificWorkerAttribute(const Worker_WorkerAttributes *workerAttributes);
 static ShovelerVector3 remapImprobablePosition(const ShovelerVector3 *coordinates, bool isTiles);
 static ShovelerVector3 remapPosition(const ShovelerVector3 *coordinates, bool isTiles);
 static ShovelerVector4 colorFromHsv(float h, float s, float v);
@@ -134,8 +138,8 @@ int main(int argc, char **argv)
 
 	Worker_ConnectionParameters connectionParameters = Worker_DefaultConnectionParameters();
 	connectionParameters.worker_type = "ShovelerServer";
-	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_MODULAR_TCP;
-	connectionParameters.network.modular_tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
+	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_TCP;
+	connectionParameters.network.tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
 	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
@@ -143,7 +147,8 @@ int main(int argc, char **argv)
 
 	Worker_Connection *connection = shovelerWorkerConnect(argc, argv, /* argumentOffset */ 1, &connectionParameters);
 	assert(connection != NULL);
-	if(!Worker_Connection_IsConnected(connection)) {
+	uint8_t status = Worker_Connection_GetConnectionStatusCode(connection);
+	if(status != WORKER_CONNECTION_STATUS_CODE_SUCCESS) {
 		shovelerLogError("Failed to connect to SpatialOS deployment: %s", Worker_Connection_GetConnectionStatusDetailString(connection));
 		Worker_Connection_Destroy(connection);
 		return EXIT_FAILURE;
@@ -155,11 +160,35 @@ int main(int argc, char **argv)
 	shovelerServerGetWorkerConfiguration(connection, &context.configuration);
 	context.entities = g_hash_table_new_full(g_int64_hash, g_int64_equal, /* key_destroy_func */ NULL, freeEntity);
 	context.clients = g_hash_table_new_full(g_int64_hash, g_int64_equal, /* key_destroy_func */ NULL, freeClient);
+	context.nextReservedEntityId = 0;
+	context.numReservedEntityIds = 0;
 	context.numAuthoritativeComponents = 0;
 	context.numEntitiesLastTick = 0;
 	context.numAuthoritativeComponentsLastTick = 0;
 	context.characterCounter = 0;
 	context.disconnected = false;
+
+	Worker_CommandRequest assignPartitionCommandRequest;
+	memset(&assignPartitionCommandRequest, 0, sizeof(Worker_CommandRequest));
+	assignPartitionCommandRequest.component_id = shovelerWorkerSchemaComponentIdImprobableWorker;
+	assignPartitionCommandRequest.command_index = shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition;
+	assignPartitionCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+	Schema_Object *assignPartitionRequest = Schema_GetCommandRequestObject(assignPartitionCommandRequest.schema_type);
+	Schema_AddEntityId(assignPartitionRequest, shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId, serverPartitionEntityId);
+
+	Worker_EntityId serverWorkerEntityId = Worker_Connection_GetWorkerEntityId(context.connection);
+	Worker_RequestId assignPartitionCommandRequestId = Worker_Connection_SendCommandRequest(
+		context.connection,
+		serverWorkerEntityId,
+		&assignPartitionCommandRequest,
+		/* timeout_millis */ NULL,
+		/* command_parameters */ NULL);
+	if(assignPartitionCommandRequestId < 0) {
+		shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", serverWorkerEntityId);
+		Worker_Connection_Destroy(connection);
+		return EXIT_FAILURE;
+	}
 
 	ShovelerExecutor *tickExecutor = shovelerExecutorCreateDirect();
 	int clientCleanupTickPeriod = (int) (1000.0 / (double) clientCleanupTickRateHz);
@@ -178,9 +207,6 @@ int main(int argc, char **argv)
 				case WORKER_OP_TYPE_FLAG_UPDATE:
 					// ignore
 					break;
-				case WORKER_OP_TYPE_LOG_MESSAGE:
-					// deprecated and can be ignored, we receive all log messages through logsink already.
-					break;
 				case WORKER_OP_TYPE_METRICS:
 					Worker_Connection_SendMetrics(connection, &op->op.metrics.metrics);
 					break;
@@ -198,7 +224,20 @@ int main(int argc, char **argv)
 					g_hash_table_remove(context.entities, &op->op.remove_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE:
-					shovelerLogTrace("WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE");
+					if (op->op.reserve_entity_ids_response.status_code != WORKER_STATUS_CODE_SUCCESS) {
+						shovelerLogWarning(
+							"Failed to reserve new batch of entity IDs with code %d: %s",
+							op->op.reserve_entity_ids_response.status_code,
+							op->op.reserve_entity_ids_response.message);
+						context.numReservedEntityIds = 0;
+						break;
+					}
+
+					context.numReservedEntityIds = entityReservationBatchSize;
+					context.nextReservedEntityId = op->op.reserve_entity_ids_response.first_entity_id;
+					shovelerLogInfo(
+						"Received new entity ID reservation batch starting at entity ID %"PRId64".",
+						context.nextReservedEntityId);
 					break;
 				case WORKER_OP_TYPE_CREATE_ENTITY_RESPONSE:
 					shovelerLogInfo(
@@ -234,8 +273,8 @@ int main(int argc, char **argv)
 
 					g_hash_table_remove(entity->components, &op->op.remove_component.component_id);
 				} break;
-				case WORKER_OP_TYPE_AUTHORITY_CHANGE:
-					onAuthorityChange(&context, &op->op.authority_change);
+				case WORKER_OP_TYPE_COMPONENT_SET_AUTHORITY_CHANGE:
+					onAuthorityChange(&context, &op->op.component_set_authority_change);
 					break;
 				case WORKER_OP_TYPE_COMPONENT_UPDATE:
 					onComponentUpdate(&context, &op->op.component_update);
@@ -244,13 +283,45 @@ int main(int argc, char **argv)
 					onCommandRequest(&context, &op->op.command_request);
 					break;
 				case WORKER_OP_TYPE_COMMAND_RESPONSE:
-					shovelerLogTrace("WORKER_OP_TYPE_COMMAND_RESPONSE");
+					if (op->op.command_response.request_id == assignPartitionCommandRequestId) {
+						if (op->op.command_response.status_code != WORKER_STATUS_CODE_SUCCESS) {
+							shovelerLogError(
+								"Failed assign server partition with code %d: %s",
+								op->op.command_response.status_code,
+								op->op.command_response.message);
+							Worker_Connection_Destroy(connection);
+							return EXIT_FAILURE;
+						}
+
+						shovelerLogInfo("Successfully claimed server partition.");
+					} else {
+						if (op->op.command_response.status_code != WORKER_STATUS_CODE_SUCCESS) {
+							shovelerLogWarning(
+								"Failed assign partition request %"PRId64" with code %d: %s",
+								op->op.command_response.request_id,
+								op->op.command_response.status_code,
+								op->op.command_response.message);
+							break;
+						}
+
+						shovelerLogInfo(
+							"Successfully assigned partition to %"PRId64" with request %"PRId64".",
+							op->op.command_request.entity_id,
+							op->op.command_request.request_id);
+					}
 					break;
 			}
 		}
 		Worker_OpList_Destroy(opList);
 
 		shovelerExecutorUpdateNow(tickExecutor);
+
+		if (context.numReservedEntityIds == 0) {
+			shovelerLogInfo("Ran out of reserved entity IDs, requesting new batch.");
+
+			context.numReservedEntityIds = -1; // request in flight
+			Worker_Connection_SendReserveEntityIdsRequest(context.connection, entityReservationBatchSize, NULL);
+		}
 
 		updateTickMetrics(&context);
 	}
@@ -408,23 +479,46 @@ static void onComponentUpdate(ServerContext *context, const Worker_ComponentUpda
 	}
 }
 
-static void onAuthorityChange(ServerContext *context, const Worker_AuthorityChangeOp *op)
+static void onAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op)
 {
 	Entity *entity = g_hash_table_lookup(context->entities, &op->entity_id);
 	if(entity == NULL) {
 		shovelerLogWarning(
-			"Received authority change for entity %"PRId64" component %"PRIu32" but entity is not in view, ignoring.",
+			"Received authority change for entity %"PRId64" component set %"PRIu32" but entity is not in view, ignoring.",
 			op->entity_id,
-			op->component_id);
+			op->component_set_id);
 		return;
 	}
 
-	Component *component = g_hash_table_lookup(entity->components, &op->component_id);
+	switch (op->component_set_id) {
+		case shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority:
+			onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdBootstrap);
+			break;
+		case shovelerWorkerSchemaComponentSetIdServerAssetAuthority:
+			onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdResource);
+			onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdTilemapTiles);
+			break;
+		case shovelerWorkerSchemaComponentSetIdServerPlayerAuthority:
+			onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
+			onComponentAuthorityChange(context, op, entity, shovelerWorkerSchemaComponentIdClientInfo);
+			break;
+		default:
+			shovelerLogWarning(
+				"Received authority change for entity %"PRId64" with unknown component set %"PRIu32", ignoring.",
+				op->entity_id,
+				op->component_set_id);
+	}
+}
+
+static void onComponentAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op,
+	Entity *entity, Worker_ComponentId componentId)
+{
+	Component *component = g_hash_table_lookup(entity->components, &componentId);
 	if(component == NULL) {
 		shovelerLogWarning(
 			"Received authority change for entity %"PRId64" component %"PRIu32" but component is not in view, ignoring.",
 			op->entity_id,
-			op->component_id);
+			componentId);
 		return;
 	}
 
@@ -481,7 +575,15 @@ static void onCommandRequest(ServerContext *context, const Worker_CommandRequest
 
 static void onCreateClientEntityRequest(ServerContext *context, const Worker_CommandRequestOp *op)
 {
-	shovelerLogInfo("Received create client entity request from '%s'.", op->caller_worker_id);
+	shovelerLogInfo("Received create client entity request from %"PRId64".", op->caller_worker_entity_id);
+
+	if (context->numReservedEntityIds < 1) {
+		shovelerLogWarning("Failed to create client entity for %"PRId64" because we ran out of reserved entity IDs.", op->caller_worker_entity_id);
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no more reserved entity IDs");
+		return;
+	}
+	context->numReservedEntityIds--;
+	Worker_EntityId clientEntityId = context->nextReservedEntityId++;
 
 	Schema_Object *requestObject = Schema_GetCommandRequestObject(op->request.schema_type);
 
@@ -513,17 +615,10 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 	shovelerWorkerSchemaSetImprobableInterestQueryRelativeSphereConstraint(heartbeatQuery, 0.0);
 	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(heartbeatQuery, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
 
-	// improbable.EntityAcl
-	clientEntityComponentData[8] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&clientEntityComponentData[8], "client");
-	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&clientEntityComponentData[8], "server");
-	const char *specificClientAttribute = getSpecificWorkerAttribute(&op->caller_attribute_set);
-	shovelerWorkerSchemaAddImprobableEntityAclWrite(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdClient, specificClientAttribute);
-	shovelerWorkerSchemaAddImprobableEntityAclWrite(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdClientHeartbeatPing, specificClientAttribute);
-	shovelerWorkerSchemaAddImprobableEntityAclWrite(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdImprobableInterest, specificClientAttribute);
-	shovelerWorkerSchemaAddImprobableEntityAclWrite(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdImprobablePosition, specificClientAttribute);
-	shovelerWorkerSchemaAddImprobableEntityAclWrite(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdPosition, specificClientAttribute);
-	shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(&clientEntityComponentData[8], shovelerWorkerSchemaComponentIdClientHeartbeatPong, "server");
+	// improbable.AuthorityDelegation
+	clientEntityComponentData[8] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
+	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&clientEntityComponentData[8], shovelerWorkerSchemaComponentSetIdServerPlayerAuthority, serverPartitionEntityId);
+	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&clientEntityComponentData[8], shovelerWorkerSchemaComponentSetIdClientPlayerAuthority, clientEntityId);
 
 	float hue = 0.0f;
 	float saturation = 0.0f;
@@ -587,13 +682,13 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 	}
 
 	// shoveler.ClientInfo
-	clientEntityComponentData[12] = shovelerWorkerSchemaCreateClientInfoComponent(op->caller_worker_id, hue, saturation);
+	clientEntityComponentData[12] = shovelerWorkerSchemaCreateClientInfoComponent(op->caller_worker_entity_id, hue, saturation);
 
 	Worker_RequestId createEntityRequestId = Worker_Connection_SendCreateEntityRequest(
 		context->connection,
 		sizeof(clientEntityComponentData) / sizeof(clientEntityComponentData[0]),
 		clientEntityComponentData,
-		/* entity_id */ NULL,
+		&clientEntityId,
 		/* timeout_millis */ NULL);
 	if(createEntityRequestId == -1) {
 		shovelerLogError("Failed to send create entity request.");
@@ -601,7 +696,30 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 		return;
 	}
 
-	shovelerLogInfo("Sent create entity request %"PRId64"", createEntityRequestId);
+	shovelerLogInfo("Sent create entity %"PRId64" request %"PRId64".", clientEntityId, createEntityRequestId);
+
+	Worker_CommandRequest assignPartitionCommandRequest;
+	memset(&assignPartitionCommandRequest, 0, sizeof(Worker_CommandRequest));
+	assignPartitionCommandRequest.component_id = shovelerWorkerSchemaComponentIdImprobableWorker;
+	assignPartitionCommandRequest.command_index = shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition;
+	assignPartitionCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+	Schema_Object *assignPartitionRequest = Schema_GetCommandRequestObject(assignPartitionCommandRequest.schema_type);
+	Schema_AddEntityId(assignPartitionRequest, shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId, clientEntityId);
+
+	Worker_RequestId assignPartitionCommandRequestId = Worker_Connection_SendCommandRequest(
+		context->connection,
+		op->caller_worker_entity_id,
+		&assignPartitionCommandRequest,
+		/* timeout_millis */ NULL,
+		/* command_parameters */ NULL);
+	if(assignPartitionCommandRequestId < 0) {
+		shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", op->caller_worker_entity_id);
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "assign partition failed");
+		return;
+	}
+
+	shovelerLogInfo("Sent assign partition %"PRId64" to %"PRId64" request %"PRId64".", clientEntityId, op->caller_worker_entity_id, assignPartitionCommandRequestId);
 
 	Worker_CommandResponse commandResponse;
 	commandResponse.component_id = op->request.component_id;
@@ -616,14 +734,14 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 
 static void onClientSpawnCubeRequest(ServerContext *context, const Worker_CommandRequestOp *op)
 {
-	shovelerLogInfo("Received client spawn cube request from '%s'.", op->caller_worker_id);
+	shovelerLogInfo("Received client spawn cube request from %"PRId64".", op->caller_worker_entity_id);
 
 	Schema_Object *requestObject = Schema_GetCommandRequestObject(op->request.schema_type);
 
 	int64_t clientEntityId = Schema_GetEntityId(requestObject, shovelerWorkerSchemaClientSpawnCubeRequestFieldIdClient);
 	Entity *clientEntity = g_hash_table_lookup(context->entities, &clientEntityId);
 	if(clientEntity == NULL) {
-		shovelerLogWarning("Received client spawn cube from %s for unknown client entity %"PRId64", ignoring.", op->caller_worker_id, clientEntityId);
+		shovelerLogWarning("Received client spawn cube from %"PRId64" for unknown client entity %"PRId64", ignoring.", op->caller_worker_entity_id, clientEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "unknown client entity");
 		return;
 	}
@@ -631,7 +749,7 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 	uint32_t clientInfoComponentId = shovelerWorkerSchemaComponentIdClientInfo;
 	Component *clientInfoComponent = g_hash_table_lookup(clientEntity->components, &clientInfoComponentId);
 	if(clientInfoComponent == NULL) {
-		shovelerLogWarning("Received client spawn cube from %s for client entity %"PRId64" without client info component, ignoring.", op->caller_worker_id, clientEntityId);
+		shovelerLogWarning("Received client spawn cube from %"PRId64" for client entity %"PRId64" without client info component, ignoring.", op->caller_worker_entity_id, clientEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no client info component");
 		return;
 	}
@@ -664,16 +782,14 @@ static void onClientSpawnCubeRequest(ServerContext *context, const Worker_Comman
 	ShovelerVector3 cubeImprobablePosition = remapPosition(&cubePosition, /* isTiles */ false);
 	ShovelerVector4 cubeColor = colorFromHsv(clientInfoComponent->clientInfo.colorHue, clientInfoComponent->clientInfo.colorSaturation, 0.7f);
 
-	Worker_ComponentData cubeEntityComponentData[7] = {0};
+	Worker_ComponentData cubeEntityComponentData[6] = {0};
 	cubeEntityComponentData[0] = shovelerWorkerSchemaCreateImprobableMetadataComponent("cube");
 	cubeEntityComponentData[1] = shovelerWorkerSchemaCreateImprobablePersistenceComponent();
 	cubeEntityComponentData[2] = shovelerWorkerSchemaCreateImprobablePositionComponent(
 		cubeImprobablePosition.values[0], cubeImprobablePosition.values[1], cubeImprobablePosition.values[2]);
 	cubeEntityComponentData[3] = shovelerWorkerSchemaCreatePositionComponent(cubePosition);
-	cubeEntityComponentData[4] = shovelerWorkerSchemaCreateImprobableEntityAclComponent();
-	shovelerWorkerSchemaAddImprobableEntityAclReadStatic(&cubeEntityComponentData[4], "client");
-	cubeEntityComponentData[5] = shovelerWorkerSchemaCreateMaterialColorComponent(cubeColor);
-	cubeEntityComponentData[6] = shovelerWorkerSchemaCreateModelComponent(
+	cubeEntityComponentData[4] = shovelerWorkerSchemaCreateMaterialColorComponent(cubeColor);
+	cubeEntityComponentData[5] = shovelerWorkerSchemaCreateModelComponent(
 		/* position */ 0,
 		cubeDrawableEntityId,
 		/* material */ 0,
@@ -714,14 +830,14 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	const int numChunkColumns = 2 * halfMapWidth / chunkSize;
 	const int numChunkRows = 2 * halfMapHeight / chunkSize;
 
-	shovelerLogInfo("Received dig hole request from '%s'.", op->caller_worker_id);
+	shovelerLogInfo("Received dig hole request from %"PRId64".", op->caller_worker_entity_id);
 
 	Schema_Object *requestObject = Schema_GetCommandRequestObject(op->request.schema_type);
 
 	int64_t clientEntityId = Schema_GetEntityId(requestObject, shovelerWorkerSchemaDigHoleRequestFieldIdClient);
 	Entity *clientEntity = g_hash_table_lookup(context->entities, &clientEntityId);
 	if(clientEntity == NULL) {
-		shovelerLogWarning("Received dig hole request from %s for unknown client entity %"PRId64", ignoring.", op->caller_worker_id, clientEntityId);
+		shovelerLogWarning("Received dig hole request from %"PRId64" for unknown client entity %"PRId64", ignoring.", op->caller_worker_entity_id, clientEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "unknown client entity");
 		return;
 	}
@@ -746,7 +862,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	worldToTile(x, z, &chunkX, &chunkZ, &tileX, &tileZ);
 
 	if(chunkX < 0 || chunkX >= numChunkColumns || chunkZ < 0 || chunkZ >= numChunkRows || tileX < 0 || tileX >= chunkSize || tileZ < 0 || tileZ >= chunkSize) {
-		shovelerLogWarning("Received dig hole request from %s for client entity %"PRId64" which is out of range at (%f, %f), ignoring.", op->caller_worker_id, clientEntityId, x, z);
+		shovelerLogWarning("Received dig hole request from %s for client entity %"PRId64" which is out of range at (%f, %f), ignoring.", op->caller_worker_entity_id, clientEntityId, x, z);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "out of range");
 		return;
 	}
@@ -754,7 +870,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	int64_t chunkBackgroundEntityId = getChunkBackgroundEntityId(chunkX, chunkZ);
 	TilemapTiles *tiles = getChunkBackgroundTiles(context, chunkBackgroundEntityId);
 	if(tiles == NULL) {
-		shovelerLogError("Received dig hole request from %s for client entity %"PRId64", but failed to resolve chunk background entity %lld tilemap tiles.", op->caller_worker_id, clientEntityId, chunkBackgroundEntityId);
+		shovelerLogError("Received dig hole request from %"PRId64" for client entity %"PRId64", but failed to resolve chunk background entity %lld tilemap tiles.", op->caller_worker_entity_id, clientEntityId, chunkBackgroundEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no background tilemap tiles");
 		return;
 	}
@@ -763,7 +879,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	char *tilesetRows = &tiles->tilesetRows->str[tileZ * chunkSize + tileX];
 	char *tilesetIds = &tiles->tilesetIds->str[tileZ * chunkSize + tileX];
 	if(*tilesetColumn > 2) {
-		shovelerLogWarning("Received dig hole request from %s for client entity %"PRId64", but its current tile is not grass.", op->caller_worker_id, clientEntityId);
+		shovelerLogWarning("Received dig hole request from %"PRId64" for client entity %"PRId64", but its current tile is not grass.", op->caller_worker_entity_id, clientEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "not grass");
 		return;
 	}
@@ -801,14 +917,14 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 
 static void onUpdateResourceRequest(ServerContext *context, const Worker_CommandRequestOp *op)
 {
-	shovelerLogInfo("Received update resource request from '%s'.", op->caller_worker_id);
+	shovelerLogInfo("Received update resource from %"PRId64".", op->caller_worker_entity_id);
 
 	Schema_Object *requestObject = Schema_GetCommandRequestObject(op->request.schema_type);
 
 	int64_t resourceEntityId = Schema_GetEntityId(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdResource);
 	uint32_t contentCount = Schema_GetBytesCount(requestObject, shovelerWorkerSchemaUpdateResourceRequestFieldIdContent);
 	if(contentCount == 0) {
-		shovelerLogWarning("Received update resource request from %s for resource entity %"PRId64", but no content was provided.", op->caller_worker_id, resourceEntityId);
+		shovelerLogWarning("Received update resource request from %"PRId64" for resource entity %"PRId64", but no content was provided.", op->caller_worker_entity_id, resourceEntityId);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "no content");
 		return;
 	}
@@ -955,19 +1071,6 @@ static void worldToTile(double x, double z, int *outputChunkX, int *outputChunkZ
 
 	*outputTileX = (int) floor(diffX - *outputChunkX * chunkSize);
 	*outputTileZ = (int) floor(diffZ - *outputChunkZ * chunkSize);
-}
-
-static const char *getSpecificWorkerAttribute(const Worker_WorkerAttributes *workerAttributes)
-{
-	for(uint32_t i = 0; i < workerAttributes->attribute_count; i++) {
-		const char *attribute = workerAttributes->attributes[i];
-
-		if(g_str_has_prefix(attribute, "workerId:")) {
-			return attribute;
-		}
-	}
-
-	return "";
 }
 
 static ShovelerVector3 remapImprobablePosition(const ShovelerVector3 *coordinates, bool isTiles)

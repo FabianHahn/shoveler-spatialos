@@ -7,7 +7,6 @@
 #include <shoveler/types.h>
 
 enum {
-	shovelerWorkerSchemaComponentIdImprobableEntityAcl = 50,
 	shovelerWorkerSchemaComponentIdImprobableMetadata = 53,
 	shovelerWorkerSchemaComponentIdImprobablePosition = 54,
 	shovelerWorkerSchemaComponentIdImprobablePersistence = 55,
@@ -15,6 +14,7 @@ enum {
 	shovelerWorkerSchemaComponentIdImprobableSystem = 59,
 	shovelerWorkerSchemaComponentIdImprobableWorker = 60,
 	shovelerWorkerSchemaComponentIdImprobablePlayerClient = 61,
+	shovelerWorkerSchemaComponentIdImprobableAuthorityDelegation = 65,
 	shovelerWorkerSchemaComponentIdPosition = 5454,
 	shovelerWorkerSchemaComponentIdBootstrap = 1334,
 	shovelerWorkerSchemaComponentIdClient = 1335,
@@ -43,6 +43,23 @@ enum {
 	shovelerWorkerSchemaComponentIdFontAtlas = 1351,
 	shovelerWorkerSchemaComponentIdFontAtlasTexture = 1352,
 	shovelerWorkerSchemaComponentIdTextTextureRenderer = 1353,
+};
+
+enum {
+	shovelerWorkerSchemaComponentSetIdImprobableWellKnownComponentSet = 50,
+	shovelerWorkerSchemaComponentSetIdServerBootstrapAuthority = 1337,
+	shovelerWorkerSchemaComponentSetIdServerAssetAuthority = 1338,
+	shovelerWorkerSchemaComponentSetIdServerPlayerAuthority = 1339,
+	shovelerWorkerSchemaComponentSetIdClientPlayerAuthority = 1340,
+};
+
+enum {
+	shovelerWorkerSchemaImprobableWorkerCommandIdDisconnect = 1,
+	shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition = 2,
+};
+
+enum {
+	shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId = 1,
 };
 
 enum {
@@ -175,11 +192,6 @@ enum {
 };
 
 enum {
-	shovelerWorkerSchemaImprobableEntityAclFieldIdReadAcl = 1,
-	shovelerWorkerSchemaImprobableEntityAclFieldIdComponentWriteAcl = 2,
-};
-
-enum {
 	shovelerWorkerSchemaImprobableWorkerRequirementSetFieldIdAttributeSet = 1,
 };
 
@@ -287,7 +299,7 @@ enum {
 };
 
 enum {
-	shovelerWorkerSchemaClientInfoFieldIdWorkerId = 1,
+	shovelerWorkerSchemaClientInfoFieldIdWorkerEntityId = 1,
 	shovelerWorkerSchemaClientInfoFieldIdColorHue = 2,
 	shovelerWorkerSchemaClientInfoFieldIdColorSaturation = 3,
 };
@@ -379,12 +391,16 @@ enum {
 	shovelerWorkerSchemaTilemapSpriteFieldIdTilemap = 2,
 };
 
+enum {
+	shovelerWorkerSchemaImprobableAuthorityDelegationDelegations = 1,
+};
+
 const char *shovelerWorkerSchemaResolveSpecialComponentId(int componentId);
 
 Worker_ComponentData shovelerWorkerSchemaCreateImprobableMetadataComponent(const char *staticEntityType);
 Worker_ComponentData shovelerWorkerSchemaCreateImprobablePersistenceComponent();
 Worker_ComponentData shovelerWorkerSchemaCreateImprobablePositionComponent(double x, double y, double z);
-Worker_ComponentData shovelerWorkerSchemaCreateImprobableEntityAclComponent();
+Worker_ComponentData shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
 Worker_ComponentData shovelerWorkerSchemaCreateImprobableInterestComponent();
 Worker_ComponentData shovelerWorkerSchemaCreatePositionComponent(ShovelerVector3 positionCoordinates);
 Worker_ComponentData shovelerWorkerSchemaCreateBootstrapComponent();
@@ -481,13 +497,11 @@ Worker_ComponentData shovelerWorkerSchemaCreateClientComponent(Worker_EntityId p
 Worker_ComponentData shovelerWorkerSchemaCreateClientHeartPingComponent(int64_t lastUpdatedTime);
 Worker_ComponentData shovelerWorkerSchemaCreateClientHeartPongComponent(int64_t lastUpdatedTime);
 Worker_ComponentData shovelerWorkerSchemaCreateClientInfoComponent(
-	const char *workerId,
+	Worker_EntityId workerEntityId,
 	float colorHue,
 	float colorSaturation);
 
-void shovelerWorkerSchemaAddImprobableEntityAclReadStatic(Worker_ComponentData *componentData, const char *staticAttribute);
-void shovelerWorkerSchemaAddImprobableEntityAclWriteStatic(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *staticAttribute);
-void shovelerWorkerSchemaAddImprobableEntityAclWrite(Worker_ComponentData *componentData, Worker_ComponentId componentId, const char *attribute);
+void shovelerWorkerSchemaAddImprobableAuthorityDelegation(Worker_ComponentData *componentData, Worker_ComponentSetId componentSetId, Worker_EntityId partitionId);
 Schema_Object *shovelerWorkerSchemaAddImprobableInterestForComponent(Worker_ComponentData *componentData, Worker_ComponentId componentId);
 Schema_Object *shovelerWorkerSchemaAddImprobableInterestComponentQuery(Schema_Object *componentInterest);
 void shovelerWorkerSchemaSetImprobableInterestQueryEntityIdConstraint(Schema_Object *query, Worker_EntityId entityId);

@@ -64,8 +64,7 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 		// entity ID constraint
 		Schema_AddEntityId(constraint, shovelerWorkerSchemaImprobableComponentInterestQueryConstraintFieldIdEntityIdConstraint, *entityId);
 
-		// always depend on EntityAcl and Metadata
-		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdImprobableEntityAcl);
+		// always depend on Metadata
 		Schema_AddUint32(query, shovelerWorkerSchemaImprobableComponentInterestQueryFieldIdResultComponentId, shovelerWorkerSchemaComponentIdImprobableMetadata);
 
 		GHashTableIter componentSetIter;
