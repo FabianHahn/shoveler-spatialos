@@ -6,12 +6,12 @@
     "name": "loom"
   },
   "assembly": {
-    "name": "shoveler-bots-21.08.2020-2"
+    "name": "shoveler-bots-23.04.2021-3"
   },
   "initialState": {
     "taggedSnapshot": {
       "historyName": "shoveler",
-      "snapshotTag": "shoveler-tiles-21.08.2020-2"
+      "snapshotTag": "shoveler-tiles-23.04.2021-3"
     }
   },
   "lifetime": {
@@ -47,7 +47,7 @@
     "load_balancing": {
       "layer_configurations": [
         {
-          "layer": "server",
+          "layer": "ShovelerServer",
           "rectangle_grid": {
             "cols": 1,
             "rows": 1
