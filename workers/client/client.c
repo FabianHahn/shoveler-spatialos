@@ -1,3 +1,4 @@
+#include <inttypes.h> // PRId64
 #include <stdlib.h> // srand
 #include <string.h> // memset
 #include <time.h> // time
