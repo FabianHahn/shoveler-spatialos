@@ -253,14 +253,14 @@ bool shovelerViewEntityRemoveComponent(ShovelerViewEntity *entity, const char *c
 		return false;
 	}
 
-	entity->view->numComponents--;
-	shovelerLogTrace("Removed component '%s' from entity %lld.", componentTypeId, entity->id);
-
-	g_hash_table_remove(entity->components, componentTypeId);
-
 	if(component->type->update != NULL) {
 		g_hash_table_remove(entity->view->updateComponents, component);
 	}
+
+	g_hash_table_remove(entity->components, componentTypeId);
+
+	entity->view->numComponents--;
+	shovelerLogTrace("Removed component '%s' from entity %lld.", componentTypeId, entity->id);
 
 	return true;
 }
