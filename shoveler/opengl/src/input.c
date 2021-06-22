@@ -135,6 +135,9 @@ void shovelerInputFree(ShovelerInput *input)
 static void keyHandler(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	GHashTableIter iter;
 	ShovelerInputKeyCallback *callback;
@@ -151,6 +154,9 @@ static void keyHandler(GLFWwindow *window, int key, int scancode, int action, in
 static void mouseButtonHandler(GLFWwindow *window, int button, int action, int mods)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	GHashTableIter iter;
 	ShovelerInputMouseButtonCallback *callback;
@@ -168,6 +174,9 @@ static void mouseButtonHandler(GLFWwindow *window, int button, int action, int m
 static void cursorPosHandler(GLFWwindow *window, double xpos, double ypos)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	GHashTableIter iter;
 	ShovelerInputCursorPositionCallback *callback;
@@ -180,6 +189,9 @@ static void cursorPosHandler(GLFWwindow *window, double xpos, double ypos)
 static void scrollHandler(GLFWwindow *window, double xoffset, double yoffset)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	GHashTableIter iter;
 	ShovelerInputScrollCallback *callback;
@@ -192,6 +204,9 @@ static void scrollHandler(GLFWwindow *window, double xoffset, double yoffset)
 static void windowSizeHandler(GLFWwindow *window, int width, int height)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	if(width < 0 || height < 0) {
 		return;
@@ -211,6 +226,9 @@ static void windowSizeHandler(GLFWwindow *window, int width, int height)
 static void windowFocusHandler(GLFWwindow *window, int focused)
 {
 	ShovelerGame *game = shovelerGameGetForWindow(window);
+	if (game == NULL) {
+		return;
+	}
 
 	if(!focused) {
 		shovelerLogInfo("Losing focus on game %p window, disabling cursor capture.", game);
