@@ -69,16 +69,10 @@ typedef struct {
 } Client;
 
 typedef struct {
-	int64_t clientEntityId;
-	int64_t clientWorkerEntityId;
-} BufferedAssignPartitionRequest;
-
-typedef struct {
 	Worker_Connection *connection;
 	ShovelerServerConfiguration configuration;
 	GHashTable *entities;
 	GHashTable *clients;
-	GQueue *bufferedAssignPartitionRequests;
 	Worker_EntityId nextReservedEntityId;
 	int numReservedEntityIds;
 	int numAuthoritativeComponents;
@@ -167,7 +161,6 @@ int main(int argc, char **argv)
 	shovelerServerGetWorkerConfiguration(connection, &context.configuration);
 	context.entities = g_hash_table_new_full(g_int64_hash, g_int64_equal, /* key_destroy_func */ NULL, freeEntity);
 	context.clients = g_hash_table_new_full(g_int64_hash, g_int64_equal, /* key_destroy_func */ NULL, freeClient);
-	context.bufferedAssignPartitionRequests = g_queue_new();
 	context.nextReservedEntityId = 0;
 	context.numReservedEntityIds = 0;
 	context.numAuthoritativeComponents = 0;
@@ -332,7 +325,6 @@ int main(int argc, char **argv)
 
 	Worker_Connection_Destroy(connection);
 	shovelerExecutorFree(tickExecutor);
-	g_queue_free_full(context.bufferedAssignPartitionRequests, free);
 	g_hash_table_destroy(context.entities);
 	g_hash_table_destroy(context.clients);
 	shovelerLogTerminate();
@@ -559,48 +551,6 @@ static void onCreateEntityResponse(ServerContext *context, const Worker_CreateEn
 		op->request_id,
 		op->status_code,
 		op->message);
-
-	if (op->status_code != WORKER_STATUS_CODE_SUCCESS) {
-		return;
-	}
-
-	for (GList *iter = context->bufferedAssignPartitionRequests->head; iter != NULL;) {
-		BufferedAssignPartitionRequest *bufferedRequest = iter->data;
-		if (bufferedRequest->clientEntityId != op->entity_id) {
-			iter = iter->next;
-			continue;
-		}
-
-		Worker_CommandRequest assignPartitionCommandRequest;
-		memset(&assignPartitionCommandRequest, 0, sizeof(Worker_CommandRequest));
-		assignPartitionCommandRequest.component_id = shovelerWorkerSchemaComponentIdImprobableWorker;
-		assignPartitionCommandRequest.command_index = shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition;
-		assignPartitionCommandRequest.schema_type = Schema_CreateCommandRequest();
-
-		Schema_Object *assignPartitionRequest = Schema_GetCommandRequestObject(assignPartitionCommandRequest.schema_type);
-		Schema_AddEntityId(assignPartitionRequest, shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId, bufferedRequest->clientEntityId);
-
-		Worker_RequestId assignPartitionCommandRequestId = Worker_Connection_SendCommandRequest(
-			context->connection,
-			bufferedRequest->clientWorkerEntityId,
-			&assignPartitionCommandRequest,
-			/* timeout_millis */ NULL,
-			/* command_parameters */ NULL);
-		if(assignPartitionCommandRequestId < 0) {
-			shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", bufferedRequest->clientWorkerEntityId);
-		} else {
-			shovelerLogInfo(
-				"Sent assign partition %"PRId64" to %"PRId64" request %"PRId64".",
-				bufferedRequest->clientEntityId,
-				bufferedRequest->clientWorkerEntityId,
-				assignPartitionCommandRequestId);
-		}
-
-		free(bufferedRequest);
-		GList *link = iter;
-		iter = iter->next;
-		g_queue_delete_link(context->bufferedAssignPartitionRequests, link);
-	}
 }
 
 static void onCommandRequest(ServerContext *context, const Worker_CommandRequestOp *op)
@@ -674,7 +624,7 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 	// improbable.AuthorityDelegation
 	clientEntityComponentData[8] = shovelerWorkerSchemaCreateImprobableAuthorityDelegationComponent();
 	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&clientEntityComponentData[8], shovelerWorkerSchemaComponentSetIdServerPlayerAuthority, serverPartitionEntityId);
-	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&clientEntityComponentData[8], shovelerWorkerSchemaComponentSetIdClientPlayerAuthority, clientEntityId);
+	shovelerWorkerSchemaAddImprobableAuthorityDelegation(&clientEntityComponentData[8], shovelerWorkerSchemaComponentSetIdClientPlayerAuthority, op->caller_worker_entity_id);
 
 	float hue = 0.0f;
 	float saturation = 0.0f;
@@ -754,11 +704,31 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 
 	shovelerLogInfo("Sent create entity %"PRId64" request %"PRId64".", clientEntityId, createEntityRequestId);
 
-	// Enqueue a buffered assign partition request because we cannot send it immediately.
-	BufferedAssignPartitionRequest *bufferedRequest = malloc(sizeof(BufferedAssignPartitionRequest));
-	bufferedRequest->clientEntityId = clientEntityId;
-	bufferedRequest->clientWorkerEntityId = op->caller_worker_entity_id;
-	g_queue_push_tail(context->bufferedAssignPartitionRequests, bufferedRequest);
+	Worker_CommandRequest assignPartitionCommandRequest;
+	memset(&assignPartitionCommandRequest, 0, sizeof(Worker_CommandRequest));
+	assignPartitionCommandRequest.component_id = shovelerWorkerSchemaComponentIdImprobableWorker;
+	assignPartitionCommandRequest.command_index = shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition;
+	assignPartitionCommandRequest.schema_type = Schema_CreateCommandRequest();
+
+	Schema_Object *assignPartitionRequest = Schema_GetCommandRequestObject(assignPartitionCommandRequest.schema_type);
+	Schema_AddEntityId(assignPartitionRequest, shovelerWorkerSchemaAssignPartitionRequestFieldIdPartitionId, op->caller_worker_entity_id);
+
+	Worker_RequestId assignPartitionCommandRequestId = Worker_Connection_SendCommandRequest(
+		context->connection,
+		op->caller_worker_entity_id,
+		&assignPartitionCommandRequest,
+		/* timeout_millis */ NULL,
+		/* command_parameters */ NULL);
+	if(assignPartitionCommandRequestId < 0) {
+		shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", op->caller_worker_entity_id);
+		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "entity creation failure");
+		return;
+	}
+
+	shovelerLogInfo(
+		"Sent self assign partition %"PRId64" request %"PRId64".",
+		op->caller_worker_entity_id,
+		assignPartitionCommandRequestId);
 
 	Worker_CommandResponse commandResponse;
 	commandResponse.component_id = op->request.component_id;

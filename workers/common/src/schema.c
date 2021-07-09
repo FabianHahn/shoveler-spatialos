@@ -605,7 +605,7 @@ void shovelerWorkerSchemaAddImprobableAuthorityDelegation(Worker_ComponentData *
 	Schema_Object *authorityDelegations = Schema_GetComponentDataFields(componentData->schema_type);
 	Schema_Object *authorityDelegation = Schema_AddObject(authorityDelegations, shovelerWorkerSchemaImprobableAuthorityDelegationDelegations);
 	Schema_AddUint32(authorityDelegation, SCHEMA_MAP_KEY_FIELD_ID, componentSetId);
-	Schema_AddUint32(authorityDelegation, SCHEMA_MAP_VALUE_FIELD_ID, partitionId);
+	Schema_AddInt64(authorityDelegation, SCHEMA_MAP_VALUE_FIELD_ID, partitionId);
 }
 
 Schema_Object *shovelerWorkerSchemaAddImprobableInterestForComponentSet(Worker_ComponentData *componentData, Worker_ComponentSetId componentSetId)
