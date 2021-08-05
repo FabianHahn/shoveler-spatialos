@@ -1,0 +1,70 @@
+{
+  "workers": [
+    {
+      "worker_type": "ShovelerClient",
+      "flags": [
+        {
+          "name": "controller_frame_position",
+          "value": "0 0 -1"
+        },
+        {
+          "name": "controller_frame_direction",
+          "value": "0 0 1"
+        },
+        {
+          "name": "controller_frame_up",
+          "value": "0 1 0"
+        },
+        {
+          "name": "position_mapping_x",
+          "value": "-x"
+        },
+        {
+          "name": "hide_player_client_entity_model",
+          "value": "true"
+        }
+      ],
+      "permissions": {
+        "entity_creation": false,
+        "entity_deletion": false,
+        "system_entity_command": false,
+        "reserve_entity_id": false,
+        "entity_query": false
+      }
+    },
+    {
+      "worker_type": "ShovelerBotClient",
+      "flags": [],
+      "permissions": {
+        "entity_creation": false,
+        "entity_deletion": false,
+        "system_entity_command": false,
+        "reserve_entity_id": false,
+        "entity_query": false
+      }
+    },
+    {
+      "worker_type": "ShovelerServer",
+      "flags": [
+      ],
+      "permissions": {
+        "entity_creation": true,
+        "entity_deletion": true,
+        "system_entity_command": true,
+        "reserve_entity_id": true,
+        "entity_query": true
+      },
+      "load_balancing": {
+        "rectangle_grid": {
+          "cols": 1,
+          "rows": 1
+        }
+      }
+    }
+  ],
+  "world_dimensions": {
+    "x_size": 200,
+    "z_size": 200
+  },
+  "max_concurrent_workers": 1024
+}
