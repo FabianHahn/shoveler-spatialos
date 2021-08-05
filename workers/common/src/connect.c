@@ -46,6 +46,8 @@ Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffs
 			} else if (g_str_has_prefix(afterDeploymentNameSplit[i], environmentPrefix)) {
 				if (strcmp(afterDeploymentNameSplit[i] + strlen(environmentPrefix), "staging") == 0) {
 					locatorHost = "locator-staging.improbable.io";
+				} else if (strcmp(afterDeploymentNameSplit[i] + strlen(environmentPrefix), "testing") == 0) {
+					locatorHost = "locator-testing.improbable.io";
 				} else {
 					shovelerLogWarning("Launcher URL specifies unsupported environment '%s', connection might fail.", afterDeploymentNameSplit[i] + strlen(environmentPrefix));
 				}
