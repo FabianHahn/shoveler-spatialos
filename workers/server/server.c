@@ -85,6 +85,7 @@ typedef struct {
 static void clientCleanupTick(void *contextPointer);
 static void updateTickMetrics(ServerContext *context);
 static void onAddComponent(ServerContext *context, const Worker_AddComponentOp *op);
+static void onAddImprobableWorkerComponent(ServerContext *context, const Worker_AddComponentOp *op, Schema_Object *fields);
 static void onComponentUpdate(ServerContext *context, const Worker_ComponentUpdateOp *op);
 static void onAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op);
 static void onComponentAuthorityChange(ServerContext *context, const Worker_ComponentSetAuthorityChangeOp *op, Entity *entity, Worker_ComponentId componentId);
@@ -103,6 +104,7 @@ static void worldToTile(double x, double z, int *outputChunkX, int *outputChunkZ
 static ShovelerVector3 remapImprobablePosition(const ShovelerVector3 *coordinates, bool isTiles);
 static ShovelerVector3 remapPosition(const ShovelerVector3 *coordinates, bool isTiles);
 static ShovelerVector4 colorFromHsv(float h, float s, float v);
+static char *readSchemaString(const Schema_Object* object, Schema_FieldId field_id);
 static void freeEntity(void *entityPointer);
 static void freeComponent(void *componentPointer);
 static void freeClient(void *clientPointer);
@@ -428,9 +430,46 @@ static void onAddComponent(ServerContext *context, const Worker_AddComponentOp *
 	} else if (component->componentId == shovelerWorkerSchemaComponentIdClientInfo) {
 		component->clientInfo.colorHue = Schema_GetFloat(fields, shovelerWorkerSchemaClientInfoFieldIdColorHue);
 		component->clientInfo.colorSaturation = Schema_GetFloat(fields, shovelerWorkerSchemaClientInfoFieldIdColorSaturation);
+	} else if (component->componentId == shovelerWorkerSchemaComponentIdImprobableWorker) {
+		onAddImprobableWorkerComponent(context, op, fields);
 	}
 
 	g_hash_table_insert(entity->components, &component->componentId, component);
+}
+
+static void onAddImprobableWorkerComponent(ServerContext *context, const Worker_AddComponentOp *op, Schema_Object *fields)
+{
+	bool hasWorkerId = Schema_GetBytesCount(fields, shovelerWorkerSchemaImprobableWorkerFieldIdWorkerId);
+	if (!hasWorkerId) {
+		shovelerLogWarning(
+			"Received add entity %"PRId64" Improbable Worker component without worker ID.",
+			op->entity_id);
+		return;
+	}
+
+	char *workerId = readSchemaString(fields, shovelerWorkerSchemaImprobableWorkerFieldIdWorkerId);
+	shovelerLogInfo("Learned worker ID of client %"PRId64": %s", op->entity_id, workerId);
+
+	Schema_Object *connection = Schema_GetObject(fields, shovelerWorkerSchemaImprobableWorkerFieldIdConnection);
+	if (!connection) {
+		shovelerLogWarning(
+			"Received add entity %"PRId64" Improbable Worker component without connection.",
+			op->entity_id);
+		free(workerId);
+		return;
+	}
+
+	bool hasSourceIp = Schema_GetBytesCount(connection, shovelerWorkerSchemaImprobableConnectionFieldIdSourceIp);
+	if (!hasSourceIp) {
+		free(workerId);
+		return;
+	}
+
+	char *sourceIp = readSchemaString(connection, shovelerWorkerSchemaImprobableConnectionFieldIdSourceIp);
+	shovelerLogInfo("Learned source IP of client %"PRId64" with worker ID %s: %s", op->entity_id, workerId, sourceIp);
+
+	free(workerId);
+	free(sourceIp);
 }
 
 static void onComponentUpdate(ServerContext *context, const Worker_ComponentUpdateOp *op)
@@ -1118,6 +1157,24 @@ static ShovelerVector4 colorFromHsv(float h, float s, float v)
 	ShovelerVector3 colorFloat = shovelerColorToVector3(colorRgb);
 
 	return shovelerVector4(colorFloat.values[0], colorFloat.values[1], colorFloat.values[2], 1.0f);
+}
+
+char *readSchemaString(const Schema_Object* object, Schema_FieldId field_id)
+{
+	bool hasString = Schema_GetBytesCount(object, field_id);
+	if (!hasString) {
+		return NULL;
+	}
+
+	uint32_t stringLength = Schema_GetBytesLength(object, field_id);
+	const uint8_t *stringBytes = Schema_GetBytes(object, field_id);
+
+	GString *string = g_string_new("");
+	g_string_append_len(string, (const char *) stringBytes, stringLength);
+	char *rawString = string->str;
+	g_string_free(string, /* freeSegment */ false);
+
+	return rawString;
 }
 
 static void freeEntity(void *entityPointer)

@@ -83,6 +83,11 @@ int main(int argc, char **argv)
 			query, shovelerWorkerSchemaComponentIdClientHeartbeatPing);
 		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(
 			query, shovelerWorkerSchemaComponentIdClientInfo);
+		// Add server interest query that matches all Worker components of system worker entities.
+		Schema_Object *workerEntityQuery = shovelerWorkerSchemaAddImprobableInterestComponentQuery(componentSetInterest);
+		shovelerWorkerSchemaSetImprobableInterestQueryComponentConstraint(workerEntityQuery, shovelerWorkerSchemaComponentIdImprobableWorker);
+		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(
+			workerEntityQuery, shovelerWorkerSchemaComponentIdImprobableWorker);
 
 		if(!writeEntity(snapshotOutputStream, &entity)) {
 			return EXIT_FAILURE;

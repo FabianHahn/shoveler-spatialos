@@ -55,6 +55,17 @@ enum {
 };
 
 enum {
+	shovelerWorkerSchemaImprobableWorkerFieldIdWorkerId = 1,
+	shovelerWorkerSchemaImprobableWorkerFieldIdWorkerType = 2,
+	shovelerWorkerSchemaImprobableWorkerFieldIdConnection = 3,
+};
+
+enum {
+	shovelerWorkerSchemaImprobableConnectionFieldIdConnectedSinceUtc = 1,
+	shovelerWorkerSchemaImprobableConnectionFieldIdSourceIp = 2,
+};
+
+enum {
 	shovelerWorkerSchemaImprobableWorkerCommandIdDisconnect = 1,
 	shovelerWorkerSchemaImprobableWorkerCommandIdAssignPartition = 2,
 };
