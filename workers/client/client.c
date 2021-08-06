@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
 	Worker_LogsinkParameters logsink;
 	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
-	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
+	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN | WORKER_LOG_CATEGORY_NETWORK_TRAFFIC;
 	logsink.filter_parameters.level = WORKER_LOG_LEVEL_INFO;
 	logsink.filter_parameters.callback = NULL;
 	logsink.filter_parameters.user_data = NULL;
@@ -137,6 +137,12 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	shovelerLogTrace("Sent create entity command request %lld.", createClientEntityCommandRequestId);
+
+	Worker_EntityQuery entityQuery;
+	memset(&entityQuery, 0, sizeof(Worker_EntityQuery));
+	entityQuery.constraint.constraint_type = WORKER_CONSTRAINT_TYPE_COMPONENT;
+	entityQuery.constraint.constraint.component_constraint.component_id = shovelerWorkerSchemaComponentIdImprobableWorker;
+	Worker_Connection_SendEntityQueryRequest(connection, &entityQuery, /* timeout_millis */ NULL);
 
 	ShovelerClientConfiguration clientConfiguration;
 	if(!shovelerClientGetWorkerConfiguration(connection, &clientConfiguration)) {
