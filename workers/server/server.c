@@ -118,12 +118,14 @@ int main(int argc, char **argv)
 
 	const char *logFileLocation = argv[1];
 
-	FILE *logFile = fopen(logFileLocation, "w+");
-	if(logFile == NULL) {
-		fprintf(stderr, "Failed to open output log file at %s: %s", logFileLocation, strerror(errno));
-		return 1;
+	FILE *logFile = stdout;
+	if (strcmp(logFileLocation, "stdout") != 0) {
+		logFile = fopen(logFileLocation, "w+");
+		if(logFile == NULL) {
+			fprintf(stderr, "Failed to open output log file at %s: %s", logFileLocation, strerror(errno));
+			return 1;
+		}
 	}
-
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, logFile);
 
 	Worker_ComponentVtable componentVtable = {0};
