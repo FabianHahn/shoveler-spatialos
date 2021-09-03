@@ -513,7 +513,7 @@ static void onComponentAuthorityChange(ServerContext *context, const Worker_Comp
 {
 	Component *component = g_hash_table_lookup(entity->components, &componentId);
 	if(component == NULL) {
-		shovelerLogWarning(
+		shovelerLogTrace(
 			"Received authority change for entity %"PRId64" component %"PRIu32" but component is not in view, ignoring.",
 			op->entity_id,
 			componentId);
