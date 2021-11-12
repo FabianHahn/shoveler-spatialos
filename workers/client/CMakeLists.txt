@@ -11,7 +11,7 @@ set(SHOVELER_CLIENT_SRC
 )
 
 add_executable(ShovelerClient ${SHOVELER_CLIENT_SRC})
-target_link_libraries(ShovelerClient shoveler_opengl PNG::PNG ZLIB::ZLIB shoveler_worker_common worker_sdk::c_worker_sdk)
+target_link_libraries(ShovelerClient shoveler_view_opengl shoveler_opengl PNG::PNG ZLIB::ZLIB shoveler_worker_common worker_sdk::c_worker_sdk)
 
 add_custom_command(
 	TARGET ShovelerClient

@@ -20,4 +20,4 @@ target_include_directories(shoveler_worker_common
 		PUBLIC $<INSTALL_INTERFACE:include>
 		PRIVATE src)
 
-target_link_libraries(shoveler_worker_common PUBLIC shoveler::shoveler_base worker_sdk::c_worker_sdk)
+target_link_libraries(shoveler_worker_common PUBLIC shoveler::shoveler_view_base shoveler::shoveler_base worker_sdk::c_worker_sdk)

@@ -11,7 +11,7 @@
 #include <shoveler/component/client.h>
 #include <shoveler/component/position.h>
 #include <shoveler/connect.h>
-#include <shoveler/game.h>
+#include <shoveler/game_view.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
 #include <shoveler/resources/image_png.h>
@@ -28,6 +28,7 @@
 typedef struct {
 	Worker_Connection *connection;
 	ShovelerGame *game;
+	ShovelerView *view;
 	ShovelerClientConfiguration *clientConfiguration;
 	long long int clientEntityId;
 	bool disconnected;
@@ -59,7 +60,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
 static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op);
 static void updateGame(ShovelerGame *game, double dt);
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
+static void updateAuthoritativeViewComponentFunction(ShovelerView *view, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
 static void clientStatus(void *clientContextPointer);
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
@@ -170,12 +171,13 @@ int main(int argc, char **argv) {
 	context.meanHeartbeatLatencyMs = 0.0;
 	context.meanTimeSinceLastHeartbeatPongMs = 0.5 * (double) clientPingTimeoutMs;
 
-	ShovelerGame *game = shovelerGameCreate(updateGame, updateAuthoritativeViewComponentFunction, &context, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
+	ShovelerGame *game = shovelerGameCreate(updateGame, &windowSettings, &cameraSettings, &clientConfiguration.controllerSettings);
 	if(game == NULL) {
 		return EXIT_FAILURE;
 	}
 	context.game = game;
-	ShovelerView *view = game->view;
+	ShovelerView *view = shovelerGameViewCreate(game, updateAuthoritativeViewComponentFunction, &context);
+	context.view = view;
 	shovelerClientRegisterViewComponentTypes(view);
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 	shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &context);
@@ -279,6 +281,7 @@ int main(int argc, char **argv) {
 	Worker_Connection_Destroy(connection);
 
 	shovelerExecutorRemoveCallback(game->updateExecutor, clientStatusCallback);
+	shovelerViewFree(view);
 	shovelerGameFree(game);
 	shovelerResourcesFree(resources);
 	shovelerGlobalUninit();
@@ -289,7 +292,7 @@ int main(int argc, char **argv) {
 
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op)
 {
-	ShovelerView *view = context->game->view;
+	ShovelerView *view = context->view;
 
 	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
 	if(entity == NULL) {
@@ -370,7 +373,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 		return;
 	}
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(context->game->view, op->entity_id);
+	ShovelerViewEntity *entity = shovelerViewGetEntity(context->view, op->entity_id);
 	if (entity == NULL) {
 		shovelerLogWarning("Received authority change for unknown entity %lld, ignoring.", op->entity_id);
 		return;
@@ -414,7 +417,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op)
 {
-	ShovelerView *view = context->game->view;
+	ShovelerView *view = context->view;
 
 	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
 	if(entity == NULL) {
@@ -485,7 +488,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 
 static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op)
 {
-	ShovelerView *view = context->game->view;
+	ShovelerView *view = context->view;
 
 	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
 	if(entity == NULL) {
@@ -520,7 +523,7 @@ static void updateGame(ShovelerGame *game, double dt)
 	shovelerCameraUpdateView(game->camera);
 }
 
-static void updateAuthoritativeViewComponentFunction(ShovelerGame *game, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
+static void updateAuthoritativeViewComponentFunction(ShovelerView *view, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
@@ -596,7 +599,7 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
-	ShovelerViewEntity *clientEntity = shovelerViewGetEntity(context->game->view, context->clientEntityId);
+	ShovelerViewEntity *clientEntity = shovelerViewGetEntity(context->view, context->clientEntityId);
 	if(clientEntity == NULL) {
 		return;
 	}
@@ -688,7 +691,7 @@ static void updateInterest(ClientContext *context, bool absoluteInterest, Shovel
 	Schema_AddUint32(interestEntry, SCHEMA_MAP_KEY_FIELD_ID, shovelerWorkerSchemaComponentSetIdClientPlayerAuthority);
 	Schema_Object *componentSetInterest = Schema_AddObject(interestEntry, SCHEMA_MAP_VALUE_FIELD_ID);
 
-	int numQueries = shovelerClientComputeViewInterest(context->game->view, context->clientEntityId, absoluteInterest, position, edgeLength, componentSetInterest);
+	int numQueries = shovelerClientComputeViewInterest(context->view, context->clientEntityId, absoluteInterest, position, edgeLength, componentSetInterest);
 
 	Worker_ComponentUpdate update;
 	update.component_id = shovelerWorkerSchemaComponentIdImprobableInterest;
@@ -729,7 +732,7 @@ static void keyHandler(ShovelerInput *input, int key, int scancode, int action, 
 		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
 		context->absoluteInterest = !context->absoluteInterest;
 
-		ShovelerVector3 position = getEntitySpatialOsPosition(context->game->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
+		ShovelerVector3 position = getEntitySpatialOsPosition(context->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
 		updateEdgeLength(context, position);
 		updateInterest(context, context->absoluteInterest, position, context->edgeLength);
 	}
