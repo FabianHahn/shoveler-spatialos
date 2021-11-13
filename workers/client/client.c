@@ -11,24 +11,25 @@
 #include <shoveler/component/client.h>
 #include <shoveler/component/position.h>
 #include <shoveler/connect.h>
-#include <shoveler/game_view.h>
+#include <shoveler/client_system.h>
+#include <shoveler/entity_component_id.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
 #include <shoveler/resources/image_png.h>
 #include <shoveler/resources.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
 #include <shoveler/types.h>
 #include <shoveler/worker_log.h>
-#include <shoveler/view.h>
+#include <shoveler/world.h>
 
 #include "configuration.h"
 #include "interest.h"
-#include "schema.h"
+#include "spatialos_client_schema.h"
 
 typedef struct {
 	Worker_Connection *connection;
 	ShovelerGame *game;
-	ShovelerView *view;
+    ShovelerWorld *world;
 	ShovelerClientConfiguration *clientConfiguration;
 	long long int clientEntityId;
 	bool disconnected;
@@ -36,7 +37,7 @@ typedef struct {
 	bool clientInterestAuthoritative;
 	bool absoluteInterest;
 	bool restrictController;
-	bool viewDependenciesUpdated;
+    bool WorldDependenciesUpdated;
 	double lastInterestUpdatePositionY;
 	double edgeLength;
 	ShovelerVector3 lastImprobablePosition;
@@ -60,15 +61,20 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op);
 static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op);
 static void updateGame(ShovelerGame *game, double dt);
-static void updateAuthoritativeViewComponentFunction(ShovelerView *view, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer);
+static void updateAuthoritativeWorldComponentFunction(
+	ShovelerClientSystem* clientSystem,
+	ShovelerComponent* component,
+	const ShovelerComponentField* field,
+	const ShovelerComponentFieldValue* value,
+	void* clientContextPointer);
 static void clientPingTick(void *clientContextPointer);
 static void clientStatus(void *clientContextPointer);
 static void mouseButtonEvent(ShovelerInput *input, int button, int action, int mods, void *clientContextPointer);
-static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer);
+static void dependencyChanged(ShovelerWorld* world, const ShovelerEntityComponentId* dependencySource, const ShovelerEntityComponentId* dependencyTarget, bool added, void* clientContextPointer);
 static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength);
 static void updateEdgeLength(ClientContext *context, ShovelerVector3 position);
 static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer);
-static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId);
+static ShovelerVector3 getEntitySpatialOsPosition(ShovelerWorld *world, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId);
 
 int main(int argc, char **argv) {
 	srand(time(NULL));
@@ -148,7 +154,7 @@ int main(int argc, char **argv) {
 
 	ShovelerGameCameraSettings cameraSettings;
 	cameraSettings.frame = clientConfiguration.controllerSettings.frame;
-	cameraSettings.projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
+    cameraSettings.projection.fieldOfViewY = 2.0f * SHOVELER_PI * 50.0f / 360.0f;
 	cameraSettings.projection.aspectRatio = (float) windowSettings.windowedWidth / windowSettings.windowedHeight;
 	cameraSettings.projection.nearClippingPlane = 0.01;
 	cameraSettings.projection.farClippingPlane = 1000;
@@ -162,7 +168,7 @@ int main(int argc, char **argv) {
 	context.clientInterestAuthoritative = false;
 	context.absoluteInterest = false;
 	context.restrictController = true;
-	context.viewDependenciesUpdated = false;
+    context.WorldDependenciesUpdated = false;
 	context.lastInterestUpdatePositionY = 0.0f;
 	context.edgeLength = 20.5f;
 	context.lastImprobablePosition = shovelerVector3(0.0f, 0.0f, 0.0f);
@@ -176,9 +182,12 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 	context.game = game;
-	ShovelerView *view = shovelerGameViewCreate(game, updateAuthoritativeViewComponentFunction, &context);
-	context.view = view;
-	shovelerClientRegisterViewComponentTypes(view);
+	ShovelerClientSystem* clientSystem = shovelerClientSystemCreate(
+		game,
+        updateAuthoritativeWorldComponentFunction,
+		&context);
+	context.world = clientSystem->world;
+
 	shovelerInputAddKeyCallback(game->input, keyHandler, &context);
 	shovelerInputAddMouseButtonCallback(game->input, mouseButtonEvent, &context);
 	ShovelerExecutorCallback *clientStatusCallback = shovelerExecutorSchedulePeriodic(game->updateExecutor, 0, clientStatusTimeoutMs, clientStatus, &context);
@@ -192,10 +201,10 @@ int main(int argc, char **argv) {
 	ShovelerResources *resources = shovelerResourcesCreate(/* TODO: on demand resource loading */ NULL, NULL);
 	shovelerResourcesImagePngRegister(resources);
 
-	shovelerViewAddDependencyCallback(view, viewDependencyCallbackFunction, &context);
+    shovelerWorldAddDependencyCallback(context.world, dependencyChanged, &context);
 
 	while(shovelerGameIsRunning(game) && !context.disconnected) {
-		context.viewDependenciesUpdated = false;
+        context.WorldDependenciesUpdated = false;
 
 		Worker_OpList *opList = Worker_Connection_GetOpList(connection, 0);
 		for(size_t i = 0; i < opList->op_count; ++i) {
@@ -215,10 +224,10 @@ int main(int argc, char **argv) {
 					shovelerLogTrace("WORKER_OP_TYPE_CRITICAL_SECTION");
 					break;
 				case WORKER_OP_TYPE_ADD_ENTITY:
-					shovelerViewAddEntity(view, op->op.add_entity.entity_id);
+                    shovelerWorldAddEntity(context.world, op->op.add_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_REMOVE_ENTITY:
-					shovelerViewRemoveEntity(view, op->op.add_entity.entity_id);
+                    shovelerWorldRemoveEntity(context.world, op->op.add_entity.entity_id);
 					break;
 				case WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE:
 					shovelerLogTrace("WORKER_OP_TYPE_RESERVE_ENTITY_IDS_RESPONSE");
@@ -269,10 +278,10 @@ int main(int argc, char **argv) {
 
 		shovelerGameRenderFrame(game);
 
-		ShovelerVector3 position = getEntitySpatialOsPosition(view, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ, context.clientEntityId);
+        ShovelerVector3 position = getEntitySpatialOsPosition(context.world, clientConfiguration.positionMappingX, clientConfiguration.positionMappingY, clientConfiguration.positionMappingZ, context.clientEntityId);
 		updateEdgeLength(&context, position);
 
-		if(context.clientInterestAuthoritative && context.viewDependenciesUpdated) {
+        if(context.clientInterestAuthoritative && context.WorldDependenciesUpdated) {
 			updateInterest(&context, context.absoluteInterest, position, context.edgeLength);
 		}
 	}
@@ -281,7 +290,7 @@ int main(int argc, char **argv) {
 	Worker_Connection_Destroy(connection);
 
 	shovelerExecutorRemoveCallback(game->updateExecutor, clientStatusCallback);
-	shovelerViewFree(view);
+	shovelerClientSystemFree(clientSystem);
 	shovelerGameFree(game);
 	shovelerResourcesFree(resources);
 	shovelerGlobalUninit();
@@ -292,9 +301,9 @@ int main(int argc, char **argv) {
 
 static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *op)
 {
-	ShovelerView *view = context->view;
+    ShovelerWorld *world = context->world;
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+    ShovelerWorldEntity *entity = shovelerWorldGetEntity(world, op->entity_id);
 	if(entity == NULL) {
 		shovelerLogWarning("Received add component %d for unknown entity %lld, ignoring.", op->data.component_id, op->entity_id);
 		return;
@@ -310,10 +319,10 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 
 			GString *entityType = g_string_new("");
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
-			shovelerViewEntitySetType(entity, entityType->str);
+            entity->label = entityType->str;
 
 			shovelerLogTrace("Added Metadata component to entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
-			g_string_free(entityType, /* freeSegment */ true);
+            g_string_free(entityType, /* freeSegment */ false);
 
 			return;
 		}
@@ -348,7 +357,7 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 		return;
 	}
 
-	ShovelerComponent *component = shovelerViewEntityAddComponent(entity, componentTypeId);
+    ShovelerComponent *component = shovelerWorldEntityAddComponent(entity, componentTypeId);
 	if(component == NULL) {
 		shovelerLogWarning("Failed to add component %d (%s) to entity %lld.", op->data.component_id, componentTypeId, op->entity_id);
 		return;
@@ -356,7 +365,7 @@ static void onAddComponent(ClientContext *context, const Worker_AddComponentOp *
 
 	shovelerLogTrace("Adding entity %lld component %d (%s).", op->entity_id, op->data.component_id, componentTypeId);
 	shovelerClientApplyComponentData(
-		view,
+        world,
 		component,
 		op->data.schema_type,
 		context->clientConfiguration->positionMappingX,
@@ -373,7 +382,7 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 		return;
 	}
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(context->view, op->entity_id);
+    ShovelerWorldEntity *entity = shovelerWorldGetEntity(context->world, op->entity_id);
 	if (entity == NULL) {
 		shovelerLogWarning("Received authority change for unknown entity %lld, ignoring.", op->entity_id);
 		return;
@@ -381,11 +390,11 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 
 	if(op->authority == WORKER_AUTHORITY_AUTHORITATIVE) {
 		shovelerLogTrace("Gained authority over entity %lld component set ID %d.", op->entity_id, op->component_set_id);
-		shovelerViewEntityDelegate(entity, shovelerComponentTypeIdClient);
-		shovelerViewEntityDelegate(entity, shovelerComponentTypeIdPosition);
+        shovelerWorldEntityDelegateComponent(entity, shovelerComponentTypeIdClient);
+        shovelerWorldEntityDelegateComponent(entity, shovelerComponentTypeIdPosition);
 
 		// If the client component exists, we might be able to activate it now.
-		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdClient);
+        ShovelerComponent *component = shovelerWorldEntityGetComponent(entity, shovelerComponentTypeIdClient);
 		if(component != NULL) {
 			shovelerComponentActivate(component);
 		}
@@ -396,13 +405,13 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 
 		shovelerLogTrace("Received authority over interest component of client entity %lld.", op->entity_id);
 		context->clientInterestAuthoritative = true;
-		context->viewDependenciesUpdated = true;
+        context->WorldDependenciesUpdated = true;
 		shovelerLogTrace("Received authority over Improbable position component of client entity %lld.", op->entity_id);
 		context->improbablePositionAuthoritative = true;
 	} else if(op->authority == WORKER_AUTHORITY_NOT_AUTHORITATIVE) {
 		shovelerLogTrace("Lost authority over entity %lld component set ID %d.", op->entity_id, op->component_set_id);
-		shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdClient);
-		shovelerViewEntityUndelegate(entity, shovelerComponentTypeIdPosition);
+        shovelerWorldEntityUndelegateComponent(entity, shovelerComponentTypeIdClient);
+        shovelerWorldEntityUndelegateComponent(entity, shovelerComponentTypeIdPosition);
 
 		shovelerLogWarning("Lost client authority over entity %lld.", op->entity_id);
 		context->clientEntityId = 0;
@@ -417,9 +426,9 @@ static void onAuthorityChange(ClientContext *context, const Worker_ComponentSetA
 
 static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpdateOp *op)
 {
-	ShovelerView *view = context->view;
+    ShovelerWorld *world = context->world;
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+    ShovelerWorldEntity *entity = shovelerWorldGetEntity(world, op->entity_id);
 	if(entity == NULL) {
 		shovelerLogWarning("Received update component %d for unknown entity %lld, ignoring.", op->update.component_id, op->entity_id);
 		return;
@@ -435,10 +444,10 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 
 			GString *entityType = g_string_new("");
 			g_string_append_len(entityType, (const char *) entityTypeBytes, entityTypeLength);
-			shovelerViewEntitySetType(entity, entityType->str);
+            entity->label = entityType->str;
 
 			shovelerLogTrace("Updated Metadata component on entity %lld, setting its type to '%s'.", op->entity_id, entityType->str);
-			g_string_free(entityType, /* freeSegment */ true);
+            g_string_free(entityType, /* freeSegment */ false);
 
 			return;
 		}
@@ -468,7 +477,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 		return;
 	}
 
-	ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+    ShovelerComponent *component = shovelerWorldEntityGetComponent(entity, componentTypeId);
 	if(component == NULL) {
 		shovelerLogWarning("Received update for non-existing component %d (%s) on entity %lld, ignoring.", op->update.component_id, componentTypeId, op->entity_id);
 		return;
@@ -476,7 +485,7 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 
 	shovelerLogTrace("Updating entity %lld component %d (%s).", op->entity_id, op->update.component_id, componentTypeId);
 	shovelerClientApplyComponentUpdate(
-		view,
+        world,
 		component,
 		op->update.schema_type,
 		context->clientConfiguration->positionMappingX,
@@ -488,9 +497,9 @@ static void onUpdateComponent(ClientContext *context, const Worker_ComponentUpda
 
 static void onRemoveComponent(ClientContext *context, const Worker_RemoveComponentOp *op)
 {
-	ShovelerView *view = context->view;
+    ShovelerWorld *world = context->world;
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, op->entity_id);
+    ShovelerWorldEntity *entity = shovelerWorldGetEntity(world, op->entity_id);
 	if(entity == NULL) {
 		shovelerLogWarning("Received remove component %d for unknown entity %lld, ignoring.", op->component_id, op->entity_id);
 		return;
@@ -508,27 +517,32 @@ static void onRemoveComponent(ClientContext *context, const Worker_RemoveCompone
 		return;
 	}
 
-	ShovelerComponent *component = shovelerViewEntityGetComponent(entity, componentTypeId);
+    ShovelerComponent *component = shovelerWorldEntityGetComponent(entity, componentTypeId);
 	if(component == NULL) {
 		shovelerLogWarning("Received remove for non-existing component %d (%s) on entity %lld, ignoring.", op->component_id, componentTypeId, op->entity_id);
 		return;
 	}
 
 	shovelerLogTrace("Removing entity %lld component %d (%s).", op->entity_id, op->component_id, componentTypeId);
-	shovelerViewEntityRemoveComponent(entity, componentTypeId);
+    shovelerWorldEntityRemoveComponent(entity, componentTypeId);
 }
 
 static void updateGame(ShovelerGame *game, double dt)
 {
-	shovelerCameraUpdateView(game->camera);
+    shovelerCameraUpdateView(game->camera);
 }
 
-static void updateAuthoritativeViewComponentFunction(ShovelerView *view, ShovelerComponent *component, const ShovelerComponentTypeConfigurationOption *configurationOption, const ShovelerComponentConfigurationValue *value, void *clientContextPointer)
+static void updateAuthoritativeWorldComponentFunction(
+	ShovelerClientSystem* clientSystem,
+	ShovelerComponent* component,
+	const ShovelerComponentField* field,
+	const ShovelerComponentFieldValue* value,
+	void* clientContextPointer)
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
 	{
-		Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, configurationOption, value);
+        Schema_ComponentUpdate *componentUpdate = shovelerClientCreateComponentUpdate(component, field, value);
 
 		Worker_ComponentUpdate update;
 		update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
@@ -599,12 +613,12 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 {
 	ClientContext *context = (ClientContext *) clientContextPointer;
 
-	ShovelerViewEntity *clientEntity = shovelerViewGetEntity(context->view, context->clientEntityId);
+    ShovelerWorldEntity *clientEntity = shovelerWorldGetEntity(context->world, context->clientEntityId);
 	if(clientEntity == NULL) {
 		return;
 	}
 
-	ShovelerComponent *positionComponent = shovelerViewEntityGetComponent(clientEntity, shovelerComponentTypeIdPosition);
+    ShovelerComponent *positionComponent = shovelerWorldEntityGetComponent(clientEntity, shovelerComponentTypeIdPosition);
 	if (positionComponent == NULL) {
 		return;
 	}
@@ -678,9 +692,9 @@ static void mouseButtonEvent(ShovelerInput *input, int button, int action, int m
 	}
 }
 
-static void viewDependencyCallbackFunction(ShovelerView *view, const ShovelerViewQualifiedComponent *dependencySource, const ShovelerViewQualifiedComponent *dependencyTarget, bool added, void *contextPointer) {
-	ClientContext *context = (ClientContext *) contextPointer;
-	context->viewDependenciesUpdated = true;
+static void dependencyChanged(ShovelerWorld* world, const ShovelerEntityComponentId* dependencySource, const ShovelerEntityComponentId* dependencyTarget, bool added, void* clientContextPointer) {
+    ClientContext *context = (ClientContext *) clientContextPointer;
+    context->WorldDependenciesUpdated = true;
 }
 
 static void updateInterest(ClientContext *context, bool absoluteInterest, ShovelerVector3 position, double edgeLength)
@@ -691,7 +705,7 @@ static void updateInterest(ClientContext *context, bool absoluteInterest, Shovel
 	Schema_AddUint32(interestEntry, SCHEMA_MAP_KEY_FIELD_ID, shovelerWorkerSchemaComponentSetIdClientPlayerAuthority);
 	Schema_Object *componentSetInterest = Schema_AddObject(interestEntry, SCHEMA_MAP_VALUE_FIELD_ID);
 
-	int numQueries = shovelerClientComputeViewInterest(context->view, context->clientEntityId, absoluteInterest, position, edgeLength, componentSetInterest);
+    int numQueries = shovelerClientComputeWorldInterest(context->world, context->clientEntityId, absoluteInterest, position, edgeLength, componentSetInterest);
 
 	Worker_ComponentUpdate update;
 	update.component_id = shovelerWorkerSchemaComponentIdImprobableInterest;
@@ -721,7 +735,7 @@ static void updateEdgeLength(ClientContext *context, ShovelerVector3 position) {
 	}
 
 	context->lastInterestUpdatePositionY = position.values[1];
-	context->viewDependenciesUpdated = true;
+    context->WorldDependenciesUpdated = true;
 }
 
 static void keyHandler(ShovelerInput *input, int key, int scancode, int action, int mods, void *clientContextPointer)
@@ -732,7 +746,7 @@ static void keyHandler(ShovelerInput *input, int key, int scancode, int action, 
 		shovelerLogInfo("F7 key pressed, changing to %s interest.", context->absoluteInterest ? "relative" : "absolute");
 		context->absoluteInterest = !context->absoluteInterest;
 
-		ShovelerVector3 position = getEntitySpatialOsPosition(context->view, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
+        ShovelerVector3 position = getEntitySpatialOsPosition(context->world, context->clientConfiguration->positionMappingX, context->clientConfiguration->positionMappingY, context->clientConfiguration->positionMappingZ, context->clientEntityId);
 		updateEdgeLength(context, position);
 		updateInterest(context, context->absoluteInterest, position, context->edgeLength);
 	}
@@ -756,13 +770,13 @@ static void keyHandler(ShovelerInput *input, int key, int scancode, int action, 
 	}
 }
 
-static ShovelerVector3 getEntitySpatialOsPosition(ShovelerView *view, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId)
+static ShovelerVector3 getEntitySpatialOsPosition(ShovelerWorld *world, ShovelerCoordinateMapping mappingX, ShovelerCoordinateMapping mappingY, ShovelerCoordinateMapping mappingZ, long long int entityId)
 {
 	ShovelerVector3 spatialOsPosition = shovelerVector3(0.0f, 0.0f, 0.0f);
 
-	ShovelerViewEntity *entity = shovelerViewGetEntity(view, entityId);
+    ShovelerWorldEntity *entity = shovelerWorldGetEntity(world, entityId);
 	if(entity != NULL) {
-		ShovelerComponent *component = shovelerViewEntityGetComponent(entity, shovelerComponentTypeIdPosition);
+        ShovelerComponent *component = shovelerWorldEntityGetComponent(entity, shovelerComponentTypeIdPosition);
 		if (component != NULL) {
 			const ShovelerVector3 *coordinates = shovelerComponentGetPosition(component);
 

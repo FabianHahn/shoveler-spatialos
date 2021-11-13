@@ -1,10 +1,10 @@
-#include "shoveler/schema.h"
+#include "shoveler/spatialos_schema.h"
 
 #include <assert.h> // assert
 #include <stdlib.h> // NULL
 #include <string.h> // strlen
 
-#include <shoveler/component/position.h>
+#include <shoveler/schema/base.h>
 
 // FIXME include from component data definition instead
 typedef enum {

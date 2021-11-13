@@ -7,22 +7,24 @@
 #include <shoveler/component/model.h>
 #include <shoveler/component/light.h>
 #include <shoveler/component/tilemap_tiles.h>
+#include <shoveler/entity_component_id.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
+#include <shoveler/world.h>
 
-#include "schema.h"
+#include "spatialos_client_schema.h"
 
 static void freeComponentSet(void *componentSetPointer);
 
-int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentSetInterest)
+int shovelerClientComputeWorldInterest(ShovelerWorld *world, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentSetInterest)
 {
 	// map from entity id to set of component IDs
 	GHashTable *dependencies = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, freeComponentSet);
 
 	GHashTableIter iter;
-	ShovelerViewQualifiedComponent *dependencyTarget;
+    ShovelerEntityComponentId *dependencyTarget;
 	GQueue *dependencySourceList;
-	g_hash_table_iter_init(&iter, view->reverseDependencies);
+    g_hash_table_iter_init(&iter, world->reverseDependencies);
 	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
 		int componentId = shovelerClientResolveComponentSchemaId(dependencyTarget->componentTypeId);
 		if(componentId == 0) {
