@@ -11,7 +11,7 @@
 #include <shoveler/image.h>
 #include <shoveler/image/png.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
 
 #include "map.h"
 #include "tileset.h"

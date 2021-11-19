@@ -11,10 +11,9 @@
 #include <shoveler/log.h>
 #include <shoveler/resources/image_png.h>
 #include <shoveler/resources.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
 #include <shoveler/types.h>
 #include <shoveler/worker_log.h>
-#include <shoveler/view.h>
 #include <shoveler/executor.h>
 #include <shoveler/configuration.h>
 

@@ -9,11 +9,11 @@
 #include <improbable/c_schema.h>
 #include <improbable/c_worker.h>
 #include <shoveler/color.h>
-#include <shoveler/component/position.h>
 #include <shoveler/connect.h>
 #include <shoveler/executor.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/schema/base.h>
+#include <shoveler/spatialos_schema.h>
 #include <shoveler/types.h>
 #include <shoveler/worker_log.h>
 

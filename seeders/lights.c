@@ -7,7 +7,7 @@
 #include <improbable/c_schema.h>
 #include <shoveler/constants.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
 
 static const int64_t serverPartitionEntityId = 1;
 

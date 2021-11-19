@@ -1,44 +1,48 @@
 #include <shoveler/component.h>
+#include <shoveler/component_type.h>
 #include <shoveler/file.h>
 #include <shoveler/global.h>
 #include <shoveler/log.h>
-#include <shoveler/view.h>
+#include <shoveler/schema.h>
+#include <shoveler/schema/base.h>
+#include <shoveler/schema/opengl.h>
 #include <ctype.h> // toupper
 #include <stdlib.h>
-#include "../workers/client/schema.h"
+#include "../workers/client/spatialos_client_schema.h"
 
-static const char *configurationOptionTypeToString(ShovelerComponentConfigurationOptionType type)
+static const char* fieldTypeToString(ShovelerComponentFieldType type)
 {
 	switch (type) {
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_ENTITY_ID:
-			return "EntityId";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_ENTITY_ID_ARRAY:
-			return "list<EntityId>";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_FLOAT:
-			return "float";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_BOOL:
-			return "bool";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_INT:
-			return "int32";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_STRING:
-			return "string";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR2:
-			return "Vector2";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR3:
-			return "Vector3";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_VECTOR4:
-			return "Vector4";
-		case SHOVELER_COMPONENT_CONFIGURATION_OPTION_TYPE_BYTES:
-			return "bytes";
-		default:
-			return "(unknown)";
+	case SHOVELER_COMPONENT_FIELD_TYPE_ENTITY_ID:
+		return "EntityId";
+	case SHOVELER_COMPONENT_FIELD_TYPE_ENTITY_ID_ARRAY:
+		return "list<EntityId>";
+	case SHOVELER_COMPONENT_FIELD_TYPE_FLOAT:
+		return "float";
+	case SHOVELER_COMPONENT_FIELD_TYPE_BOOL:
+		return "bool";
+	case SHOVELER_COMPONENT_FIELD_TYPE_INT:
+		return "int32";
+	case SHOVELER_COMPONENT_FIELD_TYPE_STRING:
+		return "string";
+	case SHOVELER_COMPONENT_FIELD_TYPE_VECTOR2:
+		return "Vector2";
+	case SHOVELER_COMPONENT_FIELD_TYPE_VECTOR3:
+		return "Vector3";
+	case SHOVELER_COMPONENT_FIELD_TYPE_VECTOR4:
+		return "Vector4";
+	case SHOVELER_COMPONENT_FIELD_TYPE_BYTES:
+		return "bytes";
+	default:
+		return "(unknown)";
 	}
 }
 
-static GString *toUpperCamelCase(const char *input) {
-	GString *result = g_string_new("");
+static GString* toUpperCamelCase(const char* input)
+{
+	GString* result = g_string_new("");
 	bool atStart = true;
-	for (const char *c = input; *c != '\0'; c++) {
+	for (const char* c = input; *c != '\0'; c++) {
 		if (atStart) {
 			g_string_append_c(result, toupper(*c));
 			atStart = false;
@@ -52,7 +56,8 @@ static GString *toUpperCamelCase(const char *input) {
 	return result;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, stdout);
 	shovelerGlobalInit();
 
@@ -60,12 +65,13 @@ int main(int argc, char **argv) {
 		shovelerLogError("Usage:\n\t%s <schema output file>", argv[0]);
 		return EXIT_FAILURE;
 	}
-	const char *filename = argv[1];
+	const char* filename = argv[1];
 
-	ShovelerView *view = shovelerViewCreate(/* updateAuthoritativeComponent */ NULL, /* user_data */ NULL);
-	shovelerClientRegisterViewComponentTypes(view);
+	ShovelerSchema* schema = shovelerSchemaCreate();
+	shovelerSchemaBaseRegister(schema);
+	shovelerSchemaOpenglRegister(schema);
 
-	GString *schema = g_string_new(
+	GString* spatialosSchema = g_string_new(
 		"package shoveler;\n"
 		"\n"
 		"import \"improbable/standard_library.schema\";\n"
@@ -89,30 +95,30 @@ int main(int argc, char **argv) {
 		"}\n");
 
 	GHashTableIter iter;
-	const char *typeName;
-	ShovelerComponentType *componentType;
-	g_hash_table_iter_init(&iter, view->componentTypes);
-	while (g_hash_table_iter_next(&iter, (gpointer *) &typeName, (gpointer *) &componentType)) {
+	const char* typeName;
+	ShovelerComponentType* componentType;
+	g_hash_table_iter_init(&iter, schema->componentTypes);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &typeName, (gpointer*) &componentType)) {
 		int componentId = shovelerClientResolveComponentSchemaId(componentType->id);
-		GString *componentName = toUpperCamelCase(componentType->id);
-		g_string_append_printf(schema, "component %s {\n\tid = %d;\n", componentName->str, componentId);
+		GString* componentName = toUpperCamelCase(componentType->id);
+		g_string_append_printf(spatialosSchema, "component %s {\n\tid = %d;\n", componentName->str, componentId);
 		g_string_free(componentName, true);
 
-		for (int i = 0; i < componentType->numConfigurationOptions; i++) {
-			ShovelerComponentTypeConfigurationOption *configurationOption = &componentType->configurationOptions[i];
-			g_string_append_printf(schema, "\t%s%s%s %s = %d;\n",
-				configurationOption->isOptional ? "option<" : "",
-				configurationOptionTypeToString(configurationOption->type),
-				configurationOption->isOptional ? ">" : "",
-				configurationOption->name,
+		for (int i = 0; i < componentType->numFields; i++) {
+			ShovelerComponentField* field = &componentType->fields[i];
+			g_string_append_printf(spatialosSchema, "\t%s%s%s %s = %d;\n",
+				field->isOptional ? "option<" : "",
+				fieldTypeToString(field->type),
+				field->isOptional ? ">" : "",
+				field->name,
 				i + 1);
 		}
 
-		g_string_append(schema, "}\n\n");
+		g_string_append(spatialosSchema, "}\n\n");
 	}
 
 	// Server components
-	g_string_append(schema,
+	g_string_append(spatialosSchema,
 		"type ChunkRegion {\n"
 		"    int32 min_x = 1;\n"
 		"    int32 min_z = 2;\n"
@@ -156,7 +162,7 @@ int main(int argc, char **argv) {
 		"type UpdateResourceResponse {\n"
 		"\n"
 		"}\n"
-  		"\n"
+		"\n"
 		"/** Bootstrap component authoritative on the server worker that acts as client-facing server API. */\n"
 		"component Bootstrap {\n"
 		"\tid = 1334;\n"
@@ -193,7 +199,7 @@ int main(int argc, char **argv) {
 		"}\n");
 
 	// Component set definitions
-	g_string_append(schema,
+	g_string_append(spatialosSchema,
 		"\n"
 		"component_set ServerBootstrapAuthority {\n"
 		"    id = 1337;\n"
@@ -239,10 +245,10 @@ int main(int argc, char **argv) {
 		"    ];\n"
 		"}");
 
-	shovelerViewFree(view);
+	shovelerSchemaFree(schema);
 
-	bool written = shovelerFileWriteString(filename, schema->str);
-	g_string_free(schema, true);
+	bool written = shovelerFileWriteString(filename, spatialosSchema->str);
+	g_string_free(spatialosSchema, true);
 	if (!written) {
 		shovelerLogError("Failed to write generated schema.");
 		return EXIT_FAILURE;

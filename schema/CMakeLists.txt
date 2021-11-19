@@ -2,12 +2,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 set(SHOVELER_GENERATOR_SRC
 	schema_generator.c
-	../workers/client/schema.c
-	../workers/client/schema.h
+	../workers/client/spatialos_client_schema.c
+	../workers/client/spatialos_client_schema.h
 )
 
 add_executable(ShovelerSchemaGenerator ${SHOVELER_GENERATOR_SRC})
-target_link_libraries(ShovelerSchemaGenerator shoveler_view_opengl shoveler_opengl PNG::PNG ZLIB::ZLIB shoveler_worker_common worker_sdk::c_worker_sdk)
+target_link_libraries(ShovelerSchemaGenerator shoveler_schema shoveler_opengl PNG::PNG ZLIB::ZLIB shoveler_worker_common worker_sdk::c_worker_sdk)
 
 set(SCHEMA_FILE ${CMAKE_CURRENT_BINARY_DIR}/shoveler.schema)
 

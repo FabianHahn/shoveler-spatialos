@@ -7,25 +7,27 @@
 #include <shoveler/component/model.h>
 #include <shoveler/component/light.h>
 #include <shoveler/component/tilemap_tiles.h>
+#include <shoveler/entity_component_id.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
+#include <shoveler/world.h>
 
-#include "schema.h"
+#include "spatialos_client_schema.h"
 
-static void freeComponentSet(void *componentSetPointer);
+static void freeComponentSet(void* componentSetPointer);
 
-int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object *outputComponentSetInterest)
+int shovelerClientComputeWorldInterest(ShovelerWorld* world, long long int clientEntityId, bool useAbsoluteConstraint, ShovelerVector3 absolutePosition, double viewDistance, Schema_Object* outputComponentSetInterest)
 {
 	// map from entity id to set of component IDs
-	GHashTable *dependencies = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, freeComponentSet);
+	GHashTable* dependencies = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, freeComponentSet);
 
 	GHashTableIter iter;
-	ShovelerViewQualifiedComponent *dependencyTarget;
-	GQueue *dependencySourceList;
-	g_hash_table_iter_init(&iter, view->reverseDependencies);
-	while(g_hash_table_iter_next(&iter, (gpointer *) &dependencyTarget, (gpointer *) &dependencySourceList)) {
+	ShovelerEntityComponentId* dependencyTarget;
+	GArray* dependencySourceList;
+	g_hash_table_iter_init(&iter, world->reverseDependencies);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &dependencyTarget, (gpointer*) &dependencySourceList)) {
 		int componentId = shovelerClientResolveComponentSchemaId(dependencyTarget->componentTypeId);
-		if(componentId == 0) {
+		if (componentId == 0) {
 			shovelerLogWarning(
 				"Found a dependency on component '%s' of entity %lld, but the component ID map doesn't contain an entry for this target, ignoring dependency.",
 				dependencyTarget->componentTypeId,
@@ -33,49 +35,49 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 			continue;
 		}
 
-		if(g_queue_get_length(dependencySourceList) == 0) {
+		if (dependencySourceList->len == 0) {
 			// nothing actually depends on this target
 			continue;
 		}
 
-		GHashTable *componentSet = g_hash_table_lookup(dependencies, &dependencyTarget->entityId);
-		if(componentSet == NULL) {
+		GHashTable* componentSet = g_hash_table_lookup(dependencies, &dependencyTarget->entityId);
+		if (componentSet == NULL) {
 			componentSet = g_hash_table_new_full(g_int_hash, g_int_equal, free, NULL);
 
-			long long int *entityIdStorage = malloc(sizeof(long long int));
+			long long int* entityIdStorage = malloc(sizeof(long long int));
 			*entityIdStorage = dependencyTarget->entityId;
 			g_hash_table_insert(dependencies, entityIdStorage, componentSet);
 		}
 
-		int *componentIdStorage = malloc(sizeof(int));
+		int* componentIdStorage = malloc(sizeof(int));
 		*componentIdStorage = componentId;
 		g_hash_table_add(componentSet, componentIdStorage);
 	}
 
 	int numQueries = 0;
 
-	long long int *entityId;
-	GHashTable *componentSet;
+	long long int* entityId;
+	GHashTable* componentSet;
 	g_hash_table_iter_init(&iter, dependencies);
-	while(g_hash_table_iter_next(&iter, (gpointer *) &entityId, (gpointer *) &componentSet)) {
-		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+	while (g_hash_table_iter_next(&iter, (gpointer*) &entityId, (gpointer*) &componentSet)) {
+		Schema_Object* query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
 		shovelerWorkerSchemaSetImprobableInterestQueryEntityIdConstraint(query, *entityId);
 
 		// always depend on Metadata
 		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, shovelerWorkerSchemaComponentIdImprobableMetadata);
 
 		GHashTableIter componentSetIter;
-		int *componentId;
+		int* componentId;
 		g_hash_table_iter_init(&componentSetIter, componentSet);
-		while(g_hash_table_iter_next(&componentSetIter, (gpointer *) &componentId, NULL)) {
+		while (g_hash_table_iter_next(&componentSetIter, (gpointer*) &componentId, NULL)) {
 			shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, *componentId);
 		}
 
 		numQueries++;
 	}
 
-	if(useAbsoluteConstraint) {
-		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+	if (useAbsoluteConstraint) {
+		Schema_Object* query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
 		shovelerWorkerSchemaSetImprobableInterestQueryBoxConstraint(
 			query,
 			/* centerX */ absolutePosition.values[0],
@@ -87,7 +89,7 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 		shovelerWorkerSchemaAddImprobableInterestQueryResultComponentSetId(query, shovelerWorkerSchemaComponentSetIdClientPlayerSpatialInterest);
 		numQueries++;
 	} else {
-		Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+		Schema_Object* query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
 		shovelerWorkerSchemaSetImprobableInterestQueryRelativeBoxConstraint(
 			query,
 			/* edgeLengthX */ viewDistance,
@@ -97,7 +99,7 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 		numQueries++;
 	}
 
-	Schema_Object *query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
+	Schema_Object* query = shovelerWorkerSchemaAddImprobableInterestComponentQuery(outputComponentSetInterest);
 	shovelerWorkerSchemaSetImprobableInterestQuerySelfConstraint(query);
 	shovelerWorkerSchemaAddImprobableInterestQueryResultComponentId(query, shovelerWorkerSchemaComponentIdClientHeartbeatPong);
 	numQueries++;
@@ -107,9 +109,9 @@ int shovelerClientComputeViewInterest(ShovelerView *view, long long int clientEn
 	return numQueries;
 }
 
-static void freeComponentSet(void *componentSetPointer)
+static void freeComponentSet(void* componentSetPointer)
 {
-	GHashTable *componentSet = (GHashTable *) componentSetPointer;
+	GHashTable* componentSet = (GHashTable*) componentSetPointer;
 
 	g_hash_table_destroy(componentSet);
 }

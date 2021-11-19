@@ -13,7 +13,7 @@
 #include <shoveler/image/png.h>
 #include <shoveler/image.h>
 #include <shoveler/log.h>
-#include <shoveler/schema.h>
+#include <shoveler/spatialos_schema.h>
 #include <shoveler/types.h>
 #include <shoveler/worker_log.h>
 

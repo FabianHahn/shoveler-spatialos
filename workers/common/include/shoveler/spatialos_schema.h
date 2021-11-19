@@ -1,5 +1,5 @@
-#ifndef SHOVELER_WORKER_COMMON_SCHEMA_H
-#define SHOVELER_WORKER_COMMON_SCHEMA_H
+#ifndef SHOVELER_WORKER_COMMON_SPATIALOS_SCHEMA_H
+#define SHOVELER_WORKER_COMMON_SPATIALOS_SCHEMA_H
 
 #include <improbable/c_schema.h>
 #include <improbable/c_worker.h>
@@ -43,6 +43,7 @@ enum {
 	shovelerWorkerSchemaComponentIdFontAtlas = 1351,
 	shovelerWorkerSchemaComponentIdFontAtlasTexture = 1352,
 	shovelerWorkerSchemaComponentIdTextTextureRenderer = 1353,
+    shovelerWorkerSchemaComponentIdTextSprite = 1354,
 };
 
 enum {
