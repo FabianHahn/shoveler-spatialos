@@ -48,8 +48,6 @@ typedef struct {
 } ClientContext;
 
 static const long long int bootstrapEntityId = 1;
-static const long long int bootstrapComponentId = 1334;
-static const long long int clientComponentId = 1335;
 static const int64_t clientPingTimeoutMs = 999;
 static const int64_t clientStatusTimeoutMs = 2449;
 static const float improbablePositionUpdateDistance = 1.0f;
@@ -129,7 +127,7 @@ int main(int argc, char** argv)
 
 	Worker_CommandRequest createClientEntityCommandRequest;
 	memset(&createClientEntityCommandRequest, 0, sizeof(Worker_CommandRequest));
-	createClientEntityCommandRequest.component_id = bootstrapComponentId;
+	createClientEntityCommandRequest.component_id = shovelerWorkerSchemaComponentIdBootstrap;
 	createClientEntityCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdCreateClientEntity;
 	createClientEntityCommandRequest.schema_type = Schema_CreateCommandRequest();
 
@@ -632,7 +630,7 @@ static void mouseButtonEvent(ShovelerInput* input, int button, int action, int m
 
 			Worker_CommandRequest digHoleCommandRequest;
 			memset(&digHoleCommandRequest, 0, sizeof(Worker_CommandRequest));
-			digHoleCommandRequest.component_id = bootstrapComponentId;
+			digHoleCommandRequest.component_id = shovelerWorkerSchemaComponentIdBootstrap;
 			digHoleCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdDigHole;
 			digHoleCommandRequest.schema_type = Schema_CreateCommandRequest();
 
@@ -660,7 +658,7 @@ static void mouseButtonEvent(ShovelerInput* input, int button, int action, int m
 
 			Worker_CommandRequest spawnCubeCommandRequest;
 			memset(&spawnCubeCommandRequest, 0, sizeof(Worker_CommandRequest));
-			spawnCubeCommandRequest.component_id = bootstrapComponentId;
+			spawnCubeCommandRequest.component_id = shovelerWorkerSchemaComponentIdBootstrap;
 			spawnCubeCommandRequest.command_index = shovelerWorkerSchemaBootstrapCommandIdClientSpawnCube;
 			spawnCubeCommandRequest.schema_type = Schema_CreateCommandRequest();
 
