@@ -207,3 +207,14 @@ While input is captured, the following bindings are available:
  - F10: Toggle between normal texture rendering and UV coordinate debug visualization mode.
  - F11: Toggle between windowed mode and fullscreen mode.
 
+## Architecture
+
+### Entity component system
+
+Shoveler comes with its own entity component system (ECS) that is [documented in the main shoveler repository](https://github.com/FabianHahn/shoveler#entity-component-system).
+In this projects, shoveler's ECS concepts are mapped onto SpatialOS concepts as follows:
+ - Shoveler's and SpatialOS's entity IDs are both 64-bit integers and are used interchangeably.
+ - There is a direct mapping between shoveler's component type IDs and SpatialOS component IDs defined [in the common worker library](workers/common/include/shoveler/spatialos_schema.h).
+ - Using the component ID mapping, a [schema generator](schema/schema_generator.c) uses shoveler's schema to generate a SpatialOS schema that is then compiled into a SpatialOS schema bundle. Shoveler's component type fields are used as SpatialOS component type fields. The only SpatialOS component field types used are the ones needed by shoveler component type fields.
+ - The game world is initialized using [seeder programs](seeders/) that write a SpatialOS snapshot with entities and components to later be loaded in a deployment.
+ - The [client](workers/client) executable uses a shoveler client system and shoveler's schema to create a shoveler world. Incoming ops from the SpatialOS worker SDK that add entities and components are then added to the shoveler world using the component ID mapping. Incoming component updates are translated into canonical shoveler component field updates. Non-canonical updates on authoritative components in the shoveler world are translated back into SpatialOS component updates that are sent back to the Runtime. This is how character movement works, which is currently client side authoritative.
