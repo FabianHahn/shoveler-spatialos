@@ -42,11 +42,8 @@ int main(int argc, char **argv)
 	int characterShiftAmount = atoi(argv[8]);
 	const char *snapshotFilename = argv[9];
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_SnapshotParameters snapshotParameters = {0};
 	snapshotParameters.snapshot_type = WORKER_SNAPSHOT_TYPE_BINARY;
-	snapshotParameters.default_component_vtable = &componentVtable;
 
 	Worker_SnapshotOutputStream *snapshotOutputStream = Worker_SnapshotOutputStream_Create(snapshotFilename, &snapshotParameters);
 	if (snapshotOutputStream == NULL) {

@@ -37,7 +37,7 @@ If you've just navigated to this repository on GitHub for the first time and are
 
 | Version | SpatialOS SDK | Project Structure | Release Notes |
 | --- | --- | --- | --- |
-| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C (version 15.0.1) | [FPL](https://networking.docs.improbable.io/spatialos-overview/v15.0/flexible-project-layout/introduction/), standalone | n/a (active development) |
+| [`master`](https://github.com/FabianHahn/shoveler-spatialos/tree/master) | C (version 16.0.0) | [FPL](https://networking.docs.improbable.io/spatialos-overview/v15.0/flexible-project-layout/introduction/), standalone | n/a (active development) |
 | [`0.6`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.6) | C (version 15.0.1) | [FPL](https://networking.docs.improbable.io/spatialos-overview/v15.0/flexible-project-layout/introduction/), standalone | SpatialOS 15, new shoveler ECS port, schema generation |
 | [`0.5`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.5) | C (version 14.5.0) | [FPL beta](https://networking.docs.improbable.io/spatialos-overview/v15.0/flexible-project-layout/introduction/) | pure C implementation, improvements to hearbeating and logging |
 | [`0.4`](https://github.com/FabianHahn/shoveler-spatialos/tree/v0.4) | C, C++ (version 14.4.1) | [FPL beta](https://networking.docs.improbable.io/spatialos-overview/v15.0/flexible-project-layout/introduction/) | C player client, simulated player bot client |

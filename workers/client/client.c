@@ -94,8 +94,6 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_LogsinkParameters logsink;
 	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
 	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
@@ -109,7 +107,6 @@ int main(int argc, char** argv)
 	connectionParameters.worker_type = "ShovelerClient";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_KCP;
 	connectionParameters.network.kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
-	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
 	connectionParameters.enable_logging_at_startup = true;
@@ -135,8 +132,7 @@ int main(int argc, char** argv)
 		connection,
 		bootstrapEntityId,
 		&createClientEntityCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
+		/* timeout_millis */ NULL);
 	if (createClientEntityCommandRequestId < 0) {
 		shovelerLogError("Failed to send create entity command.");
 		Worker_Connection_Destroy(connection);
@@ -547,10 +543,7 @@ static void updateAuthoritativeWorldComponentFunction(
 		update.component_id = shovelerClientResolveComponentSchemaId(component->type->id);
 		update.schema_type = componentUpdate;
 
-		Worker_UpdateParameters updateParameters;
-		updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-		Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
+		Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update);
 	}
 
 	// check if we also need to update our Improbable position
@@ -566,10 +559,7 @@ static void updateAuthoritativeWorldComponentFunction(
 			update.component_id = shovelerWorkerSchemaComponentIdImprobablePosition;
 			update.schema_type = componentUpdate;
 
-			Worker_UpdateParameters updateParameters;
-			updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-			Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update, &updateParameters);
+			Worker_Connection_SendComponentUpdate(context->connection, component->entityId, &update);
 
 			context->lastImprobablePosition = *position;
 		}
@@ -588,10 +578,7 @@ static void clientPingTick(void* clientContextPointer)
 	update.component_id = shovelerWorkerSchemaComponentIdClientHeartbeatPing;
 	update.schema_type = componentUpdate;
 
-	Worker_UpdateParameters updateParameters;
-	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update);
 	shovelerLogTrace("Sent client heartbeat ping update.");
 }
 
@@ -645,8 +632,7 @@ static void mouseButtonEvent(ShovelerInput* input, int button, int action, int m
 				context->connection,
 				bootstrapEntityId,
 				&digHoleCommandRequest,
-				/* timeout_millis */ NULL,
-				/* command_parameters */ NULL);
+				/* timeout_millis */ NULL);
 			if (digHoleCommandRequestId < 0) {
 				shovelerLogWarning("Failed to send dig hole command.");
 			}
@@ -681,8 +667,7 @@ static void mouseButtonEvent(ShovelerInput* input, int button, int action, int m
 				context->connection,
 				bootstrapEntityId,
 				&spawnCubeCommandRequest,
-				/* timeout_millis */ NULL,
-				/* command_parameters */ NULL);
+				/* timeout_millis */ NULL);
 			if (spawnCubeCommandRequestId < 0) {
 				shovelerLogWarning("Failed to send spawn cube command.");
 			}
@@ -711,10 +696,7 @@ static void updateInterest(ClientContext* context, bool absoluteInterest, Shovel
 	update.component_id = shovelerWorkerSchemaComponentIdImprobableInterest;
 	update.schema_type = componentUpdate;
 
-	Worker_UpdateParameters updateParameters;
-	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update);
 
 	shovelerLogInfo("Sent interest update with %d queries.", numQueries);
 }

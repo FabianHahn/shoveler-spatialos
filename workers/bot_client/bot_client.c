@@ -99,8 +99,6 @@ int main(int argc, char **argv) {
 		return EXIT_FAILURE;
 	}
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_LogsinkParameters logsink;
 	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
 	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
@@ -114,7 +112,6 @@ int main(int argc, char **argv) {
 	connectionParameters.worker_type = "ShovelerBotClient";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_KCP;
 	connectionParameters.network.kcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
-	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
 	connectionParameters.enable_logging_at_startup = true;
@@ -179,8 +176,7 @@ int main(int argc, char **argv) {
 		connection,
 		bootstrapEntityId,
 		&createClientEntityCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
+		/* timeout_millis */ NULL);
 	if(createClientEntityCommandRequestId < 0) {
 		shovelerLogError("Failed to send create entity command.");
 		Worker_Connection_Destroy(connection);
@@ -509,10 +505,7 @@ static void clientPingTick(void *clientContextPointer)
 	update.component_id = shovelerWorkerSchemaComponentIdClientHeartbeatPing;
 	update.schema_type = componentUpdate;
 
-	Worker_UpdateParameters updateParameters;
-	updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+	Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update);
 	shovelerLogTrace("Sent client heartbeat ping update.");
 }
 
@@ -579,10 +572,7 @@ static void move(ClientContext *context, Component *positionComponent, int dtMs)
 		update.component_id = shovelerWorkerSchemaComponentIdPosition;
 		update.schema_type = componentUpdate;
 
-		Worker_UpdateParameters updateParameters;
-		updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-		Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+		Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update);
 		shovelerLogTrace("Sent position update for client entity %lld to (%.2f, %.2f, %.2f).", context->clientEntityId, coordinates.values[0], coordinates.values[1], coordinates.values[2]);
 	}
 
@@ -601,10 +591,7 @@ static void move(ClientContext *context, Component *positionComponent, int dtMs)
 		update.component_id = shovelerWorkerSchemaComponentIdImprobablePosition;
 		update.schema_type = componentUpdate;
 
-		Worker_UpdateParameters updateParameters;
-		updateParameters.loopback = WORKER_COMPONENT_UPDATE_LOOPBACK_NONE;
-
-		Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update, &updateParameters);
+		Worker_Connection_SendComponentUpdate(context->connection, context->clientEntityId, &update);
 		shovelerLogTrace("Sent Improbable position update for client entity %lld to (%.2f, %.2f, %.2f).", context->clientEntityId, improbablePosition.values[0], improbablePosition.values[1], improbablePosition.values[2]);
 
 		context->lastImprobablePosition = improbablePosition;

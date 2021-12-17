@@ -38,8 +38,6 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_LogsinkParameters logsink;
 	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
 	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
@@ -53,7 +51,6 @@ int main(int argc, char **argv)
 	connectionParameters.worker_type = "ShovelerUpdater";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_TCP;
 	connectionParameters.network.tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
-	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
 	connectionParameters.enable_logging_at_startup = true;
@@ -202,8 +199,7 @@ static Worker_RequestId updateResource(UpdaterContext *context, int64_t entityId
 		context->connection,
 		bootstrapEntityId,
 		&updateResourceCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
+		/* timeout_millis */ NULL);
 }
 
 static GString *getImageData(ShovelerImage *image)

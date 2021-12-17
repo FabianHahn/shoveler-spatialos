@@ -24,11 +24,8 @@ int main(int argc, char **argv)
 
 	const char *filename = argv[1];
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_SnapshotParameters snapshotParameters = {0};
 	snapshotParameters.snapshot_type = WORKER_SNAPSHOT_TYPE_BINARY;
-	snapshotParameters.default_component_vtable = &componentVtable;
 
 	Worker_SnapshotOutputStream *snapshotOutputStream = Worker_SnapshotOutputStream_Create(filename, &snapshotParameters);
 	if (snapshotOutputStream == NULL) {

@@ -128,8 +128,6 @@ int main(int argc, char **argv)
 	}
 	shovelerLogInit("shoveler-spatialos/", SHOVELER_LOG_LEVEL_INFO_UP, logFile);
 
-	Worker_ComponentVtable componentVtable = {0};
-
 	Worker_LogsinkParameters logsink;
 	logsink.logsink_type = WORKER_LOGSINK_TYPE_CALLBACK;
 	logsink.filter_parameters.categories = WORKER_LOG_CATEGORY_NETWORK_STATUS | WORKER_LOG_CATEGORY_LOGIN;
@@ -143,7 +141,6 @@ int main(int argc, char **argv)
 	connectionParameters.worker_type = "ShovelerServer";
 	connectionParameters.network.connection_type = WORKER_NETWORK_CONNECTION_TYPE_TCP;
 	connectionParameters.network.tcp.security_type = WORKER_NETWORK_SECURITY_TYPE_INSECURE;
-	connectionParameters.default_component_vtable = &componentVtable;
 	connectionParameters.logsink_count = 1;
 	connectionParameters.logsinks = &logsink;
 	connectionParameters.enable_logging_at_startup = true;
@@ -185,8 +182,7 @@ int main(int argc, char **argv)
 		context.connection,
 		serverWorkerEntityId,
 		&assignPartitionCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
+		/* timeout_millis */ NULL);
 	if(assignPartitionCommandRequestId < 0) {
 		shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", serverWorkerEntityId);
 		Worker_Connection_Destroy(connection);
@@ -469,7 +465,7 @@ static void onComponentUpdate(ServerContext *context, const Worker_ComponentUpda
 		Schema_Object *pongFields = Schema_GetComponentUpdateFields(pongComponentUpdate.schema_type);
 		Schema_AddInt64(pongFields, shovelerWorkerSchemaClientHeartbeatPongFieldIdLastUpdatedTime, lastUpdatedTime);
 
-		Worker_Connection_SendComponentUpdate(context->connection, op->entity_id, &pongComponentUpdate, /* update_parameters */ NULL);
+		Worker_Connection_SendComponentUpdate(context->connection, op->entity_id, &pongComponentUpdate);
 
 		Client *client = getOrCreateClient(context, op->entity_id);
 		client->lastPong = g_get_monotonic_time();
@@ -719,8 +715,7 @@ static void onCreateClientEntityRequest(ServerContext *context, const Worker_Com
 		context->connection,
 		op->caller_worker_entity_id,
 		&assignPartitionCommandRequest,
-		/* timeout_millis */ NULL,
-		/* command_parameters */ NULL);
+		/* timeout_millis */ NULL);
 	if(assignPartitionCommandRequestId < 0) {
 		shovelerLogError("Failed to send assign partition command to worker entity %"PRId64".", op->caller_worker_entity_id);
 		Worker_Connection_SendCommandFailure(context->connection, op->request_id, "entity creation failure");
@@ -913,7 +908,7 @@ static void onDigHoleRequest(ServerContext *context, const Worker_CommandRequest
 	Schema_AddBytes(tilemapTilesFields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetRows, tilesetRowsBuffer, tiles->tilesetRows->len);
 	Schema_AddBytes(tilemapTilesFields, shovelerWorkerSchemaTilemapTilesFieldIdTilesetIds, tilesetIdsBuffer, tiles->tilesetIds->len);
 
-	Worker_Connection_SendComponentUpdate(context->connection, chunkBackgroundEntityId, &tilemapTilesUpdate, /* update_parameters */ NULL);
+	Worker_Connection_SendComponentUpdate(context->connection, chunkBackgroundEntityId, &tilemapTilesUpdate);
 
 	Worker_CommandResponse commandResponse;
 	commandResponse.component_id = op->request.component_id;
@@ -951,7 +946,7 @@ static void onUpdateResourceRequest(ServerContext *context, const Worker_Command
 	memcpy(resourceBuffer, contentBytes, contentLength);
 	Schema_AddBytes(resourceFields, shovelerWorkerSchemaResourceFieldIdBuffer, resourceBuffer, contentLength);
 
-	Worker_Connection_SendComponentUpdate(context->connection, resourceEntityId, &resourceUpdate, /* update_parameters */ NULL);
+	Worker_Connection_SendComponentUpdate(context->connection, resourceEntityId, &resourceUpdate);
 
 	Worker_CommandResponse commandResponse;
 	commandResponse.component_id = op->request.component_id;
