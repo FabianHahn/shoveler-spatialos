@@ -18,6 +18,8 @@ add_custom_command(OUTPUT ${SCHEMA_FILE}
 
 if(MSVC)
 	set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/windows/schema_compiler.exe)
+elseif(APPLE)
+	set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/macos/schema_compiler)
 else()
 	set(SCHEMA_COMPILER ${CMAKE_BINARY_DIR}/external/schema_compiler/linux/schema_compiler)
 endif()
