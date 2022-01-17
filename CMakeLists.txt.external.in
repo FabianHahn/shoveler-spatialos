@@ -21,6 +21,15 @@ ExternalProject_Add(spatialos_worker_sdk_linux
 	INSTALL_COMMAND ""
 )
 
+ExternalProject_Add(spatialos_worker_sdk_macos
+	PREFIX worker_sdk/macos
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c-static-x86_64-clang-macos ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR worker_sdk/macos
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
 ExternalProject_Add(spatialos_worker_sdk_windows_debug
 	PREFIX worker_sdk/windows/debug
 	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip worker_sdk c-static-x86_64-vc141_mdd-win32 ${SPATIALOS_SDK_VERSION} .
@@ -57,6 +66,15 @@ ExternalProject_Add(spatialos_schema_compiler_linux
 	INSTALL_COMMAND ""
 )
 
+ExternalProject_Add(spatialos_schema_compiler_macos
+	PREFIX schema_compiler/macos
+	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip tools schema_compiler-x86_64-macos ${SPATIALOS_SDK_VERSION} .
+	DOWNLOAD_DIR schema_compiler/macos
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+)
+
 ExternalProject_Add(spatialos_schema_compiler_windows
 	PREFIX schema_compiler/windows
 	DOWNLOAD_COMMAND spatial package get --worker_package_timeout_s 60m --force --unzip tools schema_compiler-x86_64-win32 ${SPATIALOS_SDK_VERSION} .
@@ -65,4 +83,3 @@ ExternalProject_Add(spatialos_schema_compiler_windows
 	BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 )
-

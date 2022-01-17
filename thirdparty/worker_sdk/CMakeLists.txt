@@ -23,6 +23,24 @@ if(MSVC)
 			IMPORTED_LOCATION_RELEASE ${LIB_IMPROBABLE_WORKER_RELEASE}
 			INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_C_HEADERS}")
 	target_link_libraries(worker_sdk::c_worker_sdk INTERFACE worker_sdk::ssl zlibstatic)
+elseif(APPLE)
+	set(WORKER_SDK_DIR "${CMAKE_BINARY_DIR}/external/worker_sdk/macos")
+
+	# Find all the worker SDK libraries.
+	find_package(Threads)
+	find_library(LIB_IMPROBABLE_WORKER improbable_worker PATHS "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
+	find_library(LIB_SSL ssl PATHS "${WORKER_SDK_DIR}" NO_DEFAULT_PATH REQUIRED)
+
+	# Worker SDK targets.
+	add_library(worker_sdk::ssl STATIC IMPORTED)
+	set_target_properties(worker_sdk::ssl PROPERTIES
+		IMPORTED_LOCATION ${LIB_SSL})
+
+	add_library(worker_sdk::c_worker_sdk STATIC IMPORTED GLOBAL)
+	set_target_properties(worker_sdk::c_worker_sdk PROPERTIES
+			IMPORTED_LOCATION ${LIB_IMPROBABLE_WORKER}
+			INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_C_HEADERS}")
+	target_link_libraries(worker_sdk::c_worker_sdk INTERFACE worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 else()
 	set(WORKER_SDK_DIR "${CMAKE_BINARY_DIR}/external/worker_sdk/linux")
 
@@ -42,4 +60,3 @@ else()
 			INTERFACE_INCLUDE_DIRECTORIES "${WORKER_SDK_C_HEADERS}")
 	target_link_libraries(worker_sdk::c_worker_sdk INTERFACE worker_sdk::ssl zlibstatic ${CMAKE_DL_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 endif()
-
