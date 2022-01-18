@@ -43,6 +43,16 @@
           "${IMPROBABLE_RECEPTIONIST_HOST}",
           "${IMPROBABLE_RECEPTIONIST_PORT}"
         ]
+      },
+      "macos": {
+        "local_build_directory": "../../build/workers/server/assembly",
+        "command": "ShovelerServer",
+        "arguments": [
+          "${IMPROBABLE_LOG_FILE}",
+          "${IMPROBABLE_WORKER_ID}",
+          "${IMPROBABLE_RECEPTIONIST_HOST}",
+          "${IMPROBABLE_RECEPTIONIST_PORT}"
+        ]
       }
     },
     "cloud_deployment": {
