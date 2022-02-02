@@ -5,16 +5,16 @@ set -e
 cd "$(dirname "$0")"
 
 INSPECTOR_DIR=".inspector"
-INSPECTOR_VERSION="15.1.0"
+INSPECTOR_VERSION="16.0.0-preview-2"
 
 if [ "$(uname)" == "Darwin" ]; then
-	PACKAGE_OS_NAME="x86_64-macos"
+	PACKAGE_OS_NAME="inspector_x86_64-macos"
 	BINARY_NAME="inspector"
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-	PACKAGE_OS_NAME="x86_64-linux"
+	PACKAGE_OS_NAME="inspector_x86_64-linux"
 	BINARY_NAME="inspector"
 else
-	PACKAGE_OS_NAME="x86_64-win32"
+	PACKAGE_OS_NAME="inspector_x86_64-win32"
 	BINARY_NAME="inspector.exe"
 fi
 
