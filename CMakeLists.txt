@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(shoveler-spatialos)
 
-set(SPATIALOS_SDK_VERSION "16.0.0-b1604-3d5c199-WORKER-SNAPSHOT")
+set(SPATIALOS_SDK_VERSION "16.1.0")
 
 # download external dependencies at configuration time
 configure_file(CMakeLists.txt.external.in external/CMakeLists.txt)
@@ -22,6 +22,12 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(SHOVELER_BUILD_TESTS OFF CACHE BOOL "Disable building shoveler tests")
 set(SHOVELER_BUILD_EXAMPLES OFF CACHE BOOL "Disable building shoveler examples")
+
+find_program(GOLANG_CLI
+    go
+    HINTS ENV GOPATH /usr/bin /opt/bin /usr/local/bin /snap/bin /snap/local/bin
+    REQUIRED)
+message("Found golang in ${GOLANG_CLI}")
 
 add_subdirectory(assets)
 add_subdirectory(schema)
