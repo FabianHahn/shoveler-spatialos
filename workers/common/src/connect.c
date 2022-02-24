@@ -17,46 +17,46 @@
 #define PATH_SEPARATOR '/'
 #endif
 
-static void generateAuthorizationToken(char* output_token, const char* program_path,
-	const char* worker_id, const char* worker_type, const char* runtime_id) {
-	char program_parent_path[4096];
-	char jwtmaker_path[4500];
-	char private_key_path[4500];
+static void generateAuthorizationToken(char* outputToken, const char* programPath,
+	const char* workerId, const char* workerType, const char* runtimeId) {
+	char programParentPath[4096];
+	char jwtmakerPath[4500];
+	char privateKeyPath[4500];
 	
-	strcpy(program_parent_path, program_path);
+	strcpy(programParentPath, programPath);
 	
-	char* program_path_end = strrchr(program_path, PATH_SEPARATOR);
-	if(program_path_end == NULL) {
-		strcpy(program_parent_path, ".");
+	char* programPath_end = strrchr(programPath, PATH_SEPARATOR);
+	if(programPath_end == NULL) {
+		strcpy(programParentPath, ".");
 	} else {
-		program_parent_path[program_path_end - program_path] = '\0';
+		programParentPath[programPath_end - programPath] = '\0';
 	}
-	snprintf(jwtmaker_path, sizeof(jwtmaker_path), "%s%cjwtmaker", 
-		program_parent_path, PATH_SEPARATOR);
-	snprintf(private_key_path, sizeof(jwtmaker_path), "%s%cprivate_key.pem", 
-		program_parent_path, PATH_SEPARATOR);
+	snprintf(jwtmakerPath, sizeof(jwtmakerPath), "%s%cjwtmaker", 
+		programParentPath, PATH_SEPARATOR);
+	snprintf(privateKeyPath, sizeof(jwtmakerPath), "%s%cprivate_key.pem", 
+		programParentPath, PATH_SEPARATOR);
 
-	char jwtmaker_command[10000];
-	snprintf(jwtmaker_command, sizeof(jwtmaker_command), 
+	char jwtmakerCommand[10000];
+	snprintf(jwtmakerCommand, sizeof(jwtmakerCommand), 
 		"%s -worker_id %s -worker_type %s -runtime_id %s -pem_private_key_file %s",
-		jwtmaker_path,
-		worker_id, worker_type, runtime_id,
-		private_key_path);
+		jwtmakerPath,
+		workerId, workerType, runtimeId,
+		privateKeyPath);
 	
-	FILE* pipe = popen(jwtmaker_command, "r");
+	FILE* pipe = popen(jwtmakerCommand, "r");
 	if(pipe != NULL) {
-		if(fgets(output_token, MAXIMUM_AUTHORIZATION_TOKEN_SIZE, pipe) == NULL) {
+		if(fgets(outputToken, MAXIMUM_AUTHORIZATION_TOKEN_SIZE, pipe) == NULL) {
 			shovelerLogError("Failed to read authorization token: %s\n", strerror(errno));
 			exit(1);
 		}
 		// Remove the extra newline
-		int token_size = strlen(output_token);
-		if(token_size > 0 && output_token[token_size-1] == '\n') {
-			output_token[token_size-1] = '\0';
+		int tokenSize = strlen(outputToken);
+		if(tokenSize > 0 && outputToken[tokenSize-1] == '\n') {
+			outputToken[tokenSize-1] = '\0';
 		}
 	}
 	else {
-		shovelerLogError("Failed to open authorization token helper %s: %s\n", jwtmaker_path, strerror(errno));
+		shovelerLogError("Failed to open authorization token helper %s: %s\n", jwtmakerPath, strerror(errno));
 		exit(1);
 	}
 }
