@@ -1,5 +1,6 @@
 #include "shoveler/connect.h"
 
+#include <errno.h>
 #include <stdlib.h> // atoi rand
 #include <string.h> // strlen
 
@@ -7,6 +8,58 @@
 
 #include <improbable/c_worker.h>
 #include <shoveler/log.h>
+
+#define MAXIMUM_AUTHORIZATION_TOKEN_SIZE 512
+
+#ifdef WIN32
+#define PATH_SEPARATOR '\\'
+#else
+#define PATH_SEPARATOR '/'
+#endif
+
+static void generateAuthorizationToken(char* output_token, const char* program_path,
+	const char* worker_id, const char* worker_type, const char* runtime_id) {
+	char program_parent_path[4096];
+	char jwtmaker_path[4500];
+	char private_key_path[4500];
+	
+	strcpy(program_parent_path, program_path);
+	
+	char* program_path_end = strrchr(program_path, PATH_SEPARATOR);
+	if(program_path_end == NULL) {
+		strcpy(program_parent_path, ".");
+	} else {
+		program_parent_path[program_path_end - program_path] = '\0';
+	}
+	snprintf(jwtmaker_path, sizeof(jwtmaker_path), "%s%cjwtmaker", 
+		program_parent_path, PATH_SEPARATOR);
+	snprintf(private_key_path, sizeof(jwtmaker_path), "%s%cprivate_key.pem", 
+		program_parent_path, PATH_SEPARATOR);
+
+	char jwtmaker_command[10000];
+	snprintf(jwtmaker_command, sizeof(jwtmaker_command), 
+		"%s -worker_id %s -worker_type %s -runtime_id %s -pem_private_key_file %s",
+		jwtmaker_path,
+		worker_id, worker_type, runtime_id,
+		private_key_path);
+	
+	FILE* pipe = popen(jwtmaker_command, "r");
+	if(pipe != NULL) {
+		if(fgets(output_token, MAXIMUM_AUTHORIZATION_TOKEN_SIZE, pipe) == NULL) {
+			shovelerLogError("Failed to read authorization token: %s\n", strerror(errno));
+			exit(1);
+		}
+		// Remove the extra newline
+		int token_size = strlen(output_token);
+		if(token_size > 0 && output_token[token_size-1] == '\n') {
+			output_token[token_size-1] = '\0';
+		}
+	}
+	else {
+		shovelerLogError("Failed to open authorization token helper %s: %s\n", jwtmaker_path, strerror(errno));
+		exit(1);
+	}
+}
 
 Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffset, Worker_ConnectionParameters *connectionParameters)
 {
@@ -103,9 +156,15 @@ Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffs
 			return NULL;
 		}
 
+		shovelerLogInfo("Generating authorization token.");
+		char token[MAXIMUM_AUTHORIZATION_TOKEN_SIZE+1];
+		generateAuthorizationToken(token, argv[0], workerId, connectionParameters->worker_type, "ShovelerTest");
+		shovelerLogInfo("Authorization token(%d): %s<<", strlen(token), token);
+		connectionParameters->worker_auth_token = token;
+
 		shovelerLogInfo("Connecting to local deployment...\n\tWorker ID: %s\n\tAddress: %s:%d", workerId, hostname, port);
 
-		Worker_ConnectionFuture *connectionFuture = Worker_ConnectAsync(hostname, port, workerId, connectionParameters);
+		Worker_ConnectionFuture *connectionFuture = Worker_ConnectDirectAsync(hostname, port, connectionParameters);
 		Worker_Connection *connection = Worker_ConnectionFuture_Get(connectionFuture, /* timeoutMillis */ NULL);
 
 		Worker_ConnectionFuture_Destroy(connectionFuture);

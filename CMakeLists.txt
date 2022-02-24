@@ -30,6 +30,7 @@ find_program(GOLANG_CLI
 message("Found golang in ${GOLANG_CLI}")
 
 add_subdirectory(assets)
+add_subdirectory(jwtmaker)
 add_subdirectory(schema)
 add_subdirectory(seeders)
 add_subdirectory(shoveler)

@@ -10,18 +10,6 @@ import (
   "io/ioutil"
 )
 
-var signKey = ``
-
-/*
-// "worker_id": Must be present. Must be a string.
-// "worker_type": Must be present. Must be a string.
-// "runtime_id": Must be present. Must be a string.
-// "player_identity": Optional. If present, must be an object.
-// "player_identity.id": Optional. If present, must be a string.
-// "player_identity.provider": Optional. If present, must be a string.
-// "player_identity.metadata": Optional. If present, must be a string.
-*/
-
 type TokenParams struct {
   worker_id string
   worker_type string
@@ -95,8 +83,9 @@ func ParseParams(params *TokenParams) {
 
 func CreateToken(params TokenParams, privateKeyPem []byte) (string, error) {
   tokenClaims := jwt.MapClaims{}
-  tokenClaims["token_id"] = MakeTokenId()
-  tokenClaims["exp"] = time.Now().Add(time.Minute * 15).Unix()
+  tokenClaims["jti"] = MakeTokenId()
+  tokenClaims["iat"] = time.Now().Unix()
+  tokenClaims["exp"] = time.Now().Add(time.Second * 30).Unix()
   tokenClaims["worker_id"] = params.worker_id
   tokenClaims["worker_type"] = params.worker_type
   tokenClaims["runtime_id"] = params.runtime_id
@@ -115,7 +104,7 @@ func CreateToken(params TokenParams, privateKeyPem []byte) (string, error) {
   if err != nil {
 	  return "", err
   }
-  token := jwt.NewWithClaims(jwt.SigningMethodRS512, tokenClaims)
+  token := jwt.NewWithClaims(jwt.SigningMethodRS256, tokenClaims)
   signedToken, err := token.SignedString(key)
   return signedToken, err
 }
