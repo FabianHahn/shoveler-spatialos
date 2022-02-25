@@ -20,8 +20,8 @@ void generateAuthorizationToken(char* outputToken, const char* programPath,
 	} else {
 		programParentPath[programPath_end - programPath] = '\0';
 	}
-	snprintf(jwtmakerPath, sizeof(jwtmakerPath), "%s%cjwtmaker", 
-		programParentPath, PATH_SEPARATOR);
+	snprintf(jwtmakerPath, sizeof(jwtmakerPath), "%s%cjwtmaker%s", 
+		programParentPath, PATH_SEPARATOR, EXECUTABLE_EXTENSION);
 	snprintf(privateKeyPath, sizeof(jwtmakerPath), "%s%cprivate_key.pem", 
 		programParentPath, PATH_SEPARATOR);
 
