@@ -5,6 +5,7 @@ set(SHOVELER_WORKER_COMMON_SRC
 	include/shoveler/connect.h
 	include/shoveler/spatialos_schema.h
 	include/shoveler/worker_log.h
+	src/authorization_token.c
 	src/configuration.c
 	src/connect.c
 	src/spatialos_schema.c
