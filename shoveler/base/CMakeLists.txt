@@ -6,6 +6,7 @@ set(SHOVELER_BASE_SRC
 	src/colliders.c
 	src/color.c
 	src/compression.c
+	src/event_loop.c
 	src/executor.c
 	src/file.c
 	src/font.c
@@ -14,6 +15,8 @@ set(SHOVELER_BASE_SRC
 	src/image.c
 	src/input_stream.c
 	src/log.c
+	src/map.c
+	src/map_chunk.c
 	src/projection.c
 	src/resources.c
 	include/shoveler/collider/box.h
@@ -25,6 +28,7 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/color.h
 	include/shoveler/compression.h
 	include/shoveler/constants.h
+	include/shoveler/event_loop.h
 	include/shoveler/executor.h
 	include/shoveler/file.h
 	include/shoveler/font.h
@@ -34,6 +38,11 @@ set(SHOVELER_BASE_SRC
 	include/shoveler/image.h
 	include/shoveler/input_stream.h
 	include/shoveler/log.h
+	include/shoveler/map.h
+	include/shoveler/map_chunk.h
+	include/shoveler/map_dimensions.h
+	include/shoveler/map_tile.h
+	include/shoveler/position_quantizer.h
 	include/shoveler/projection.h
 	include/shoveler/resources.h
 	include/shoveler/types.h
@@ -50,6 +59,7 @@ set(SHOVELER_BASE_TEST_SRC
 	src/frustum_test.cpp
 	src/image_testing.cpp
 	src/image_testing.h
+	src/position_quantizer_test.cpp
 	src/resources_test.cpp
 	src/test.cpp
 	src/types_test.cpp

@@ -25,6 +25,7 @@ static ShovelerComponent* getComponent(
     void* userData);
 static void updateAuthoritativeComponent(
     ShovelerComponent* component,
+    int fieldId,
     const ShovelerComponentField* field,
     const ShovelerComponentFieldValue* value,
     void* userData);
@@ -326,7 +327,6 @@ TEST_F(ShovelerComponentTest, updateConfigurationLiveWithoutPropagation) {
 
 TEST_F(ShovelerComponentTest, updateComponentUpdatesReverseDependency) {
   double dt = 1234.5;
-  const char* newConfigurationValue = "new value";
 
   shovelerComponentUpdateCanonicalFieldEntityId(
       component1, COMPONENT_TYPE_1_FIELD_DEPENDENCY_LIVE_UPDATE, entityId2);
@@ -504,6 +504,7 @@ static ShovelerComponent* getComponent(
 
 static void updateAuthoritativeComponent(
     ShovelerComponent* component,
+    int fieldId,
     const ShovelerComponentField* field,
     const ShovelerComponentFieldValue* value,
     void* testPointer) {
