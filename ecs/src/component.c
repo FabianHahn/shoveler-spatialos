@@ -137,11 +137,18 @@ bool shovelerComponentUpdateField(
 
   if (!isCanonical) {
     if (!component->isAuthoritative) {
+      shovelerLogWarning(
+          "Skipping non-canonical update to entity %lld component %s field %s(%d) that is not "
+          "authoritative.",
+          component->entityId,
+          component->type->id,
+          field->name,
+          fieldId);
       return false;
     }
 
     component->worldAdapter->updateAuthoritativeComponent(
-        component, field, value, component->worldAdapter->userData);
+        component, fieldId, field, value, component->worldAdapter->userData);
   }
 
   bool wasActive = component->systemData != NULL;

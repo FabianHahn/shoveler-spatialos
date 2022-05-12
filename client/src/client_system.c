@@ -48,6 +48,7 @@
 static void clientSystemUpdateAuthoritativeComponent(
     ShovelerWorld* world,
     ShovelerComponent* component,
+    int fieldId,
     const ShovelerComponentField* field,
     const ShovelerComponentFieldValue* value,
     void* clientSystemPointer);
@@ -134,6 +135,7 @@ void shovelerClientSystemFree(ShovelerClientSystem* clientSystem) {
 static void clientSystemUpdateAuthoritativeComponent(
     ShovelerWorld* world,
     ShovelerComponent* component,
+    int fieldId,
     const ShovelerComponentField* field,
     const ShovelerComponentFieldValue* value,
     void* clientSystemPointer) {
@@ -171,8 +173,7 @@ static void clientSystemUpdateWorldCounters(void* clientSystemPointer) {
     clientSystem->lastWorldCounters.numComponents = clientSystem->world->numComponents;
     clientSystem->lastWorldCounters.numComponentDependencies =
         clientSystem->world->numComponentDependencies;
-    clientSystem->lastWorldCounters.numActiveComponents =
-        clientSystem->system->numActiveComponents;
+    clientSystem->lastWorldCounters.numActiveComponents = clientSystem->system->numActiveComponents;
 
     shovelerLogInfo(
         "World changed: %u entities, %u components (%u dependencies, %u active).",
