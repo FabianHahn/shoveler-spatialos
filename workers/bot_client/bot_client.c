@@ -68,7 +68,6 @@ static bool validatePosition(ClientContext *context, ShovelerVector3 coordinates
 static bool validatePoint(ClientContext *context, ShovelerVector3 coordinates);
 static int64_t getChunkBackgroundEntityId(int chunkX, int chunkZ);
 static TilemapTiles *getChunkBackgroundTiles(ClientContext *context, int64_t chunkBackgroundEntityId);
-static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ);
 static void worldToTile(double x, double z, int *outputChunkX, int *outputChunkZ, int *outputTileX, int *outputTileZ);
 static void freeEntity(void *entityPointer);
 static void freeComponent(void *componentPointer);
@@ -687,13 +686,6 @@ static TilemapTiles *getChunkBackgroundTiles(ClientContext *context, int64_t chu
 	}
 
 	return &component->tilemapTiles;
-}
-
-static ShovelerVector2 tileToWorld(int chunkX, int chunkZ, int tileX, int tileZ)
-{
-	return shovelerVector2(
-		(float) (-halfMapWidth + chunkX * chunkSize + tileX),
-		(float) (-halfMapHeight + chunkZ * chunkSize + tileZ));
 }
 
 static void worldToTile(double x, double z, int *outputChunkX, int *outputChunkZ, int *outputTileX, int *outputTileZ)

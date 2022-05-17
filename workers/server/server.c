@@ -1011,8 +1011,6 @@ static ShovelerVector3 getNewPlayerPosition(ServerContext *context, Schema_Objec
 		int startingTileX = rand() % 10;
 		int startingTileZ = rand() % 10;
 		unsigned char tilesetColumn = tilemapTiles->tilesetColumns->str[startingTileZ * chunkSize + startingTileX];
-		unsigned char tilesetRows = tilemapTiles->tilesetRows->str[startingTileZ * chunkSize + startingTileX];
-		unsigned char tilesetIds = tilemapTiles->tilesetIds->str[startingTileZ * chunkSize + startingTileX];
 		if(tilesetColumn > 2) { // not grass
 			continue;
 		}
