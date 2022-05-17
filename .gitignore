@@ -3,6 +3,7 @@
 *.svg
 *.png
 *.dot
+bazel-*
 build
 logs
 cmake-*
