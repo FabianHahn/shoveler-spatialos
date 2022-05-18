@@ -30,9 +30,9 @@ local_repository(
 # Since we inherit all of shoveler's dependencies, we also steal its thirdparty local workspace.
 http_archive(
     name = "shoveler_thirdparty",
-    sha256 = "669a1ba09ee05dc877c5e628ee562ee011301c994ca30ef070110811b1495532",
-    strip_prefix = "shoveler-51369496f98f946c9085eaec87a928bf1c08831d/thirdparty",
-    url = "https://github.com/FabianHahn/shoveler/archive/51369496f98f946c9085eaec87a928bf1c08831d.tar.gz",
+    sha256 = "b3c10c4658e7f5db77ebeaf10aeb20f2d1796bacc737751d58a1352d4ff80791",
+    strip_prefix = "shoveler-8d0d5202e4654ada69a44c9827e4bcf6cebade47/thirdparty",
+    url = "https://github.com/FabianHahn/shoveler/archive/8d0d5202e4654ada69a44c9827e4bcf6cebade47.tar.gz",
 )
 
 # We make thirdparty/ its own bazel workspace because it allows to run `bazel build ...` without
@@ -70,9 +70,9 @@ http_archive(
     repo_mapping = {
         "@thirdparty": "@shoveler_thirdparty",
     },
-    sha256 = "669a1ba09ee05dc877c5e628ee562ee011301c994ca30ef070110811b1495532",
-    strip_prefix = "shoveler-51369496f98f946c9085eaec87a928bf1c08831d",
-    url = "https://github.com/FabianHahn/shoveler/archive/51369496f98f946c9085eaec87a928bf1c08831d.tar.gz",
+    sha256 = "b3c10c4658e7f5db77ebeaf10aeb20f2d1796bacc737751d58a1352d4ff80791",
+    strip_prefix = "shoveler-8d0d5202e4654ada69a44c9827e4bcf6cebade47",
+    url = "https://github.com/FabianHahn/shoveler/archive/8d0d5202e4654ada69a44c9827e4bcf6cebade47.tar.gz",
 )
 
 http_archive(
@@ -128,15 +128,7 @@ spatial_package(
 )
 
 spatial_package(
-    name = "spatialos_worker_sdk_windows_debug",
-    package_name = "c-static-x86_64-vc141_mdd-win32",
-    build_file = "@thirdparty//worker_sdk/static:BUILD",
-    package_type = "worker_sdk",
-    package_version = SPATIALOS_SDK_VERSION,
-)
-
-spatial_package(
-    name = "spatialos_worker_sdk_windows_release",
+    name = "spatialos_worker_sdk_windows",
     package_name = "c-static-x86_64-vc141_md-win32",
     build_file = "@thirdparty//worker_sdk/static:BUILD",
     package_type = "worker_sdk",

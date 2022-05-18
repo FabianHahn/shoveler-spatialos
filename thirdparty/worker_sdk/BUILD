@@ -6,8 +6,7 @@ cc_library(
     deps = select({
         "@//:linux": ["@spatialos_worker_sdk_linux//:static"],
         "@//:macos": ["@spatialos_worker_sdk_macos//:static"],
-        "@//:windows_debug": ["@spatialos_worker_sdk_windows_debug//:static"],
-        "@//:windows_release": ["@spatialos_worker_sdk_windows_release//:static"],
+        "@//:windows": ["@spatialos_worker_sdk_windows//:static"],
     }) + [
         "@spatialos_worker_sdk_c_headers//:headers",
     ],

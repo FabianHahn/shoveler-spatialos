@@ -18,6 +18,14 @@ config_setting(
 )
 
 config_setting(
+    name = "windows_fastbuild",
+    constraint_values = ["@bazel_tools//platforms:windows"],
+    values = {
+        "compilation_mode": "fastbuild",
+    },
+)
+
+config_setting(
     name = "windows_debug",
     constraint_values = ["@bazel_tools//platforms:windows"],
     values = {
