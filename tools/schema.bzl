@@ -9,12 +9,15 @@ SchemaInfo = provider(
 )
 
 def _schema_library_impl(ctx):
+    schema_files_depset = depset(
+        ctx.files.srcs,
+        transitive = [dep[SchemaInfo].schema_files for dep in ctx.attr.deps],
+    )
+
     return [
+        DefaultInfo(files = schema_files_depset),
         SchemaInfo(
-            schema_files = depset(
-                ctx.files.srcs,
-                transitive = [dep[SchemaInfo].schema_files for dep in ctx.attr.deps],
-            ),
+            schema_files = schema_files_depset,
             schema_paths = depset(
                 [ctx.file.schema_path.path],
                 transitive = [dep[SchemaInfo].schema_paths for dep in ctx.attr.deps],
