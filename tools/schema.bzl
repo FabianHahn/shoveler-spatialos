@@ -35,8 +35,9 @@ schema_library = rule(
 )
 
 def _generated_schema_library_impl(ctx):
-    output_file = ctx.actions.declare_file(ctx.label.name + ".schema")
-    out_dir = paths.join(ctx.bin_dir.path, ctx.label.package)
+    schema_file_name = ctx.label.name + ".schema"
+    output_file = ctx.actions.declare_file(schema_file_name)
+    out_dir = output_file.path[:-len(schema_file_name)]
 
     ctx.actions.run(
         mnemonic = "SchemaGenerator",
