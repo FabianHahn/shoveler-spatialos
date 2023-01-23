@@ -23,7 +23,14 @@ set(CMAKE_CXX_STANDARD 11)
 set(SHOVELER_BUILD_TESTS OFF CACHE BOOL "Disable building shoveler tests")
 set(SHOVELER_BUILD_EXAMPLES OFF CACHE BOOL "Disable building shoveler examples")
 
+find_program(GOLANG_CLI
+    go
+    HINTS ENV GOPATH /usr/bin /opt/bin /usr/local/bin /snap/bin /snap/local/bin
+    REQUIRED)
+message("Found golang in ${GOLANG_CLI}")
+
 add_subdirectory(assets)
+add_subdirectory(jwtmaker)
 add_subdirectory(schema)
 add_subdirectory(seeders)
 add_subdirectory(shoveler)

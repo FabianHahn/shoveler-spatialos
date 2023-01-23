@@ -6,6 +6,7 @@
 #include <glib.h>
 
 #include <improbable/c_worker.h>
+#include <shoveler/authorization_token.h>
 #include <shoveler/log.h>
 
 Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffset, Worker_ConnectionParameters *connectionParameters)
@@ -103,9 +104,15 @@ Worker_Connection *shovelerWorkerConnect(int argc, char **argv, int argumentOffs
 			return NULL;
 		}
 
+		shovelerLogInfo("Generating authorization token.");
+		char token[MAXIMUM_AUTHORIZATION_TOKEN_SIZE+1];
+		generateAuthorizationToken(token, argv[0], workerId, connectionParameters->worker_type);
+		shovelerLogInfo("Authorization token(%d): %s<<", strlen(token), token);
+		connectionParameters->worker_auth_token = token;
+
 		shovelerLogInfo("Connecting to local deployment...\n\tWorker ID: %s\n\tAddress: %s:%d", workerId, hostname, port);
 
-		Worker_ConnectionFuture *connectionFuture = Worker_ConnectAsync(hostname, port, workerId, connectionParameters);
+		Worker_ConnectionFuture *connectionFuture = Worker_ConnectDirectAsync(hostname, port, connectionParameters);
 		Worker_Connection *connection = Worker_ConnectionFuture_Get(connectionFuture, /* timeoutMillis */ NULL);
 
 		Worker_ConnectionFuture_Destroy(connectionFuture);
